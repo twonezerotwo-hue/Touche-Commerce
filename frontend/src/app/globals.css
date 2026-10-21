@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+/* ===========================================================================
+   TOUCHE COMMERCE — design tokens
+   Charcoal/navy surfaces, champagne highlights, restrained hairlines.
+   =========================================================================== */
+@theme {
+  --color-ink-950: #05070b;
+  --color-ink-900: #080c12;
+  --color-ink-850: #0b1017;
+  --color-ink-800: #0f151d;
+  --color-ink-700: #151d27;
+  --color-ink-600: #1d2833;
+
+  --color-mist-100: #edf1f5;
+  --color-mist-200: #d5dde6;
+  --color-mist-300: #b3bfcc;
+  --color-mist-500: #7d8b9b;
+  --color-mist-600: #5e6b79;
+
+  --color-gold-200: #efe0c2;
+  --color-gold-300: #dcc493;
+  --color-gold-400: #c8a96a;
+  --color-gold-500: #a98b52;
+
+  --color-jade-400: #61b99a;
+  --color-jade-500: #3f9a7c;
+  --color-amber-400: #d9a441;
+  --color-crimson-400: #d3766e;
+  --color-crimson-500: #b3524b;
+
+  --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+  --font-sans:
+    "Inter", "Segoe UI Variable Text", "Segoe UI", ui-sans-serif, system-ui, -apple-system,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    "Cascadia Mono", "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  * {
+    border-color: rgb(255 255 255 / 0.06);
+  }
+
+  html,
+  body {
+    min-height: 100%;
+  }
+
+  body {
+    background-color: var(--color-ink-950);
+    color: var(--color-mist-100);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: rgb(200 169 106 / 0.28);
+    color: var(--color-gold-200);
+  }
+
+  :focus-visible {
+    outline: 1px solid rgb(200 169 106 / 0.7);
+    outline-offset: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-ink-950);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-ink-600);
+    border-radius: 9999px;
+    border: 2px solid var(--color-ink-950);
+  }
+}
+
+@layer components {
+  /* Ambient depth: a faint navy wash and a hairline grid, no noise/animations. */
+  .app-canvas {
+    background-image:
+      radial-gradient(1100px 520px at 12% -10%, rgb(35 55 80 / 0.32), transparent 60%),
+      radial-gradient(720px 420px at 100% 0%, rgb(200 169 106 / 0.06), transparent 65%),
+      linear-gradient(180deg, rgb(8 12 18 / 0.94), rgb(5 7 11 / 1));
+    background-attachment: fixed;
+  }
+
+  .hairline-grid {
+    background-image:
+      linear-gradient(to right, rgb(255 255 255 / 0.028) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(255 255 255 / 0.028) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: linear-gradient(to bottom, black, transparent 85%);
+  }
+
+  .panel {
+    border: 1px solid rgb(255 255 255 / 0.06);
+    background: linear-gradient(180deg, rgb(19 27 36 / 0.72), rgb(11 16 23 / 0.86));
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.035),
+      0 22px 48px -32px rgb(0 0 0 / 0.9);
+  }
+
+  .eyebrow {
+    font-size: 0.6875rem;
+    line-height: 1rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-mist-500);
+  }
+
+  .rule {
+    height: 1px;
+    width: 100%;
+    background: linear-gradient(
+      to right,
+      rgb(255 255 255 / 0.09),
+      rgb(255 255 255 / 0.02) 60%,
+      transparent
+    );
+  }
+}

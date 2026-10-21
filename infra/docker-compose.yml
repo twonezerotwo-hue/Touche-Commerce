@@ -1,0 +1,47 @@
+# ===========================================================================
+# TOUCHE COMMERCE — local PostgreSQL (primary development path)
+#
+#   docker compose -f infra/docker-compose.yml up -d
+#   scripts/migrate.ps1            (or: bash scripts/migrate.sh)
+#
+# Credentials come from the repository .env (development-only values).
+# The init script creates the two least-privilege roles described in
+# docs/DECISIONS.md #4 and is only executed on an empty data volume.
+# ===========================================================================
+name: touche-commerce
+
+services:
+  postgres:
+    image: postgres:17.6-alpine
+    container_name: touche-commerce-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-touche_commerce}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:-touche_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-touche_dev_admin_pw_2026}
+      TOUCHE_DB_APP_USER: ${TOUCHE_DB_APP_USER:-touche_app}
+      TOUCHE_DB_APP_PASSWORD: ${TOUCHE_DB_APP_PASSWORD:-touche_dev_app_pw_2026}
+      TOUCHE_DB_MIGRATOR_USER: ${TOUCHE_DB_MIGRATOR_USER:-touche_migrator}
+      TOUCHE_DB_MIGRATOR_PASSWORD: ${TOUCHE_DB_MIGRATOR_PASSWORD:-touche_dev_migrator_pw_2026}
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../scripts/db:/opt/touche-db:ro
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h 127.0.0.1 -U ${POSTGRES_ADMIN_USER:-touche_admin} -d ${POSTGRES_DB:-touche_commerce}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  postgres-data:
+    name: touche-commerce-postgres-data

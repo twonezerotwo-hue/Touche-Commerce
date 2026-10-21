@@ -1,0 +1,329 @@
+{
+  "components": {
+    "schemas": {
+      "ErrorDetail": {
+        "description": "Machine readable error description.",
+        "properties": {
+          "code": {
+            "description": "Stable error code, e.g. NOT_READY.",
+            "title": "Code",
+            "type": "string"
+          },
+          "details": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional structured context.",
+            "title": "Details"
+          },
+          "message": {
+            "description": "Human readable message (safe to display).",
+            "title": "Message",
+            "type": "string"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Correlation id for support.",
+            "title": "Request Id"
+          },
+          "timestamp": {
+            "description": "UTC timestamp of the error.",
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "timestamp"
+        ],
+        "title": "ErrorDetail",
+        "type": "object"
+      },
+      "ErrorEnvelope": {
+        "description": "Every non-2xx response uses this envelope.",
+        "example": {
+          "error": {
+            "code": "NOT_READY",
+            "message": "The service is not ready to handle requests.",
+            "request_id": "9f1c2b7d4a8e4c1b9d0e5f6a7b8c9d0e",
+            "timestamp": "2026-10-22T09:30:00+00:00"
+          }
+        },
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorEnvelope",
+        "type": "object"
+      },
+      "HealthCheckResult": {
+        "description": "Outcome of a single dependency check.",
+        "properties": {
+          "detail": {
+            "description": "Human readable, credential-free detail.",
+            "title": "Detail",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Machine readable failure reason when status is 'error'.",
+            "title": "Error Code"
+          },
+          "latency_ms": {
+            "description": "Probe duration in milliseconds.",
+            "minimum": 0.0,
+            "title": "Latency Ms",
+            "type": "number"
+          },
+          "name": {
+            "description": "Dependency name, e.g. 'database'.",
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "error"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "status",
+          "latency_ms",
+          "detail"
+        ],
+        "title": "HealthCheckResult",
+        "type": "object"
+      },
+      "HealthLiveResponse": {
+        "description": "Liveness result: proves the process is running and serving HTTP.",
+        "example": {
+          "checked_at": "2026-10-22T09:30:00+00:00",
+          "environment": "local",
+          "service": "touche-commerce-api",
+          "status": "ok",
+          "version": "0.1.0"
+        },
+        "properties": {
+          "checked_at": {
+            "description": "Server-side UTC timestamp of the probe.",
+            "format": "date-time",
+            "title": "Checked At",
+            "type": "string"
+          },
+          "environment": {
+            "description": "Deployment environment name.",
+            "title": "Environment",
+            "type": "string"
+          },
+          "service": {
+            "description": "Service identifier.",
+            "title": "Service",
+            "type": "string"
+          },
+          "status": {
+            "const": "ok",
+            "default": "ok",
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "description": "Deployed application version.",
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "service",
+          "version",
+          "environment",
+          "checked_at"
+        ],
+        "title": "HealthLiveResponse",
+        "type": "object"
+      },
+      "ReadinessResponse": {
+        "description": "Readiness result: proves required dependencies are usable.",
+        "example": {
+          "checked_at": "2026-10-22T09:30:00+00:00",
+          "checks": [
+            {
+              "detail": "PostgreSQL 17.6 reachable as role 'touche_app'.",
+              "latency_ms": 4.12,
+              "name": "database",
+              "status": "ok"
+            }
+          ],
+          "environment": "local",
+          "service": "touche-commerce-api",
+          "status": "ready",
+          "version": "0.1.0"
+        },
+        "properties": {
+          "checked_at": {
+            "format": "date-time",
+            "title": "Checked At",
+            "type": "string"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/HealthCheckResult"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "service": {
+            "title": "Service",
+            "type": "string"
+          },
+          "status": {
+            "const": "ready",
+            "default": "ready",
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "service",
+          "version",
+          "environment",
+          "checked_at",
+          "checks"
+        ],
+        "title": "ReadinessResponse",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "TOUCHE COMMERCE trade management API. Stage 0 exposes health endpoints and the shared API foundation only.",
+    "title": "TOUCHE COMMERCE API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "service_descriptor__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Service Descriptor  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Service descriptor",
+        "tags": [
+          "meta"
+        ]
+      }
+    },
+    "/api/v1/health/live": {
+      "get": {
+        "description": "Returns 200 as soon as the API process can serve HTTP. It deliberately performs no database, cache or network I/O so a dependency outage cannot cause the orchestrator to kill a healthy process.",
+        "operationId": "health_live_api_v1_health_live_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthLiveResponse"
+                }
+              }
+            },
+            "description": "The service process is alive."
+          }
+        },
+        "summary": "Liveness probe",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/v1/health/ready": {
+      "get": {
+        "description": "Verifies that required dependencies are usable. Currently checks the PostgreSQL connection using the runtime role. Returns 503 with the standard error envelope when a dependency is unavailable.",
+        "operationId": "health_ready_api_v1_health_ready_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            },
+            "description": "All required dependencies are reachable."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A required dependency is unavailable."
+          }
+        },
+        "summary": "Readiness probe",
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "description": "Liveness and readiness probes used by the UI and orchestrators.",
+      "name": "health"
+    },
+    {
+      "description": "Service identity and discovery endpoints.",
+      "name": "meta"
+    }
+  ]
+}
