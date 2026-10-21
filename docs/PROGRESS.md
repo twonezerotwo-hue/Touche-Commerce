@@ -33,8 +33,12 @@ Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
 | Docker Compose execution | BLOCKED | Docker is not installed on this workstation |
 | GitHub Actions remote run | BLOCKED | no remote repository configured, no run performed |
 | Cline / DeepSeek model check | BLOCKED | no provider credentials available in this environment |
-| Authentication, sessions, RLS policies, audit | NOT_STARTED | Stage 1A |
+| Authentication, sessions, RLS policies, audit | PASSED | Stage 1A — §11–§18 |
 | Business modules / integrations / AI agents | NOT_STARTED | Stage 2+ |
+
+> This table records the **Stage 0** baseline. Stage 1A results are in
+> §11–§19 below; the Stage 0 numbers were re-verified as a regression during
+> Stage 1A (all Stage 0 tests still pass).
 
 ---
 
@@ -301,24 +305,405 @@ Vitest 5.0.5 · openapi-typescript 7.13.0 · PostgreSQL 17.6.
 
 ---
 
-## 10. Next recommended task
+## 10. Next recommended task (as recorded at the end of Stage 0)
 
 **Stage 1A — milestone 1A.1: identity schema + RLS foundation.**
 
-Concrete first step (requires an explicit instruction before starting):
+> **Superseded.** Stage 1A was started on explicit instruction and is complete
+> (see §11–§19). The next recommended task is now Stage 1B, recorded in §19.
 
-1. Add migration `0002_identity` creating `user`, `company`, `membership`,
-   `session`, `audit_record`, `idempotency_record`, `login_attempt` with
+Original first steps (all completed):
+
+1. Add migration `0002_identity` creating `app_user`, `company`, `membership`,
+   `auth_session`, `audit_record`, `idempotency_record`, `login_attempt` with
    `UNIQUE (id, company_id)` and composite FKs.
 2. Enable RLS + policies on tenant-owned tables (`current_setting` based), keep
    `touche_app` without `BYPASSRLS`, grant only DML.
 3. Implement the RLS isolation matrix tests from `ARCHITECTURE.md §7.2` **before**
    any endpoint is written, then the session/company services.
 
-Verification gate for 1A.1: two seeded companies cannot see or mutate each
+Verification gate for 1A.1 (met): two seeded companies cannot see or mutate each
 other's rows; no context means no rows; all tests run on a real PostgreSQL.
 
-Do not start Stage 1A automatically.
 
 
+
+
+---
+
+# Stage 1A — Identity, authentication, authorization and multi-company isolation
+
+**Started:** 22 Oct 2026 · **Completed:** 22 Oct 2026 (verified locally)
+**Scope guardrails honoured:** no business features, no CRM/deals/quotes/logistics,
+no financial integrations, no AI agents, Stage 1B not started.
+
+## 11. Status summary
+
+| Area | Result |
+| ---- | ------ |
+| Database | `0002_identity` applied to `touche_commerce` and `touche_commerce_test` |
+| Authentication | login / logout / me implemented with Argon2id + server-side sessions |
+| Company selection | `GET /companies`, `POST /session/company` with rotation |
+| Tenant isolation | RLS on 6 tables, 16 live isolation tests green |
+| Audit | append-only, 8 action types, redacted details, `request_id` correlation |
+| Frontend | `/login`, `/select-company`, authenticated shell, `/account`, public `/status` |
+| Backend tests | **120 passed** (38 Stage 0 + 82 Stage 1A) |
+| Frontend tests | **45 passed** (22 Stage 0 + 23 Stage 1A) |
+| Live identity checks | **31/31 passed** (`scripts\verify-identity.ps1`) |
+| Lint / typecheck / build | backend ruff + mypy clean; frontend eslint + tsc + `next build` clean |
+| Contract determinism | `scripts\generate-api-types.ps1 -Check` re-run after commit (see §19) |
+
+Stage 0 acceptance criteria remain satisfied; the Stage 0 regression suite is part
+of the same run.
+
+## 12. Database changes
+
+Migration: `backend/alembic/versions/20261022_0002_identity.py`
+(`revision = "0002_identity"`, `down_revision = "0001_foundation"`).
+
+New tables (schema `touche`):
+
+| Table | Key elements |
+| ----- | ------------ |
+| `app_user` | UUID PK, unique normalised `email` (`CHECK email = lower(email)`), `password_hash`, `status`, `last_login_at`, timestamps |
+| `company` | UUID PK, `name`, ISO-3166 `country`, ISO-4217 `default_currency`, `status`, timestamps |
+| `membership` | `(user_id, company_id)` unique, `role` CHECK (viewer/trader/approver/admin), `status` + `revoked_at` consistency CHECK, `UNIQUE (id, company_id)` for future composite FKs |
+| `auth_session` | `token_hash` (64 hex, unique), `csrf_token`, `user_id`, nullable `company_id`, `created_at`, `last_activity_at`, `expires_at`, `revoked_at`, `revoked_reason`, `ip_address inet`, `user_agent` |
+| `login_attempt` | `email_normalized`, `ip_address`, `succeeded`, `reason`, `attempted_at` + rate-limit indexes |
+| `audit_record` | `actor_type`, `actor_id`, nullable `company_id` (FK RESTRICT), `action` CHECK, `outcome`, `request_id`, `occurred_at`, `ip_address`, `user_agent`, `resource_*`, JSONB `details` |
+| `idempotency_record` | unique `(actor_id, company_id, key)`, fingerprint, status, response snapshot, expiry (middleware in 1B/2) |
+| `company_settings` | one row per company, `UNIQUE (id, company_id)` (composite-FK target) |
+| `company_setting_entry` | `(settings_id, company_id)` composite FK → `company_settings`, unique `(settings_id, key)` |
+
+Functions and policies:
+
+* `touche.current_company_id()` / `touche.current_actor_id()` — `STABLE` SQL
+  functions returning `NULL` when the transaction-scoped setting is absent.
+* RLS enabled on `company`, `membership`, `company_settings`,
+  `company_setting_entry`, `idempotency_record`, `audit_record` with explicit
+  SELECT/INSERT/UPDATE/DELETE policies (no implicit `ALL` policy).
+* `company` read policy requires an active membership for the actor; `membership`
+  read policy allows own rows or the active company.
+* `audit_record`: tenant-scoped SELECT; INSERT allowed with
+  `company_id IS NULL` or the active company; no UPDATE/DELETE policy.
+* Append-only enforcement: grants `SELECT, INSERT` only for `touche_app`,
+  `REVOKE UPDATE/DELETE/TRUNCATE`, plus `touche.reject_audit_mutation()` triggers
+  for `UPDATE`, `DELETE` and `TRUNCATE` (owner included).
+* Grants: DML on all tables except audit; no `CREATE` on the schema; no
+  `TRUNCATE`.
+
+Seed/demo data is **not** part of the migration. Two companies, two users and
+their memberships were created in the local environment with the privileged CLI
+(§15).
+
+
+## 13. API and frontend delivered
+
+Backend (`backend/app`):
+
+* `security/passwords.py` — Argon2id hashing, policy, dummy verification,
+  `needs_rehash`.
+* `security/tokens.py` — 256-bit session/CSRF tokens, SHA-256 digests,
+  constant-time comparison.
+* `security/permissions.py` — `Role`, `Permission`, matrix with a module-level
+  assertion that `admin` never holds `finance.approve`.
+* `db/models/{identity,audit,tenant_data}.py` + registry; `db/tenant.py` extended
+  with actor context, `clear_tenant_context`, `current_actor_setting`.
+* `services/audit.py` — single writer, redaction, bounded values, Core INSERT.
+* `services/auth.py` — login, resolve, switch_company, logout, rate limiting,
+  expiry/revocation with audit, membership re-validation.
+* `services/admin.py` — bootstrap/grant/revoke/list primitives (also used by tests).
+* `api/security.py` — `current_session`, `require_csrf`, `require_permission`,
+  `require_company_context`, client IP/User-Agent extraction.
+* `api/v1/{cookies,presenters}.py`, `schemas/auth.py`, `routes/{auth,companies}.py`.
+* `core/middleware.py` — `OriginValidationMiddleware`.
+* `core/config.py` — cookie policy, Argon2 cost, password policy, rate limits,
+  test database name, derived test DSNs.
+* `core/errors.py` — `SESSION_EXPIRED`, `ORIGIN_REJECTED`, `CSRF_REJECTED` and
+  their exception classes.
+* `cli.py` — `bootstrap`, `create-user`, `create-company`, `membership
+  grant/revoke`, `set-password`, `list`.
+* `alembic/versions/20261022_0002_identity.py`.
+
+Frontend (`frontend/src`):
+
+* `app/api/v1/[...path]/route.ts` — allow-listed same-origin proxy (cookie +
+  `Set-Cookie` forwarding, `no-store`, JSON 502 on upstream failure).
+* `app/(auth)/{layout,login,select-company}` — premium split sign-in and company
+  selection screens.
+* `app/(app)/{layout,page,account}` — authenticated shell, Command Center, account
+  page; `app/status/page.tsx` — public read-only status.
+* `components/auth/{login-form,logout-button,company-switcher,account-summary,session-unavailable}`.
+* `components/ui/{input,label,alert}.tsx`; sidebar/top-bar now show identity and
+  company.
+* `lib/auth/{types,guard,session,client}.ts`; `lib/navigation.ts` updated;
+  `src/proxy.ts` adds `x-pathname`.
+* `lib/api/config.ts` adds `API_PROXY_TARGET` / `BROWSER_API_PREFIX`.
+
+Scripts: `scripts/db/setup-test-database.ps1`, `scripts/bootstrap-admin.ps1`,
+`scripts/bootstrap-admin.sh`, `scripts/verify-identity.ps1`.
+
+## 14. Milestones executed (in order)
+
+1. **Inspection** — read the repository, all five docs, migrations, tests and
+   scripts; confirmed Stage 0 baseline (38 backend / 22 frontend tests).
+2. **Schema** — models, migration `0002_identity`, RLS helpers, policies,
+   triggers, grants; migrated `touche_commerce`.
+3. **Security core** — Argon2id service, token helpers, permission matrix.
+4. **Services** — audit writer, auth service, admin service.
+5. **API** — schemas, presenters, cookie helpers, routes, Origin middleware,
+   dependency wiring.
+6. **CLI** — bootstrap and membership administration (no default passwords).
+7. **Tests** — isolated test database fixture, unit tests, auth/session
+   integration tests, RLS isolation matrix; fixed three real defects (§16).
+8. **Contract** — exported OpenAPI and regenerated `schema.d.ts`.
+9. **Frontend** — proxy, auth libraries, login/select-company/shell/account/status
+   screens, 23 tests.
+10. **Live verification** — restarted API and web shell, bootstrapped two
+    companies + two users via CLI, ran `verify-identity.ps1` (31/31) and the
+    revocation scenario (session revoked, next request 401, colleague unaffected).
+11. **Regression** — full backend and frontend suites, lint, typecheck, build.
+12. **Documentation** — README, ARCHITECTURE, API_CONTRACTS, ROADMAP, DECISIONS,
+    PROGRESS.
+
+
+## 15. Actual test results and live verification
+
+### 15.1 Backend — `backend\.venv\Scripts\python -m pytest -q`
+
+```
+........................................................................ [ 60%]
+................................................                         [100%]
+120 passed
+```
+
+Breakdown:
+
+| File | Tests | Type |
+| ---- | ----- | ---- |
+| `test_api_errors.py`, `test_config.py`, `test_health_live.py`, `test_health_ready.py`, `test_logging.py` | 38 | Stage 0 unit/integration (regression) |
+| `test_security_primitives.py` | 38 | unit: Argon2id, tokens, permissions, redaction, config, CSRF context |
+| `test_auth_api.py` | 27 | integration: login, sessions, CSRF, Origin, rate limit, switch, revocation, audit |
+| `test_rls_isolation.py` | 16 | integration: RLS matrix with the runtime role |
+| `test_database_foundation.py` (existing) | included above | migration head + role checks |
+
+* `ruff check .` → `All checks passed!`
+* `mypy` → `Success: no issues found in 54 source files`
+* Integration tests run against `touche_commerce_test` only (DSN derived by
+  swapping the database name; schema upgraded by the session fixture).
+
+### 15.2 Frontend — `npm test`, `npm run lint`, `npm run typecheck`, `npm run build`
+
+```
+Test Files  8 passed (8)
+     Tests  45 passed (45)
+```
+
+| File | Tests |
+| ---- | ----- |
+| `client.test.ts` | 10 (Stage 0) |
+| `status.test.ts` | 10 (Stage 0) |
+| `probe-card.test.tsx` | 2 (Stage 0) |
+| `guard.test.ts` | 9 (route guard + `next` sanitisation) |
+| `login-form.test.tsx` | 7 (validation, success routing, generic error, rate limit, no storage) |
+| `company-switcher.test.tsx` | 4 (listing, active state, switch, refusal) |
+| `logout-button.test.tsx` | 2 |
+| `account-summary.test.tsx` | 2 |
+
+* `npm run lint` → clean (0 warnings)
+* `npm run typecheck` → clean (`next typegen && tsc --noEmit`)
+* `npm run build` → routes `/`, `/account`, `/api/v1/[...path]`, `/login`,
+  `/select-company`, `/status`; all dynamic where required.
+
+### 15.3 Live HTTP verification — `scripts\verify-identity.ps1`
+
+31/31 checks passed against the running API (`127.0.0.1:8000`) and web shell
+(`localhost:3000`). Recorded output (abridged):
+
+```
+==> Direct API checks
+  [pass] GET /health/live returns 200 -> HTTP 200
+  [pass] GET /health/ready returns ready -> HTTP 200
+  [pass] login without Origin is rejected -> HTTP 403 ORIGIN_REJECTED
+  [pass] invalid credentials return the generic 401 -> HTTP 401
+  [pass] login succeeds -> HTTP 200
+  [pass] session cookie is HttpOnly
+  [pass] session cookie is SameSite=Lax
+  [pass] login body carries no token or password hash
+  [pass] login body exposes memberships -> 2 membership(s)
+  [pass] CSRF token issued
+  [pass] GET /auth/me returns the actor -> HTTP 200
+  [pass] GET /companies lists only memberships -> 2 company(ies)
+  [pass] company switch without CSRF is rejected -> HTTP 403 CSRF_REJECTED
+  [pass] company switch succeeds -> HTTP 200
+  [pass] session token rotated on switch
+  [pass] switch to a non-member company is forbidden -> HTTP 403 FORBIDDEN
+  [pass] logout succeeds -> HTTP 200
+  [pass] session is invalid after logout -> HTTP 401
+
+==> Same-origin proxy and web shell
+  [pass] GET /login renders -> HTTP 200
+  [pass] unauthenticated /account redirects to login -> HTTP 307 -> /login?next=%2Faccount
+  [pass] public /status renders without a session -> HTTP 200
+  [pass] login through the same-origin proxy succeeds -> HTTP 200
+  [pass] proxy forwards Set-Cookie intact
+  [pass] proxy login answer contains no token
+  [pass] multi-company session is sent to company selection -> HTTP 307 -> /select-company
+  [pass] company switch works through the proxy -> HTTP 200
+  [pass] authenticated dashboard renders the signed-in user -> HTTP 200
+  [pass] authenticated /account renders -> HTTP 200
+  [pass] proxy preserves CSRF rejection -> HTTP 403 CSRF_REJECTED
+  [pass] logout through the proxy succeeds -> HTTP 200
+  [pass] dashboard redirects to login after logout -> HTTP 307 -> /login?next=%2F
+
+All identity checks passed.
+```
+
+### 15.4 Live membership revocation
+
+```
+auto_selected_company=Meridian Commodities role=trader
+me_before=bilal@touche.example
+Membership revoked
+  Sessions revoked  1
+me_after=401
+memberships_after_revocation=0
+```
+
+The membership was re-granted afterwards; logging in again auto-selected the
+company with the `trader` role. No company, user or membership beyond this
+scenario was changed.
+
+### 15.5 Audit rows observed in `touche_commerce`
+
+```
+action                  | outcome | count | rows with company
+access.denied           | denied  |     2 | 0
+auth.login.failure      | failure |     2 | 0
+auth.login.success      | success |     8 | 2
+auth.logout             | success |     4 | 4
+membership.changed      | success |     5 | 5
+session.company.switch  | success |     4 | 4
+session.revoked         | success |     1 | 1
+```
+
+Sample `details` (verified free of credentials/emails): `{"reason":
+"invalid_password"}`, `{"reason": "membership_revoked", "count": 1}`,
+`{"membership_count": 1, "company_auto_selected": true}`.
+
+### 15.6 Local credentials
+
+The local administrator password was supplied through `--password-stdin` during
+verification and is **not** recorded here, in `.env.example` or in any script.
+There is no default password; `scripts\bootstrap-admin.ps1` prompts with hidden
+input and enforces the policy.
+
+
+## 16. Issues found and fixed during Stage 1A
+
+1. **Audit insert blocked by the read policy.** PostgreSQL applies the SELECT
+   policy to `INSERT ... RETURNING`, so a system-level audit row
+   (`company_id IS NULL`) failed with "new row violates row-level security
+   policy". Fixed by inserting audit rows with a Core `INSERT`, a client-side
+   UUID and **no** `RETURNING`, keeping the read policy strict (ADR-009/023).
+2. **Doubled CHECK constraint names.** The Stage 0 naming convention prefixed
+   `ck_%(table_name)s_` while authored names already carried the table prefix,
+   producing `ck_auth_session_ck_auth_session_expiry_order`. The convention now
+   emits `%(constraint_name)s`; the test database was recreated and re-migrated.
+3. **Stale Next.js type artefacts.** Deleting `src/app/page.tsx` left
+   `.next/dev/types/validator.ts` referencing it; `tsc` failed until `.next` and
+   `tsconfig.tsbuildinfo` were removed.
+4. **`middleware.ts` deprecation.** Next.js 16 warns in favour of the `proxy`
+   file convention; renamed `src/middleware.ts` → `src/proxy.ts` with a `proxy()`
+   export (build warning gone).
+5. **Stale Stage 0 assertions.** Two Stage 0 tests encoded Stage 0 assumptions:
+   the 405 test now sends a trusted `Origin` (Origin validation is new), and the
+   migration test asserts the *current head* discovered from `alembic/versions`
+   instead of a hardcoded revision. A new test asserts that a stateless `POST`
+   without `Origin` is rejected.
+6. **Shell environment leakage while verifying.** A `TOUCHE_DATABASE_MIGRATION_URL`
+   exported in an earlier terminal step caused one CLI run to write fixtures into
+   the test database. Detected by inspecting both databases; the test database is
+   reset by its fixture anyway, and all subsequent commands set the DSNs
+   explicitly. Documented here so it is not repeated.
+7. **Verification-script assumptions.** The script initially assumed a dashboard
+   render immediately after login (multi-membership accounts are correctly sent to
+   `/select-company` first) and looked up API cookies under the web origin. Both
+   assumptions were corrected in the script, not worked around in the app.
+8. **Windows PowerShell 5.1** does not load `System.Net.Http` automatically and
+   strips embedded quotes when passing JSON to native `curl.exe`; the script adds
+   `Add-Type -AssemblyName System.Net.Http` and uses `HttpClient` instead of
+   shelling out.
+
+## 17. Security limitations (explicit)
+
+| Limitation | Impact | Mitigation / target |
+| ---------- | ------ | ------------------- |
+| `app_user`, `auth_session`, `login_attempt` are not RLS-protected | A compromised runtime role could read them (`NOBYPASSRLS` does not help: no policies exist) | No API exposure; separate secrets; ADR-023; `SECURITY DEFINER` functions required before any exposure |
+| No CSRF protection for `GET` (correct) and no per-request nonce | Idempotent reads can be triggered cross-site | Reads expose only the caller's own data; mutations require Origin + CSRF |
+| Login rate limiting is per account + per source IP, not distributed | A botnet with many IPs can spread attempts | Database-backed counters; add IP reputation/WAF at the platform edge |
+| Pending: no MFA, no password reset, no invitation flow | Operators set passwords manually | Stage 1B+; no partial UI is exposed |
+| Pending: no idempotency middleware | A retried mutation would execute twice | No mutating business endpoint exists yet; table + contract ready |
+| Pending: no session/idempotency cleanup job | Expired rows accumulate | Expiry is enforced synchronously on use; job deferred (ADR-016) |
+| Audit retention not enforced | Audit grows without bound | Deliberate: the append-only trigger must be disabled by the owner; policy decision deferred |
+| Access tokens never appear in the browser | — | Cookie only; verified in tests and live checks |
+| Browser automation unavailable | No real-browser click-through evidence | HTTP-level verification + server-rendered HTML assertions; recorded honestly (§15.3) |
+
+Known environmental blockers carried forward from Stage 0: Docker/Compose not
+installed, no git remote (CI never executed remotely), no POSIX shell on the host
+(`.sh` scripts unexecuted), no browser automation.
+
+
+## 18. Files changed (Stage 1A)
+
+Backend (new unless noted): `app/security/{__init__,passwords,tokens,permissions}.py`,
+`app/db/models/{identity,audit,tenant_data}.py`,
+`app/services/{__init__,audit,auth,admin}.py`,
+`app/api/security.py`, `app/api/v1/{cookies,presenters}.py`,
+`app/api/v1/schemas/auth.py`, `app/api/v1/routes/{auth,companies}.py`,
+`app/cli.py`, `alembic/versions/20261022_0002_identity.py`,
+`tests/{__init__,support}.py`, `tests/test_security_primitives.py`,
+`tests/test_auth_api.py`, `tests/test_rls_isolation.py`.
+Modified: `app/core/{config,errors,middleware}.py`, `app/main.py`,
+`app/api/v1/router.py`, `app/db/{engine,tenant}.py`,
+`app/db/models/{__init__,base}.py`, `pyproject.toml`, `tests/conftest.py`,
+`tests/test_api_errors.py`, `tests/test_config.py`,
+`tests/test_database_foundation.py`.
+
+Frontend: `src/app/api/v1/[...path]/route.ts`,
+`src/app/(auth)/{layout,login/page,select-company/page}.tsx`,
+`src/app/(app)/{layout,page,account/page}.tsx`, `src/app/status/page.tsx`,
+`src/app/layout.tsx`, `src/proxy.ts`, `src/components/auth/*` (5 components +
+4 test files), `src/components/ui/{input,label,alert}.tsx`,
+`src/components/shell/{app-sidebar,top-bar}.tsx`,
+`src/lib/auth/{types,guard,session,client}.ts`, `src/lib/auth/guard.test.ts`,
+`src/lib/navigation.ts`, `src/lib/api/config.ts`, `openapi/openapi.json`,
+`src/lib/api/schema.d.ts`, `package.json`/`package-lock.json`
+(`@testing-library/user-event`).
+
+Scripts/docs: `scripts/db/setup-test-database.ps1`,
+`scripts/bootstrap-admin.{ps1,sh}`, `scripts/verify-identity.ps1`,
+`.env.example`, `frontend/.env.example`, `README.md`,
+`docs/{ARCHITECTURE,API_CONTRACTS,ROADMAP,DECISIONS,PROGRESS}.md`.
+
+Deleted: `frontend/src/app/page.tsx` (moved into `(app)/page.tsx`),
+`frontend/src/middleware.ts` (renamed to `proxy.ts`).
+
+## 19. Git and next task
+
+* Branch `main`; Stage 1A implementation committed as the next commit after
+  `7ca8587` (hash recorded in the follow-up documentation commit).
+* Nothing pushed: no remote is configured, and pushing requires explicit approval.
+
+**Next recommended task: Stage 1B — product UI foundation** (only on explicit
+instruction). Prerequisites already in place: session context on the server,
+permission-aware navigation data, generated types, design primitives.
+
+Stage 1B candidates, in order: design-system expansion (form fields, table,
+dialog, toast), permission-aware navigation driven by `permissions`, settings
+screens backed by `company_settings` with `If-Match`/`version`, membership and
+audit read APIs for admins, idempotency middleware on the first mutating endpoint,
+session/idempotency cleanup command, and password reset/invitation flows.
+
+Do not start Stage 1B automatically.
 

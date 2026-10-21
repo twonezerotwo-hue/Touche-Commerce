@@ -1,9 +1,26 @@
-import Link from "next/link";
+"use client";
 
-import { NAV_ITEMS } from "@/lib/navigation";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+import { NAV_ITEMS, PUBLIC_NAV_ITEMS, isActivePath } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
-export function AppSidebar() {
+export interface ShellIdentity {
+  displayName: string;
+  email: string;
+  companyName: string | null;
+  role: string | null;
+}
+
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  return parts.map((part) => part[0]?.toUpperCase() ?? "").join("") || "•";
+}
+
+export function AppSidebar({ identity }: { identity: ShellIdentity }) {
+  const pathname = usePathname();
+
   return (
     <aside className="hidden w-[268px] shrink-0 flex-col border-r border-white/[0.06] bg-ink-900/60 lg:flex">
       <div className="px-6 pb-6 pt-7">
@@ -25,7 +42,7 @@ export function AppSidebar() {
             const Icon = item.icon;
 
             if (item.href) {
-              const isActive = item.href === "/";
+              const isActive = isActivePath(pathname, item.href);
               return (
                 <li key={item.label}>
                   <Link
@@ -69,14 +86,45 @@ export function AppSidebar() {
             );
           })}
         </ul>
+
+        <p className="eyebrow px-3 pb-3 pt-6">Platform</p>
+        <ul className="space-y-0.5">
+          {PUBLIC_NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <li key={item.label}>
+                <Link
+                  href={item.href ?? "/status"}
+                  className="flex items-center gap-3 rounded-md px-3 py-2 text-[13px] text-mist-300 transition-colors hover:bg-white/[0.04] hover:text-mist-100"
+                >
+                  <Icon className="size-4 text-mist-500" aria-hidden />
+                  <span className="flex-1">{item.label}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       </nav>
 
       <div className="px-6 pb-6">
         <div className="rule mb-4" />
-        <p className="text-[11px] leading-relaxed text-mist-600">
-          Foundation build
-          <br />
-          <span className="text-mist-500">Stage 0 · infrastructure only</span>
+        <div className="flex items-center gap-3">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-gold-400/30 bg-gold-400/10 font-display text-[11px] tracking-wider text-gold-200">
+            {initialsOf(identity.displayName)}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-[12px] text-mist-200">{identity.displayName}</p>
+            <p className="truncate text-[10.5px] text-mist-600">{identity.email}</p>
+          </div>
+        </div>
+        <p className="mt-3 text-[10.5px] leading-relaxed text-mist-600">
+          {identity.companyName ?? "No company selected"}
+          {identity.role ? (
+            <>
+              <br />
+              <span className="uppercase tracking-[0.14em] text-mist-500">{identity.role}</span>
+            </>
+          ) : null}
         </p>
       </div>
     </aside>

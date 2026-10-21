@@ -41,6 +41,9 @@ class ErrorCode(StrEnum):
     BAD_REQUEST = "BAD_REQUEST"
     VALIDATION_ERROR = "VALIDATION_ERROR"
     UNAUTHORIZED = "UNAUTHORIZED"
+    SESSION_EXPIRED = "SESSION_EXPIRED"
+    ORIGIN_REJECTED = "ORIGIN_REJECTED"
+    CSRF_REJECTED = "CSRF_REJECTED"
     FORBIDDEN = "FORBIDDEN"
     NOT_FOUND = "NOT_FOUND"
     METHOD_NOT_ALLOWED = "METHOD_NOT_ALLOWED"
@@ -124,6 +127,45 @@ class NotFoundError(ApiError):
     status_code = 404
     code = ErrorCode.NOT_FOUND
     default_message = "The requested resource does not exist."
+
+
+class UnauthorizedError(ApiError):
+    """No valid session. The message is deliberately generic (ADR-002)."""
+
+    status_code = 401
+    code = ErrorCode.UNAUTHORIZED
+    default_message = "Authentication is required."
+
+
+class SessionExpiredError(UnauthorizedError):
+    """The session existed but reached its idle or absolute timeout."""
+
+    code = ErrorCode.SESSION_EXPIRED
+    default_message = "Your session has expired. Sign in again to continue."
+
+
+class ForbiddenError(ApiError):
+    status_code = 403
+    code = ErrorCode.FORBIDDEN
+    default_message = "You do not have permission to perform this action."
+
+
+class CsrfRejectedError(ApiError):
+    status_code = 403
+    code = ErrorCode.CSRF_REJECTED
+    default_message = "The CSRF token is missing or invalid. Reload the page and try again."
+
+
+class OriginRejectedError(ApiError):
+    status_code = 403
+    code = ErrorCode.ORIGIN_REJECTED
+    default_message = "The request origin is not allowed."
+
+
+class RateLimitedError(ApiError):
+    status_code = 429
+    code = ErrorCode.RATE_LIMITED
+    default_message = "Too many attempts. Please retry later."
 
 
 class PreconditionRequiredError(ApiError):

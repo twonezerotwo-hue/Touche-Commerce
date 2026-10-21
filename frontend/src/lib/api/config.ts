@@ -21,9 +21,22 @@ function parseTimeout(value: string | undefined): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_TIMEOUT_MS;
 }
 
+/** Absolute API origin used by server components, route handlers and scripts. */
 export const API_BASE_URL = normaliseBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL);
+
+/**
+ * Proxy target. Defaults to the public base URL; a deployment may point it at an
+ * internal address (e.g. http://api:8000) without exposing that to the browser.
+ */
+export const API_PROXY_TARGET = normaliseBaseUrl(
+  process.env.API_INTERNAL_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL,
+);
+
 export const API_PREFIX = "/api/v1";
 export const API_REQUEST_TIMEOUT_MS = parseTimeout(process.env.NEXT_PUBLIC_API_TIMEOUT_MS);
+
+/** Same-origin path used by browser code (proxied by app/api/v1/[...path]). */
+export const BROWSER_API_PREFIX = API_PREFIX;
 
 export const API_URLS = {
   base: API_BASE_URL,

@@ -6,7 +6,9 @@ Run with the local cluster up:
 
 from __future__ import annotations
 
+import re
 import uuid
+from pathlib import Path
 
 import pytest
 from sqlalchemy import func, select, text
@@ -21,12 +23,31 @@ from app.db.tenant import (
 
 pytestmark = pytest.mark.integration
 
+VERSIONS_DIR = Path(__file__).resolve().parents[1] / "alembic" / "versions"
 
-def test_initial_migration_is_applied(live_database: Database) -> None:
+
+def _migration_head() -> str:
+    """Latest revision on disk: the one no other migration revises from."""
+    revisions: set[str] = set()
+    parents: set[str] = set()
+    for path in VERSIONS_DIR.glob("*.py"):
+        content = path.read_text(encoding="utf-8")
+        revision = re.search(r'^revision: str = "([^"]+)"', content, re.MULTILINE)
+        parent = re.search(r'^down_revision: str \| None = "([^"]+)"', content, re.MULTILINE)
+        if revision:
+            revisions.add(revision.group(1))
+        if parent:
+            parents.add(parent.group(1))
+    heads = revisions - parents
+    assert len(heads) == 1, f"expected exactly one migration head, found {sorted(heads)}"
+    return heads.pop()
+
+
+def test_database_is_at_the_latest_migration(live_database: Database) -> None:
     with live_database.session() as session:
         revision = session.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
 
-    assert revision == "0001_foundation"
+    assert revision == _migration_head()
 
 
 def test_runtime_role_has_no_elevated_privileges(live_database: Database) -> None:

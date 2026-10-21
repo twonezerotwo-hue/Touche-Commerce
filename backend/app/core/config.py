@@ -14,6 +14,7 @@ from typing import Literal
 
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import make_url
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 BACKEND_ROOT = REPO_ROOT / "backend"
@@ -21,6 +22,7 @@ BACKEND_ROOT = REPO_ROOT / "backend"
 Environment = Literal["local", "test", "ci", "staging", "production"]
 LogFormat = Literal["json", "text"]
 SslMode = Literal["disable", "allow", "prefer", "require", "verify-ca", "verify-full"]
+SameSite = Literal["lax", "strict"]
 
 _VALID_LOG_LEVELS = frozenset({"CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"})
 _LOOPBACK_HOST_MARKERS = ("localhost", "127.0.0.1", "0.0.0.0", "::1")
@@ -77,16 +79,31 @@ class Settings(BaseSettings):
     )
     cors_allow_credentials: bool = True
 
-    # --- Session policy (initial values; enforced from Stage 1A) -----------
+    # --- Session policy (Stage 1A) -----------------------------------------
     session_idle_timeout_seconds: int = Field(default=1800, ge=60)
     session_absolute_timeout_seconds: int = Field(default=43_200, ge=300)
     session_cookie_name: str = "touche_session"
     session_cookie_secure: bool = False
+    session_cookie_samesite: SameSite = "lax"
+    session_cookie_path: str = "/"
+    session_cookie_domain: str | None = None
     csrf_header_name: str = "X-CSRF-Token"
 
-    # --- Login rate limiting (Stage 1A) ------------------------------------
+    # --- Password hashing (Argon2id, OWASP baseline) -----------------------
+    password_min_length: int = Field(default=12, ge=8, le=128)
+    argon2_time_cost: int = Field(default=2, ge=1, le=10)
+    argon2_memory_cost_kib: int = Field(default=19_456, ge=8192, le=262_144)
+    argon2_parallelism: int = Field(default=1, ge=1, le=8)
+
+    # --- Login rate limiting -----------------------------------------------
     login_rate_limit_attempts: int = Field(default=10, ge=1)
     login_rate_limit_window_seconds: int = Field(default=300, ge=1)
+    login_rate_limit_ip_attempts: int = Field(default=30, ge=1)
+
+    # --- Test harness ------------------------------------------------------
+    # Derived from the runtime DSNs by swapping the database name, so the
+    # integration suite can never point at a development database.
+    test_database_name: str = "touche_commerce_test"
 
     # --- Contracts ---------------------------------------------------------
     idempotency_ttl_hours: int = Field(default=24, ge=1)
@@ -119,6 +136,47 @@ class Settings(BaseSettings):
     def api_openapi_url(self) -> str:
         return f"{self.api_prefix}/openapi.json"
 
+    @property
+    def secure_cookies(self) -> bool:
+        """Cookies are Secure whenever the deployment is not local development."""
+        return self.session_cookie_secure or self.environment in _NON_LOCAL_ENVIRONMENTS
+
+    @property
+    def effective_session_cookie_name(self) -> str:
+        """``__Host-`` prefixed cookie name outside local development (ADR-002)."""
+        if self.environment in _NON_LOCAL_ENVIRONMENTS:
+            return f"__Host-{self.session_cookie_name}"
+        return self.session_cookie_name
+
+    @property
+    def session_cookie_max_age(self) -> int:
+        """Browser-side lifetime: the idle window, never the absolute window."""
+        return self.session_idle_timeout_seconds
+
+    @property
+    def trusted_origins(self) -> tuple[str, ...]:
+        """Origins allowed to send state-changing requests (Origin validation)."""
+        return tuple(self.cors_allowed_origins)
+
+    def _resolved_dsn(self, secret: SecretStr | None, database_name: str) -> str | None:
+        """Return ``secret``'s DSN with the database name replaced."""
+        if secret is None:
+            return None
+        return make_url(secret.get_secret_value()).set(database=database_name).render_as_string(
+            hide_password=False
+        )
+
+    @property
+    def test_database_dsn(self) -> str | None:
+        """Runtime DSN pointing at the isolated test database, when configured."""
+        return self._resolved_dsn(self.database_url, self.test_database_name)
+
+    @property
+    def test_migration_dsn(self) -> str | None:
+        """Migration DSN pointing at the isolated test database, when configured."""
+        secret = self.database_migration_url or self.database_url
+        return self._resolved_dsn(secret, self.test_database_name)
+
     # --- Validation --------------------------------------------------------
     @field_validator("log_level")
     @classmethod
@@ -149,6 +207,20 @@ class Settings(BaseSettings):
         if not cleaned:
             raise ValueError("cors_allowed_origins must contain at least one origin")
         return cleaned
+
+    @field_validator("session_cookie_path")
+    @classmethod
+    def _validate_cookie_path(cls, value: str) -> str:
+        if not value.startswith("/"):
+            raise ValueError("session_cookie_path must start with '/'")
+        return value
+
+    @field_validator("session_cookie_name")
+    @classmethod
+    def _validate_cookie_name(cls, value: str) -> str:
+        if not value or any(character in value for character in " ;,=\"\\"):
+            raise ValueError("session_cookie_name must be a valid cookie name")
+        return value
 
     @model_validator(mode="after")
     def _validate_policies(self) -> Settings:
@@ -182,6 +254,11 @@ class Settings(BaseSettings):
             raise ValueError("debug must be disabled outside local development")
         if not self.session_cookie_secure:
             raise ValueError("session_cookie_secure must be true outside local development")
+        if self.session_cookie_domain:
+            raise ValueError(
+                "session_cookie_domain must be unset outside local development: "
+                "the __Host- cookie prefix forbids a Domain attribute"
+            )
         if self.log_format != "json":
             raise ValueError("log_format must be 'json' outside local development")
         for origin in self.cors_allowed_origins:

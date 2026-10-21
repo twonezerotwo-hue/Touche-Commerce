@@ -1,0 +1,120 @@
+"""Append-only audit trail.
+
+Design (ADR-009): one table, one writer, no second audit system. Rows are written
+in the same transaction as the change they describe, they are never updated or
+deleted by the application role, and a database trigger rejects both operations
+even for a privileged role. ``details`` is a redacted JSON object — never a
+password, token, hash or document body.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+from enum import StrEnum
+from typing import Any
+from uuid import UUID
+
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    func,
+    text,
+)
+from sqlalchemy.dialects.postgresql import INET, JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.db.models.base import Base
+
+
+class AuditActorType(StrEnum):
+    USER = "user"
+    SYSTEM = "system"
+    AGENT = "agent"
+
+
+class AuditOutcome(StrEnum):
+    SUCCESS = "success"
+    FAILURE = "failure"
+    DENIED = "denied"
+
+
+class AuditAction(StrEnum):
+    """Stable, dotted action names. Never renamed once released."""
+
+    LOGIN_SUCCESS = "auth.login.success"
+    LOGIN_FAILURE = "auth.login.failure"
+    LOGOUT = "auth.logout"
+    COMPANY_SWITCH = "session.company.switch"
+    SESSION_REVOKED = "session.revoked"
+    MEMBERSHIP_CHANGED = "membership.changed"
+    ACCESS_DENIED = "access.denied"
+    IDENTITY_BOOTSTRAPPED = "identity.bootstrap"
+
+
+_AUDIT_ACTIONS = tuple(action.value for action in AuditAction)
+_ACTOR_TYPES = tuple(actor.value for actor in AuditActorType)
+_OUTCOMES = tuple(outcome.value for outcome in AuditOutcome)
+
+
+def _in_list(column: str, values: tuple[str, ...]) -> str:
+    rendered = ", ".join(f"'{value}'" for value in values)
+    return f"{column} IN ({rendered})"
+
+
+class AuditRecord(Base):
+    """A single security-relevant event."""
+
+    __tablename__ = "audit_record"
+    __table_args__ = (
+        CheckConstraint(_in_list("actor_type", _ACTOR_TYPES), name="ck_audit_actor_type"),
+        CheckConstraint(_in_list("outcome", _OUTCOMES), name="ck_audit_outcome"),
+        CheckConstraint(_in_list("action", _AUDIT_ACTIONS), name="ck_audit_action"),
+        CheckConstraint("char_length(action) BETWEEN 3 AND 80", name="ck_audit_action_length"),
+        CheckConstraint("jsonb_typeof(details) = 'object'", name="ck_audit_details_object"),
+        Index("ix_audit_record_occurred_at", "occurred_at"),
+        Index("ix_audit_record_company_occurred_at", "company_id", "occurred_at"),
+        Index("ix_audit_record_actor_occurred_at", "actor_id", "occurred_at"),
+        Index("ix_audit_record_action_occurred_at", "action", "occurred_at"),
+        {"schema": "touche", "comment": "Append-only security audit trail."},
+    )
+
+    id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
+    )
+    actor_type: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default=text("'user'")
+    )
+    # No FK: an audit row must outlive the identity it describes (and the table
+    # is append-only, so ON DELETE SET NULL would be impossible).
+    actor_id: Mapped[UUID | None] = mapped_column(PG_UUID(as_uuid=True), nullable=True)
+    company_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey(
+            "touche.company.id", name="fk_audit_record_company_id_company", ondelete="RESTRICT"
+        ),
+        nullable=True,
+    )
+    action: Mapped[str] = mapped_column(String(80), nullable=False)
+    outcome: Mapped[str] = mapped_column(String(16), nullable=False)
+    request_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    occurred_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    ip_address: Mapped[str | None] = mapped_column(INET, nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resource_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    resource_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    details: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+
+    def __repr__(self) -> str:  # pragma: no cover - debugging helper
+        return f"<AuditRecord {self.action} {self.outcome}>"
+
+
+__all__ = ["AuditAction", "AuditActorType", "AuditOutcome", "AuditRecord"]

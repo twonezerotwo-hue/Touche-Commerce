@@ -1,12 +1,13 @@
 # TOUCHE COMMERCE
 
-Independent, premium international trade management — **Stage 0: foundation**.
+Independent, premium international trade management — **Stage 1A: identity,
+sessions and multi-company isolation**.
 
-A Next.js 16 web shell, a FastAPI service and PostgreSQL 17, wired together with
-real health probes, structured logging, a standard error contract, a typed
-OpenAPI pipeline and the documentation that governs later stages.
+A Next.js 16 web shell, a FastAPI service and PostgreSQL 17 with real health
+probes, structured logging, a standard error contract, a typed OpenAPI pipeline,
+Argon2id authentication, server-side sessions, four roles and row level security.
 
-> Stage 0 contains **no business features, no AI agents, no CRM, no quotation
+> Stage 1A contains **no business features, no AI agents, no CRM, no quotation
 > workflow and no external integrations**. The UI states this explicitly and
 > never displays fabricated KPIs or "connected" labels.
 
@@ -16,14 +17,16 @@ OpenAPI pipeline and the documentation that governs later stages.
 
 | Area | State |
 | ---- | ----- |
-| Frontend shell (`localhost:3000`) | ✅ verified |
-| API (`127.0.0.1:8000`) | ✅ verified |
-| PostgreSQL 17 + migration `0001_foundation` | ✅ verified |
+| Frontend shell + authentication UI (`localhost:3000`) | ✅ verified |
+| API (`127.0.0.1:8000`) incl. auth/companies endpoints | ✅ verified |
+| PostgreSQL 17 + migrations `0001_foundation`, `0002_identity` | ✅ verified |
 | `/api/v1/health/live` · `/api/v1/health/ready` | ✅ 200 |
-| Backend tests (unit + live DB) | ✅ 38 passed |
-| Frontend tests / lint / typecheck / build | ✅ 22 passed, clean |
+| Backend tests (unit + live DB incl. RLS matrix) | ✅ 120 passed |
+| Frontend tests / lint / typecheck / build | ✅ 45 passed, clean |
+| Live identity verification (`scripts\verify-identity.ps1`) | ✅ 31 checks passed |
 | Docker Compose path | ⚠️ not executed — Docker is not installed on this workstation |
 | GitHub Actions run | ⚠️ workflow authored, no remote run performed |
+| Browser automation | ⚠️ unavailable — verified at HTTP/integration level only |
 
 Details, commands and raw results: **`docs/PROGRESS.md`**.
 
@@ -32,13 +35,14 @@ Details, commands and raw results: **`docs/PROGRESS.md`**.
 ## Repository layout
 
 ```
-frontend/     Next.js App Router shell, typed API client, generated OpenAPI types
-backend/      FastAPI app, SQLAlchemy models, Alembic migrations, tests
+frontend/     Next.js App Router shell, auth screens, same-origin API proxy, typed client
+backend/      FastAPI app, security primitives, services, models, migrations, tests
 infra/        docker-compose.yml, PostgreSQL init hook, local runtime (git-ignored)
-scripts/      setup / migrate / dev / verify / db bootstrap (PowerShell + bash)
+scripts/      setup / migrate / dev / verify / bootstrap / test-database (PowerShell + bash)
 docs/         ARCHITECTURE, API_CONTRACTS, ROADMAP, PROGRESS, DECISIONS
 .github/      CI workflow (lint → typecheck → test → build)
 ```
+
 
 ---
 
@@ -70,13 +74,28 @@ scripts\db\bootstrap-local-postgres.ps1
 # 3. Migrations
 scripts\migrate.ps1
 
-# 4. Run (two terminals)
+# 4. Create the first administrator + company (interactive, no default password)
+scripts\bootstrap-admin.ps1
+
+# 5. Run (two terminals)
 scripts\dev-backend.ps1      # http://127.0.0.1:8000  (docs: /docs)
 scripts\dev-frontend.ps1     # http://localhost:3000
 
-# 5. Verify everything
+# 6. Verify everything (automated checks)
 scripts\verify.ps1
+scripts\verify-identity.ps1 -Email you@company.example   # live auth/session checks
 ```
+
+Additional companies and memberships are managed with the privileged CLI:
+
+```powershell
+cd backend
+.\.venv\Scripts\python -m app.cli create-company --name "Meridian Commodities" --country AE --currency USD
+.\.venv\Scripts\python -m app.cli membership grant --email a@b.example --company "Meridian Commodities" --role approver
+.\.venv\Scripts\python -m app.cli membership revoke --email a@b.example --company "Meridian Commodities"
+.\.venv\Scripts\python -m app.cli list memberships --company "Meridian Commodities"
+```
+
 
 ## Quick start (Linux / macOS / CI)
 
@@ -93,22 +112,29 @@ bash scripts/verify.sh
 
 ## What you should see
 
-`http://localhost:3000` renders **Foundation status** with four live probes:
+`http://localhost:3000` requires a session. The flow is:
 
-1. **Frontend** — proven by the successful server render.
-2. **FastAPI service** — liveness status, HTTP code, latency and the echoed
-   `X-Request-ID`.
-3. **PostgreSQL** — readiness status, server version, runtime role
-   (`touche_app`) and probe latency.
-4. **OpenAPI v1** — the number of operations in the served contract.
+1. **`/login`** — email + password, inline validation, generic failure messages,
+   rate-limit feedback, no token stored in the browser.
+2. **`/select-company`** — shown when the account holds more than one membership;
+   each switch rotates the session token.
+3. **`/`** (Command Center) — signed-in user, active company, role, permissions,
+   session timestamps and the three live infrastructure probes.
+4. **`/account`** — profile, memberships, permissions and the session policy.
+5. **`/status`** — public, read-only probe page (no session required) so operators
+   can see infrastructure health when nobody can sign in.
 
-Explicit failure states are implemented and were verified end-to-end:
+Unauthenticated requests to any authenticated route redirect to
+`/login?next=<path>`. If the API is unreachable the shell renders an explicit
+"session unavailable" screen instead of guessing.
 
 | Scenario | Rendered state |
 | -------- | -------------- |
 | Everything up | "All probes nominal" |
 | API stopped | "Unreachable", "API unreachable", remediation command |
 | PostgreSQL stopped | "Degraded", "Database not ready", `DATABASE_UNAVAILABLE` |
+| No session | redirect to `/login` with the requested path preserved |
+| Membership revoked | next request returns 401; sign in again to see the remaining companies |
 
 No status is hardcoded: every value comes from an HTTP request made during that
 server render (`force-dynamic`).
@@ -122,10 +148,40 @@ server render (`force-dynamic`).
 | `GET` | `/` | Service descriptor |
 | `GET` | `/api/v1/health/live` | Liveness — never touches PostgreSQL |
 | `GET` | `/api/v1/health/ready` | Readiness — verifies PostgreSQL via the runtime role |
+| `POST` | `/api/v1/auth/login` | Sign in (rate limited, Origin validated) |
+| `GET` | `/api/v1/auth/me` | Current user, active company, memberships, CSRF token |
+| `POST` | `/api/v1/auth/logout` | Revoke the current session (CSRF required) |
+| `GET` | `/api/v1/companies` | Companies the caller may access, with roles |
+| `POST` | `/api/v1/session/company` | Switch active company and rotate the session token |
 | `GET` | `/api/v1/openapi.json` | OpenAPI 3.1 document |
 | `GET` | `/docs` | Interactive documentation (disabled in production) |
 
-Contracts and error codes: `docs/API_CONTRACTS.md`.
+Every mutating request must carry a trusted `Origin` **and** (once authenticated)
+an `X-CSRF-Token` header. Contracts and error codes: `docs/API_CONTRACTS.md`.
+
+---
+
+## Security model (implemented)
+
+* **Passwords** — Argon2id with per-hash salt; policy enforced when a password is
+  set; unknown accounts receive equivalent hashing work so response time does not
+  reveal existence.
+* **Sessions** — random 256-bit tokens, stored only as SHA-256 digests; the
+  browser holds an `HttpOnly`, `SameSite=Lax` cookie (`Secure` + `__Host-` prefix
+  outside local development); 30-minute idle and 12-hour absolute expiry enforced
+  server-side; token and CSRF token rotate on company switch.
+* **Revocation** — logout, expiry and membership revocation revoke the row
+  immediately; a revoked cookie is useless even before the browser drops it.
+* **Tenant isolation** — PostgreSQL RLS on `company_settings`,
+  `company_setting_entry`, `idempotency_record`, `company`, `membership` and
+  `audit_record`, driven by transaction-scoped `touche.company_id` /
+  `touche.actor_id`; the runtime role is `NOBYPASSRLS`; composite foreign keys
+  prevent cross-tenant child rows.
+* **Audit** — append-only `touche.audit_record` (grants + trigger), redacted JSON
+  details, `request_id` correlation, no credentials or tokens.
+* **Failure disclosure** — login errors are identical for unknown, disabled and
+  wrong-password accounts; switching to a non-member company returns `403`
+  without confirming whether the company exists.
 
 ---
 
@@ -140,12 +196,18 @@ the `TOUCHE_` prefix; secrets are wrapped and never logged.
 | `TOUCHE_DATABASE_URL` | Runtime DSN (`touche_app`, DML only) |
 | `TOUCHE_DATABASE_MIGRATION_URL` | Migration DSN (`touche_migrator`, DDL) |
 | `TOUCHE_DATABASE_CONNECT_TIMEOUT_SECONDS` | Readiness connect budget (default 3) |
-| `TOUCHE_CORS_ALLOWED_ORIGINS` | JSON array of allowed browser origins |
-| `TOUCHE_SESSION_IDLE_TIMEOUT_SECONDS` / `..._ABSOLUTE_...` | Session policy (Stage 1A) |
+| `TOUCHE_CORS_ALLOWED_ORIGINS` | JSON array of allowed browser origins (also the trusted `Origin` list) |
+| `TOUCHE_SESSION_IDLE_TIMEOUT_SECONDS` / `..._ABSOLUTE_...` | 1800 s / 43 200 s |
+| `TOUCHE_SESSION_COOKIE_SECURE` / `..._SAMESITE` / `..._NAME` | Cookie hardening; `__Host-` prefix is applied outside local development |
+| `TOUCHE_PASSWORD_MIN_LENGTH` | Minimum policy length for new passwords (12) |
+| `TOUCHE_ARGON2_TIME_COST` / `..._MEMORY_COST_KIB` / `..._PARALLELISM` | Argon2id cost (2 / 19 456 KiB / 1) |
+| `TOUCHE_LOGIN_RATE_LIMIT_ATTEMPTS` / `..._WINDOW_SECONDS` / `..._IP_ATTEMPTS` | 10 per account / 300 s, 30 per source |
 | `TOUCHE_IDEMPOTENCY_TTL_HOURS` | Idempotency retention (24) |
 | `TOUCHE_PAGINATION_DEFAULT_LIMIT` / `..._MAX_LIMIT` | 25 / 100 |
-| `NEXT_PUBLIC_API_BASE_URL` | Browser-visible API base URL |
-| `NEXT_PUBLIC_API_TIMEOUT_MS` | Client probe timeout (10 s, above the readiness budget) |
+| `TOUCHE_TEST_DATABASE_NAME` | Isolated database used by the integration suite |
+| `NEXT_PUBLIC_API_BASE_URL` | API origin used by server components |
+| `API_INTERNAL_BASE_URL` | Optional internal proxy target (defaults to the public base URL) |
+| `NEXT_PUBLIC_API_TIMEOUT_MS` | Client/SSR request budget (10 s) |
 
 In `staging`/`production` the service **refuses to start** with an insecure
 session cookie, non-HTTPS or loopback CORS origins, `debug=true` or non-JSON
@@ -154,6 +216,7 @@ logging.
 Development credentials in `.env.example` are throw-away local values. Never
 commit `.env`; never reuse those values in a real environment.
 
+
 ---
 
 ## Verification
@@ -161,6 +224,8 @@ commit `.env`; never reuse those values in a real environment.
 ```powershell
 scripts\verify.ps1                    # backend lint/typecheck/tests + frontend checks + build
 scripts\verify.ps1 -SkipBuild         # faster inner loop
+scripts\verify-identity.ps1 -Email you@company.example   # live auth/session/CSRF/proxy checks
+scripts\db\setup-test-database.ps1    # (re)create the isolated integration database
 backend\.venv\Scripts\python -m pytest -m integration   # live database only
 ```
 
@@ -174,6 +239,10 @@ The generated API artefacts must stay in sync:
 scripts\generate-api-types.ps1 -Check   # fails on drift
 ```
 
+The integration suite uses `touche_commerce_test` only: the DSN is derived from
+the configured URLs by swapping the database name, and every test resets that
+database. A development database cannot be truncated by a test run.
+
 ---
 
 ## Troubleshooting
@@ -186,6 +255,11 @@ scripts\generate-api-types.ps1 -Check   # fails on drift
 | Port already in use | `Get-NetTCPConnection -LocalPort 3000`, then stop the owning process |
 | Backend cannot import `app` | Run commands from `backend/` or use the provided scripts (they set the working directory) |
 | Alembic cannot connect | Check `TOUCHE_DATABASE_MIGRATION_URL`; migrations use the migration role, not the runtime role |
+| Login returns 403 `ORIGIN_REJECTED` | Send a trusted `Origin` (the browser does automatically); update `TOUCHE_CORS_ALLOWED_ORIGINS` for other hosts |
+| Login returns 429 | The account or source hit the rate limit; wait for `Retry-After` seconds |
+| "Session unavailable" screen | The API is down or the session check failed; start the API and reload (no state was changed) |
+| Pages redirect to `/login` in a loop | The API rejects the cookie (expired/revoked): sign in again; the redirect preserves `?next=` |
+| Integration tests fail with "test database does not exist" | Run `scripts\db\setup-test-database.ps1` |
 | Frontend shows a stale status | The page is `force-dynamic`; use "Re-check status" or reload |
 | Windows: `pg_ctl start` appears to hang | Fixed in the scripts by redirecting pg_ctl output to files; pull the latest scripts |
 
@@ -193,32 +267,35 @@ scripts\generate-api-types.ps1 -Check   # fails on drift
 
 ## Documentation
 
-* `docs/ARCHITECTURE.md` — system structure, data, tenancy, security boundaries.
-* `docs/API_CONTRACTS.md` — envelopes, health contracts, pagination,
-  idempotency, concurrency, session switching.
-* `docs/DECISIONS.md` — 18 binding ADRs with verification plans.
+* `docs/ARCHITECTURE.md` — system structure, data model, tenancy, RLS, sessions.
+* `docs/API_CONTRACTS.md` — envelopes, auth/session contracts, error codes.
+* `docs/DECISIONS.md` — 24 binding ADRs with verification evidence.
 * `docs/ROADMAP.md` — Stage 0 → Stage 5 with exit criteria.
 * `docs/PROGRESS.md` — executed commands, real test results, blockers, next task.
 
 ---
 
-## Stage 0 acceptance
+## Stage 1A acceptance
 
 | # | Criterion | Result |
 | - | --------- | ------ |
-| 1 | Frontend starts | PASS |
-| 2 | Backend starts | PASS |
-| 3 | PostgreSQL reachable | PASS |
-| 4 | Alembic migration succeeds | PASS |
-| 5 | `/api/v1/health/live` → 200 | PASS |
-| 6 | `/api/v1/health/ready` → 200 | PASS |
-| 7 | Frontend displays real backend + DB status | PASS |
-| 8 | Required local tests pass | PASS |
-| 9 | Documentation updated | PASS |
-| 10 | No application secrets committed | PASS |
+| 1 | Login works | PASS |
+| 2 | Logout works | PASS |
+| 3 | Sessions persist securely (HttpOnly cookie, hashed token) | PASS |
+| 4 | Company selection works | PASS |
+| 5 | Unauthorized company access is blocked | PASS |
+| 6 | PostgreSQL RLS isolation tests pass | PASS (16 tests) |
+| 7 | Membership revocation takes effect immediately | PASS (live + integration) |
+| 8 | Audit logs record security actions | PASS (7 action types observed) |
+| 9 | Frontend and backend work together | PASS (`scripts\verify-identity.ps1`) |
+| 10 | All Stage 0 tests still pass | PASS |
+| 11 | New tests pass | PASS (backend 120 total, frontend 45) |
+| 12 | `PROGRESS.md` reports actual results | PASS |
 
-Blocked / unverified: Docker Compose execution and remote GitHub Actions
-(environment limitations, not code failures). See `docs/PROGRESS.md`.
+Blocked / unverified: Docker Compose execution, remote GitHub Actions, browser
+automation and POSIX shell execution (environment limitations, not code failures).
+See `docs/PROGRESS.md` §11.
 
-Stage 1A has **not** been started.
+Stage 1B has **not** been started.
+
 

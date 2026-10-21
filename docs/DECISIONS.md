@@ -31,7 +31,7 @@ mesh or queue in `infra/`.
 
 ## ADR-002 — Server-side sessions in PostgreSQL
 
-**Status:** ACCEPTED (design complete, enforced from Stage 1A)
+**Status:** ACCEPTED · IMPLEMENTED (Stage 1A)
 
 **Decision.** Sessions are rows in PostgreSQL. The browser receives a random
 256-bit token in an `HttpOnly`, `Secure`, `SameSite=Lax` cookie
@@ -57,7 +57,7 @@ asserted on the Set-Cookie header.
 
 ## ADR-003 — Four roles; approval is a separate permission
 
-**Status:** ACCEPTED (enforced from Stage 1A)
+**Status:** ACCEPTED · IMPLEMENTED (Stage 1A)
 
 **Decision.** Roles: `viewer`, `trader`, `approver`, `admin`. Financial approval
 is the distinct permission `finance.approve`. Being `admin` does **not** grant
@@ -78,7 +78,7 @@ manage memberships.
 
 ## ADR-004 — Multi-company model with PostgreSQL RLS
 
-**Status:** ACCEPTED · foundation IMPLEMENTED (Stage 0)
+**Status:** ACCEPTED · IMPLEMENTED (Stage 1A)
 
 **Decision.** Tenant data is scoped by `company_id`. Membership must be verified.
 Row level security is enabled on tenant-owned tables and reads
@@ -345,7 +345,7 @@ sensitive keys and confirm request-id correlation.
 
 ## ADR-016 — Cleanup jobs for ephemeral data
 
-**Status:** ACCEPTED (implemented alongside the features that create the data)
+**Status:** ACCEPTED (contract defined; jobs deliberately deferred to Stage 1B)
 
 **Decision.** Scheduled, idempotent jobs delete expired sessions, expired
 idempotency records (default 24 h), and (from Stage 2) delivered outbox events.
@@ -405,6 +405,172 @@ receives `403`; audit row records `actor_type='agent'`; no endpoint accepts an
 actor identity from the request body.
 
 ---
+## ADR-019 — Table names that avoid SQL reserved words
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 1A)
+
+**Decision.** The identity tables are `touche.app_user` and
+`touche.auth_session`; domain vocabulary (user, session) is preserved in code,
+API and docs. Every other table uses a plain singular noun (`company`,
+`membership`, `audit_record`, `login_attempt`, `idempotency_record`,
+`company_settings`, `company_setting_entry`).
+
+**Reasoning.** `USER` is fully reserved in SQL and cannot be used unquoted, and
+`session` collides with both SQLAlchemy's `Session` and PostgreSQL terminology.
+Quoting identifiers everywhere creates a class of bugs that only appear in raw
+SQL, and a mis-quoted identifier silently resolves to a different case.
+
+**Consequences.** One documented deviation from the original naming; no path,
+schema or ORM class ever needs manual quoting. Applied by migration
+`0002_identity`.
+
+**Verification.** Migration + live schema inspection; all queries run without
+quoted identifiers.
+
+---
+
+## ADR-020 — Argon2id with configurable cost and a set-time password policy
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 1A)
+
+**Decision.** Passwords are hashed with Argon2id (`argon2-cffi`), default cost
+`time=2`, `memory=19 456 KiB`, `parallelism=1`, 32-byte hash, 16-byte salt.
+Parameters come from configuration so production can raise them and tests can
+lower them. The policy (minimum 12 characters, at least three of lower/upper/
+digit/symbol, no surrounding whitespace, maximum 512) is enforced when a password
+is set, never on login. Unknown accounts still incur a dummy Argon2 verification.
+
+**Reasoning.** Argon2id is the current OWASP first choice for password storage and
+resists GPU cracking; the policy belongs at set time because rejecting a login for
+"too short" would confirm which inputs are plausible passwords for an account.
+Uniform work for unknown accounts removes a timing oracle.
+
+**Consequences.** Login latency is dominated by hashing (~50 ms at the default
+cost). `needs_rehash()` transparently upgrades hashes when the cost changes.
+Operators never see plaintext; the CLI reads passwords from a hidden prompt or
+stdin.
+
+**Verification.** Unit tests: hash prefix `$argon2id$`, wrong/garbage hash
+rejection, distinct hashes for identical passwords, policy rejections, dummy
+verification, plus integration tests asserting no hash or password appears in
+responses or audit details.
+
+---
+
+## ADR-021 — Login-attempt data minimisation
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 1A)
+
+**Decision.** `login_attempt` stores `email_normalized`, source IP, success flag,
+reason and timestamp — and nothing else. The audit trail records the *reason*
+(`unknown_user`, `invalid_password`, `user_disabled`) but never the attempted
+email, the password or any hash. The table has no API exposure.
+
+**Reasoning.** Rate limiting needs to count failures per account and per source,
+which requires the identifier; the audit trail needs to explain *why* an access
+was refused. Splitting the two keeps the durable, widely-visible audit log free of
+raw identifiers while retaining operational forensics in a table nobody can query
+through the API.
+
+**Consequences.** Investigations join `login_attempt` (short retention, future
+cleanup job) with `audit_record` by time and actor, not by email.
+
+**Verification.** Integration tests assert `audit_record.details` for a failed
+login contains only the reason and never the email/password; the rate-limit test
+asserts behaviour without inspecting identifiers.
+
+---
+
+## ADR-022 — Origin validation for every mutation; CSRF bound to the session
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 1A)
+
+**Decision.** (1) An ASGI middleware rejects any non-GET request whose `Origin`
+header is missing or not in the configured trusted origin list — before routing,
+including `/auth/login`. (2) Every authenticated mutation must also send
+`X-CSRF-Token`, compared in constant time against the token stored on the session
+row it was issued for. Login is CSRF-exempt because no session exists yet, but it
+is still Origin-validated. (3) The CSRF token is stored on the session row in clear
+text; the session token is stored only as a SHA-256 digest.
+
+**Reasoning.** Double-submit cookies alone can be defeated when subdomains are in
+play; binding the CSRF token to the server-side session makes a token from another
+session useless. Requiring `Origin` on every mutation (rather than only when
+present) closes the "strip the header" bypass. Storing the CSRF token in clear is
+acceptable because it is not a credential on its own: it is worthless without the
+`HttpOnly` session cookie, and it must survive a page reload so the client can
+receive it again from `/auth/me`.
+
+**Consequences.** Non-browser clients (CLI, curl, tests) must send `Origin` on
+mutating requests; the verification script and tests do so explicitly. The
+frontend proxy forwards `Origin` unchanged. Swagger UI mutations are rejected in
+local development.
+
+**Verification.** Integration tests: mutation without `Origin` → `403
+ORIGIN_REJECTED`; foreign origin → `403` and no session created; logout/switch
+without or with a foreign CSRF token → `403 CSRF_REJECTED`; the token rotates on
+switch and the old token stops working.
+
+---
+
+## ADR-023 — RLS covers tenant data, not the authentication bootstrap
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 1A)
+
+**Decision.** Row level security is enabled on `company`, `membership`,
+`company_settings`, `company_setting_entry`, `idempotency_record` and
+`audit_record`. It is **not** enabled on `app_user`, `auth_session`,
+`login_attempt` or `outbox_event`. Those tables are protected by least-privilege
+grants (DML only, no DDL, no `TRUNCATE`) and by having no direct API exposure;
+every access goes through `AuthService`/`AdminService`. The runtime role has
+`NOBYPASSRLS`; any future exposure of those tables must use a `SECURITY DEFINER`
+function rather than a relaxed policy.
+
+**Reasoning.** Authentication must read a user by email and a session by token
+hash before an actor or tenant is known. An actor-scoped policy on `auth_session`
+would make login impossible without a privileged function; a `company_id`-scoped
+policy would hide the session before the user has chosen a company.
+
+**Consequences.** Tenant isolation is enforced where tenant data lives. The
+`audit_record` policy still permits system-level inserts (`company_id IS NULL`) but
+only tenant reads. `company` and `membership` policies are actor-aware, so the API
+cannot list companies or memberships the caller has no membership for, even if a
+query forgets a filter.
+
+**Verification.** 16 live tests in `test_rls_isolation.py` (cross-tenant read,
+write, update, delete, missing context, `row_security=off`, pooled-connection
+reset, composite-FK violation, append-only audit) plus role/privilege assertions.
+
+---
+
+## ADR-024 — Same-origin API proxy in the frontend
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 1A)
+
+**Decision.** The browser calls `/api/v1/*` on the Next.js origin. A route handler
+(`src/app/api/v1/[...path]/route.ts`) forwards an explicit allow-list of headers,
+the body and `Set-Cookie` to FastAPI, using `API_INTERNAL_BASE_URL` when set.
+Server components call FastAPI directly with the incoming cookie header. No token
+is ever stored in `localStorage` or `sessionStorage`.
+
+**Reasoning.** A cross-origin cookie would need `SameSite=None`, weakening CSRF
+protection, and would require CORS to allow credentials on every request. A
+first-party proxy keeps `HttpOnly` + `SameSite=Lax` meaningful, lets Origin
+validation behave exactly as in production and hides the internal API address.
+Server-side rendering needs the raw cookie, which only the server can read.
+
+**Consequences.** The proxy is a security boundary: it forwards only named headers
+and response headers, never arbitrary traffic, and returns a JSON error envelope
+(`502 UPSTREAM_UNAVAILABLE`) instead of an HTML error page. `Cache-Control:
+no-store` is forced on every proxied response.
+
+**Verification.** Live verification proves login/logout/switch through the proxy,
+cookie attributes, CSRF rejection propagation, the `/select-company` redirect and
+that an unauthenticated page redirects to `/login?next=…`.
+
+---
+
+
 
 ## Environment notes (this workstation)
 

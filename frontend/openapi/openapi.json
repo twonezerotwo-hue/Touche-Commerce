@@ -1,6 +1,130 @@
 {
   "components": {
     "schemas": {
+      "AuthSessionResponse": {
+        "description": "Body returned by login, company switch and ``GET /auth/me``.",
+        "properties": {
+          "memberships": {
+            "description": "Every company this user may still access.",
+            "items": {
+              "$ref": "#/components/schemas/CompanyAccess"
+            },
+            "title": "Memberships",
+            "type": "array"
+          },
+          "session": {
+            "$ref": "#/components/schemas/SessionView"
+          },
+          "user": {
+            "$ref": "#/components/schemas/SessionUser"
+          }
+        },
+        "required": [
+          "user",
+          "session",
+          "memberships"
+        ],
+        "title": "AuthSessionResponse",
+        "type": "object"
+      },
+      "CompanyAccess": {
+        "description": "One company the signed-in user may access, with their role there.",
+        "properties": {
+          "company_id": {
+            "format": "uuid",
+            "title": "Company Id",
+            "type": "string"
+          },
+          "country": {
+            "description": "ISO 3166-1 alpha-2 country code.",
+            "title": "Country",
+            "type": "string"
+          },
+          "default_currency": {
+            "description": "ISO 4217 currency code.",
+            "title": "Default Currency",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "permissions": {
+            "description": "Permissions granted by this membership.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Permissions",
+            "type": "array"
+          },
+          "role": {
+            "description": "viewer, trader, approver or admin.",
+            "title": "Role",
+            "type": "string"
+          },
+          "status": {
+            "description": "Company status: active, suspended or archived.",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "company_id",
+          "name",
+          "country",
+          "default_currency",
+          "status",
+          "role",
+          "permissions"
+        ],
+        "title": "CompanyAccess",
+        "type": "object"
+      },
+      "CompanyListResponse": {
+        "description": "Companies available to the caller and the currently active one.",
+        "properties": {
+          "active_company_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Company Id"
+          },
+          "companies": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyAccess"
+            },
+            "title": "Companies",
+            "type": "array"
+          }
+        },
+        "required": [
+          "companies",
+          "active_company_id"
+        ],
+        "title": "CompanyListResponse",
+        "type": "object"
+      },
+      "CompanySwitchRequest": {
+        "description": "Select the active company for this session.",
+        "properties": {
+          "company_id": {
+            "format": "uuid",
+            "title": "Company Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "company_id"
+        ],
+        "title": "CompanySwitchRequest",
+        "type": "object"
+      },
       "ErrorDetail": {
         "description": "Machine readable error description.",
         "properties": {
@@ -70,6 +194,19 @@
           "error"
         ],
         "title": "ErrorEnvelope",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
         "type": "object"
       },
       "HealthCheckResult": {
@@ -168,6 +305,46 @@
         "title": "HealthLiveResponse",
         "type": "object"
       },
+      "LoginRequest": {
+        "description": "Credentials submitted from the sign-in screen.",
+        "example": {
+          "email": "amina@touche.example",
+          "password": "correct horse battery"
+        },
+        "properties": {
+          "email": {
+            "description": "Account email (case-insensitive).",
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "description": "Account password.",
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest",
+        "type": "object"
+      },
+      "LogoutResponse": {
+        "properties": {
+          "status": {
+            "const": "signed_out",
+            "default": "signed_out",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "LogoutResponse",
+        "type": "object"
+      },
       "ReadinessResponse": {
         "description": "Readiness result: proves required dependencies are usable.",
         "example": {
@@ -226,11 +403,160 @@
         ],
         "title": "ReadinessResponse",
         "type": "object"
+      },
+      "SessionUser": {
+        "description": "The authenticated actor.",
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "email",
+          "display_name",
+          "status"
+        ],
+        "title": "SessionUser",
+        "type": "object"
+      },
+      "SessionView": {
+        "description": "Server-side session metadata. The token itself is only ever in the cookie.",
+        "properties": {
+          "company": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CompanyAccess"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Active company, or null when a choice is required."
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "csrf_token": {
+            "description": "Send as the CSRF header on every state-changing request.",
+            "title": "Csrf Token",
+            "type": "string"
+          },
+          "expires_at": {
+            "description": "Absolute expiry, fixed at login.",
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "idle_expires_at": {
+            "format": "date-time",
+            "title": "Idle Expires At",
+            "type": "string"
+          },
+          "ip_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ip Address"
+          },
+          "last_activity_at": {
+            "format": "date-time",
+            "title": "Last Activity At",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "user_agent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Agent"
+          }
+        },
+        "required": [
+          "session_id",
+          "created_at",
+          "last_activity_at",
+          "idle_expires_at",
+          "expires_at",
+          "csrf_token"
+        ],
+        "title": "SessionView",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
       }
     }
   },
   "info": {
-    "description": "TOUCHE COMMERCE trade management API. Stage 0 exposes health endpoints and the shared API foundation only.",
+    "description": "TOUCHE COMMERCE trade management API. Stage 1A exposes identity (server-side sessions), multi-company membership and tenant isolation on top of the Stage 0 foundation.",
     "title": "TOUCHE COMMERCE API",
     "version": "0.1.0"
   },
@@ -258,6 +584,184 @@
         "summary": "Service descriptor",
         "tags": [
           "meta"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "description": "Verifies the credentials with Argon2id, applies the login rate limit and creates a server-side session. The opaque session token is delivered in an HttpOnly cookie; the body never contains the token or the password hash. All failures return the same 401 message so account existence is not revealed. The active company is auto-selected only when the user has exactly one active membership.",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSessionResponse"
+                }
+              }
+            },
+            "description": "Session created."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid credentials (generic)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Origin not allowed."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too many attempts; honour Retry-After."
+          }
+        },
+        "summary": "Sign in and open a server-side session",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "description": "Revokes the session row immediately (the cookie alone would be useless afterwards) and clears the cookie. Requires the CSRF header.",
+        "operationId": "logout_api_v1_auth_logout_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutResponse"
+                }
+              }
+            },
+            "description": "Session revoked."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "No valid session."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "CSRF token or origin rejected."
+          }
+        },
+        "summary": "Revoke the current session",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "description": "Re-validates the session and the active membership on every call and returns the CSRF token the client must send on state-changing requests.",
+        "operationId": "me_api_v1_auth_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSessionResponse"
+                }
+              }
+            },
+            "description": "Authenticated session."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "No valid session."
+          }
+        },
+        "summary": "Current user, active company and memberships",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/companies": {
+      "get": {
+        "description": "Returns only companies with an active membership for the caller, together with the role and permissions held in each. The list is derived from the database on every request, so a revoked membership disappears immediately.",
+        "operationId": "list_companies_api_v1_companies_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyListResponse"
+                }
+              }
+            },
+            "description": "Accessible companies."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "No valid session."
+          }
+        },
+        "summary": "Companies the signed-in user may access",
+        "tags": [
+          "companies"
         ]
       }
     },
@@ -314,12 +818,82 @@
           "health"
         ]
       }
+    },
+    "/api/v1/session/company": {
+      "post": {
+        "description": "Requires a CSRF header and an active membership for the requested company. The company id supplied by the client is only used as a lookup key: an unauthorised id returns 403 and writes an ACCESS_DENIED audit record. On success the session token and CSRF token are rotated and the absolute expiry is preserved.",
+        "operationId": "switch_company_api_v1_session_company_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanySwitchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSessionResponse"
+                }
+              }
+            },
+            "description": "Active company changed."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "No valid session."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "No membership, CSRF or origin rejected."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Select the active company and rotate the session token",
+        "tags": [
+          "companies"
+        ]
+      }
     }
   },
   "tags": [
     {
       "description": "Liveness and readiness probes used by the UI and orchestrators.",
       "name": "health"
+    },
+    {
+      "description": "Sign-in, sign-out and the current session profile. Sessions are server-side rows; the browser holds only an HttpOnly cookie.",
+      "name": "auth"
+    },
+    {
+      "description": "Company discovery and active-company selection. Access is always derived from verified memberships, never from a client-supplied id.",
+      "name": "companies"
     },
     {
       "description": "Service identity and discovery endpoints.",

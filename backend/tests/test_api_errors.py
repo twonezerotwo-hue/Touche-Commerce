@@ -37,11 +37,24 @@ def test_unknown_route_returns_not_found_envelope(client: TestClient) -> None:
 
 
 def test_method_not_allowed_returns_envelope(client: TestClient) -> None:
-    response = client.post("/api/v1/health/live")
+    # State-changing methods must carry a trusted Origin (Stage 1A), so the
+    # method-routing assertion is made from a legitimate browser origin.
+    response = client.post(
+        "/api/v1/health/live", headers={"Origin": "http://localhost:3000"}
+    )
 
     assert response.status_code == 405
     error = _assert_envelope(response.json())
     assert error["code"] == "METHOD_NOT_ALLOWED"
+
+
+def test_state_changing_request_without_origin_is_rejected(client: TestClient) -> None:
+    response = client.post("/api/v1/health/live")
+
+    assert response.status_code == 403
+    error = _assert_envelope(response.json())
+    assert error["code"] == "ORIGIN_REJECTED"
+    assert response.headers["X-Request-ID"]
 
 
 def test_validation_error_returns_field_level_details(settings: Settings) -> None:

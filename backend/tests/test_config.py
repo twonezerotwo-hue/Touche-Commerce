@@ -39,7 +39,14 @@ def test_database_url_is_required_outside_test_harness() -> None:
 
 
 def test_missing_migration_dsn_raises_configuration_error() -> None:
-    settings = Settings(environment="test", database_url=None, _env_file=None)
+    # Both DSNs are explicitly cleared: the test must not inherit them from the
+    # developer's environment or .env file.
+    settings = Settings(
+        environment="test",
+        database_url=None,
+        database_migration_url=None,
+        _env_file=None,
+    )
 
     with pytest.raises(ConfigurationError):
         _ = settings.migration_dsn

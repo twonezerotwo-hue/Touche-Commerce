@@ -17,7 +17,7 @@ from app.api.v1.router import api_router
 from app.core.config import Settings, get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
-from app.core.middleware import RequestContextMiddleware
+from app.core.middleware import OriginValidationMiddleware, RequestContextMiddleware
 from app.db.engine import Database
 
 logger = get_logger("app.main")
@@ -61,8 +61,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         title=resolved.app_name,
         version=resolved.app_version,
         description=(
-            "TOUCHE COMMERCE trade management API. Stage 0 exposes health "
-            "endpoints and the shared API foundation only."
+            "TOUCHE COMMERCE trade management API. Stage 1A exposes identity "
+            "(server-side sessions), multi-company membership and tenant isolation "
+            "on top of the Stage 0 foundation."
         ),
         lifespan=lifespan,
         openapi_url=resolved.api_openapi_url,
@@ -72,6 +73,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             {
                 "name": "health",
                 "description": "Liveness and readiness probes used by the UI and orchestrators.",
+            },
+            {
+                "name": "auth",
+                "description": (
+                    "Sign-in, sign-out and the current session profile. Sessions are "
+                    "server-side rows; the browser holds only an HttpOnly cookie."
+                ),
+            },
+            {
+                "name": "companies",
+                "description": (
+                    "Company discovery and active-company selection. Access is always "
+                    "derived from verified memberships, never from a client-supplied id."
+                ),
             },
             {
                 "name": "meta",
@@ -85,9 +100,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     register_exception_handlers(app)
 
-    # Request correlation wraps everything (including error handlers).
+    # Order (outermost first): CORS → request correlation → origin validation →
+    # routes, so rejected origins still carry an X-Request-ID.
+    app.add_middleware(OriginValidationMiddleware, allowed_origins=resolved.trusted_origins)
     app.add_middleware(RequestContextMiddleware)
-    # CORS outermost so even error responses carry CORS headers.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=resolved.cors_allowed_origins,

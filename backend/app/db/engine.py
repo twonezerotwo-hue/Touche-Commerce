@@ -40,11 +40,11 @@ def sanitise_error_message(message: str, *, limit: int = 400) -> str:
 class Database:
     """Owns the SQLAlchemy engine and session lifecycle for the application."""
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, *, dsn_override: str | None = None) -> None:
         self._settings = settings
         self._engine: Engine | None = None
         self._session_factory: sessionmaker[Session] | None = None
-        dsn = settings.database_dsn
+        dsn = dsn_override or settings.database_dsn
         if dsn is not None:
             self._engine = self._build_engine(dsn)
             self._session_factory = sessionmaker(

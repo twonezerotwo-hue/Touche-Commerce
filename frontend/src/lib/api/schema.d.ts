@@ -21,6 +21,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign in and open a server-side session
+         * @description Verifies the credentials with Argon2id, applies the login rate limit and creates a server-side session. The opaque session token is delivered in an HttpOnly cookie; the body never contains the token or the password hash. All failures return the same 401 message so account existence is not revealed. The active company is auto-selected only when the user has exactly one active membership.
+         */
+        post: operations["login_api_v1_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke the current session
+         * @description Revokes the session row immediately (the cookie alone would be useless afterwards) and clears the cookie. Requires the CSRF header.
+         */
+        post: operations["logout_api_v1_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Current user, active company and memberships
+         * @description Re-validates the session and the active membership on every call and returns the CSRF token the client must send on state-changing requests.
+         */
+        get: operations["me_api_v1_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/companies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Companies the signed-in user may access
+         * @description Returns only companies with an active membership for the caller, together with the role and permissions held in each. The list is derived from the database on every request, so a revoked membership disappears immediately.
+         */
+        get: operations["list_companies_api_v1_companies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health/live": {
         parameters: {
             query?: never;
@@ -61,10 +141,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/session/company": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Select the active company and rotate the session token
+         * @description Requires a CSRF header and an active membership for the requested company. The company id supplied by the client is only used as a lookup key: an unauthorised id returns 403 and writes an ACCESS_DENIED audit record. On success the session token and CSRF token are rotated and the absolute expiry is preserved.
+         */
+        post: operations["switch_company_api_v1_session_company_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AuthSessionResponse
+         * @description Body returned by login, company switch and ``GET /auth/me``.
+         */
+        AuthSessionResponse: {
+            /**
+             * Memberships
+             * @description Every company this user may still access.
+             */
+            memberships: components["schemas"]["CompanyAccess"][];
+            session: components["schemas"]["SessionView"];
+            user: components["schemas"]["SessionUser"];
+        };
+        /**
+         * CompanyAccess
+         * @description One company the signed-in user may access, with their role there.
+         */
+        CompanyAccess: {
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Country
+             * @description ISO 3166-1 alpha-2 country code.
+             */
+            country: string;
+            /**
+             * Default Currency
+             * @description ISO 4217 currency code.
+             */
+            default_currency: string;
+            /** Name */
+            name: string;
+            /**
+             * Permissions
+             * @description Permissions granted by this membership.
+             */
+            permissions: string[];
+            /**
+             * Role
+             * @description viewer, trader, approver or admin.
+             */
+            role: string;
+            /**
+             * Status
+             * @description Company status: active, suspended or archived.
+             */
+            status: string;
+        };
+        /**
+         * CompanyListResponse
+         * @description Companies available to the caller and the currently active one.
+         */
+        CompanyListResponse: {
+            /** Active Company Id */
+            active_company_id: string | null;
+            /** Companies */
+            companies: components["schemas"]["CompanyAccess"][];
+        };
+        /**
+         * CompanySwitchRequest
+         * @description Select the active company for this session.
+         */
+        CompanySwitchRequest: {
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+        };
         /**
          * ErrorDetail
          * @description Machine readable error description.
@@ -111,6 +283,11 @@ export interface components {
          */
         ErrorEnvelope: {
             error: components["schemas"]["ErrorDetail"];
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
         };
         /**
          * HealthCheckResult
@@ -184,6 +361,36 @@ export interface components {
             version: string;
         };
         /**
+         * LoginRequest
+         * @description Credentials submitted from the sign-in screen.
+         * @example {
+         *       "email": "amina@touche.example",
+         *       "password": "correct horse battery"
+         *     }
+         */
+        LoginRequest: {
+            /**
+             * Email
+             * Format: email
+             * @description Account email (case-insensitive).
+             */
+            email: string;
+            /**
+             * Password
+             * @description Account password.
+             */
+            password: string;
+        };
+        /** LogoutResponse */
+        LogoutResponse: {
+            /**
+             * Status
+             * @default signed_out
+             * @constant
+             */
+            status: "signed_out";
+        };
+        /**
          * ReadinessResponse
          * @description Readiness result: proves required dependencies are usable.
          * @example {
@@ -223,6 +430,79 @@ export interface components {
             /** Version */
             version: string;
         };
+        /**
+         * SessionUser
+         * @description The authenticated actor.
+         */
+        SessionUser: {
+            /** Display Name */
+            display_name: string;
+            /** Email */
+            email: string;
+            /** Status */
+            status: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /**
+         * SessionView
+         * @description Server-side session metadata. The token itself is only ever in the cookie.
+         */
+        SessionView: {
+            /** @description Active company, or null when a choice is required. */
+            company?: components["schemas"]["CompanyAccess"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Csrf Token
+             * @description Send as the CSRF header on every state-changing request.
+             */
+            csrf_token: string;
+            /**
+             * Expires At
+             * Format: date-time
+             * @description Absolute expiry, fixed at login.
+             */
+            expires_at: string;
+            /**
+             * Idle Expires At
+             * Format: date-time
+             */
+            idle_expires_at: string;
+            /** Ip Address */
+            ip_address?: string | null;
+            /**
+             * Last Activity At
+             * Format: date-time
+             */
+            last_activity_at: string;
+            /**
+             * Session Id
+             * Format: uuid
+             */
+            session_id: string;
+            /** User Agent */
+            user_agent?: string | null;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -250,6 +530,162 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
+                };
+            };
+        };
+    };
+    login_api_v1_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Session created. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthSessionResponse"];
+                };
+            };
+            /** @description Invalid credentials (generic). */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Origin not allowed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Too many attempts; honour Retry-After. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    logout_api_v1_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session revoked. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoutResponse"];
+                };
+            };
+            /** @description No valid session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description CSRF token or origin rejected. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    me_api_v1_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authenticated session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthSessionResponse"];
+                };
+            };
+            /** @description No valid session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_companies_api_v1_companies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accessible companies. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyListResponse"];
+                };
+            };
+            /** @description No valid session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };
@@ -299,6 +735,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    switch_company_api_v1_session_company_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompanySwitchRequest"];
+            };
+        };
+        responses: {
+            /** @description Active company changed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthSessionResponse"];
+                };
+            };
+            /** @description No valid session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No membership, CSRF or origin rejected. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

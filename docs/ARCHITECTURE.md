@@ -1,7 +1,8 @@
 # TOUCHE COMMERCE — Architecture
 
-**Status:** Stage 0 (foundation) implemented and verified locally.
-**Audience:** engineers and reviewers working on Stage 1A and later.
+**Status:** Stage 0 (foundation) and Stage 1A (identity, sessions, tenancy,
+audit) implemented and verified locally.
+**Audience:** engineers and reviewers working on Stage 1B and later.
 **Companion documents:** `docs/DECISIONS.md` (binding ADRs), `docs/API_CONTRACTS.md`,
 `docs/ROADMAP.md`, `docs/PROGRESS.md`.
 
@@ -82,32 +83,36 @@ touche-commerce/
 ### 3.2 Backend layering
 
 ```
-app/api/v1/routes   ← HTTP only: validation, status codes, dependency wiring
-        │
-app/api/v1/schemas  ← Pydantic contracts (single source for OpenAPI/TS)
-        │
-app/domain (1A+)    ← business rules, state machines, authorization decisions
-        │
-app/db              ← SQLAlchemy models, repositories, transaction/tenant scope
-        │
-PostgreSQL          ← constraints, RLS, composite FKs
+app/api/v1/routes        ← HTTP only: validation, status codes, dependency wiring
+app/api/v1/schemas       ← Pydantic contracts (single source for OpenAPI/TS)
+app/api/security.py      ← session resolution, CSRF, permission dependencies
+app/services             ← auth/session service, audit writer, admin (CLI)
+app/security             ← Argon2id, opaque tokens, role→permission matrix
+app/db                   ← SQLAlchemy models, engine, transaction/tenant scope
+PostgreSQL               ← constraints, RLS, composite FKs
 ```
 
 Rules:
 
 * Dependencies point downward only; routes never issue ad-hoc SQL.
-* Every mutation runs inside one transaction that also writes audit and outbox
-  rows (Stage 1A+).
+* Services own their transaction boundaries. Login/revocation deliberately commit
+  the failure audit row *before* raising, so a refused attempt is still recorded.
 * Authorization is decided server-side, never in the browser and never by an AI
   tool (ADR-018).
+* Tenant-scoped transactions set `touche.company_id` / `touche.actor_id` with
+  `SET LOCAL` inside the same transaction that queries the data.
 
-### 3.3 Planned modules (not implemented)
+### 3.3 Module status
 
-`identity` (users, sessions, companies, memberships, invitations), `audit`,
-`trade` (deals, sales orders), `crm`, `quoting` (RFQ, quotes), `catalog`
-(products), `logistics`, `finance`, `documents`, `integrations` (outbox relay),
-`ai` (assistants restricted to authorized tools). Each becomes a package under
-`app/domain/<module>` with its own router under `app/api/v1/routes/<module>.py`.
+Implemented: `identity` (`app/services/auth.py`, `admin.py`), `audit`
+(`app/services/audit.py`), `security` (`app/security/*`), `tenancy`
+(`app/db/tenant.py`, RLS policies).
+
+Planned (not implemented, no partial screens): `trade` (deals, sales orders),
+`crm`, `quoting` (RFQ, quotes), `catalog` (products), `logistics`, `finance`,
+`documents`, `integrations` (outbox relay), `ai` (assistants restricted to
+authorized tools). Each becomes a package under `app/services` with its own
+router under `app/api/v1/routes/`.
 
 ---
 
@@ -124,6 +129,10 @@ validated by `app/core/config.py` at start-up:
   non-loopback CORS origins. The process refuses to start otherwise.
 * Policy values are centralised (session idle 1800 s, absolute 43 200 s,
   pagination 25/100, idempotency TTL 24 h, login rate limit 10/300 s).
+* Identity policy values are configuration, not constants: cookie name/secure/
+  SameSite/domain, Argon2id cost (time 2, memory 19 MiB, parallelism 1), password
+  minimum length 12, per-account and per-source login limits. Tests use a cheap
+  Argon2 profile; production can raise the cost without a code change.
 * The FastAPI app is created through the `create_app()` factory
   (`uvicorn app.main:create_app --factory`) so importing the module has no
   configuration side effects.
@@ -194,7 +203,31 @@ as a client-side timeout.
   not a superuser, cannot bypass RLS, cannot create objects, can write the
   outbox table, and that `SET LOCAL` does not survive its transaction.
 
-### 6.1 Transactional outbox (foundation only)
+### 6.1 Table inventory
+
+| Table | Purpose | Tenant column | RLS |
+| ----- | ------- | ------------- | --- |
+| `app_user` | Global identities, Argon2id hash, status, timestamps | — | no (login bootstrap) |
+| `company` | Tenant root: name, country, default currency, status | `id` | yes (membership required) |
+| `membership` | `(user, company)` + role + active/revoked | `company_id` | yes |
+| `auth_session` | Server-side session; hashed token, CSRF token, expiry, revocation, IP/UA | `company_id` (nullable) | no (token lookup precedes context) |
+| `login_attempt` | Rate-limit counters and forensics | — | no (no API exposure) |
+| `audit_record` | Append-only audit trail | `company_id` (nullable) | yes (tenant reads, insert-only) |
+| `idempotency_record` | Durable replay contract (middleware in 1B/2) | `company_id` | yes |
+| `company_settings` | Per-company settings container | `company_id` | yes |
+| `company_setting_entry` | Key/value children with a composite FK | `company_id` | yes |
+| `outbox_event` | Transactional outbox for later integrations | `company_id` (nullable) | no (Stage 2 relay) |
+
+Naming rationale (`app_user`, `auth_session`) is recorded in ADR-019. The scope of
+RLS and the reason three identity tables are not policy-protected is ADR-023.
+
+Owner bypass: `touche_migrator` owns the tables and therefore bypasses RLS (no
+`FORCE ROW LEVEL SECURITY`, which would break migrations and seed scripts). That
+role is never used by the API; the runtime DSN is a separate secret. The
+privileged CLI (`python -m app.cli`) uses the migration role deliberately, because
+bootstrapping the first company/user happens before any tenant context can exist.
+
+### 6.2 Transactional outbox (foundation only)
 
 `touche.outbox_event` exists with: `id`, `company_id`, `event_type`,
 `aggregate_type`, `aggregate_id`, `payload` (JSONB), `occurred_at`,
@@ -207,29 +240,49 @@ transaction as the business change. No external system is contacted today.
 
 ---
 
-## 7. Multi-company isolation (design, enforced from Stage 1A)
+## 7. Multi-company isolation (implemented in Stage 1A)
 
 * Every tenant-owned table carries `company_id uuid NOT NULL` referencing
-  `touche.company(id)`.
-* The runtime role never has `BYPASSRLS`; policies compare `company_id` with
-  `current_setting('touche.company_id', true)`.
-* The request transaction sets the value with `SET LOCAL`
-  (`set_config('touche.company_id', ?, true)`), which is automatically reset at
-  `COMMIT`/`ROLLBACK`. `app/db/tenant.py` exposes `apply_company_context()`,
-  which refuses to run outside a transaction and is verified by an integration
-  test.
-* The active company lives in the **server-side session row** (not in a client
-  cookie). `POST /api/v1/session/company` verifies an active membership before
-  switching, rotates the session token, and writes an audit record.
-* Every relevant request re-verifies that the session's company still has an
-  active membership for the actor.
-* When a membership is removed, all sessions referencing that company are
-  revoked in the same transaction.
+  `touche.company(id)` (`idempotency_record` and `audit_record` allow `NULL` only
+  for system-level events).
+* The runtime role never has `BYPASSRLS`. Policies compare `company_id` with
+  `touche.current_company_id()`, a `STABLE` SQL function wrapping
+  `current_setting('touche.company_id', true)`; a missing setting yields `NULL`,
+  so the predicate matches **no rows** (fail closed).
+* `membership` additionally allows a user to read their own rows
+  (`user_id = touche.current_actor_id()`), and `company` is readable only when an
+  active membership exists for the actor — so `GET /companies` cannot leak other
+  tenants even without an explicit `WHERE`.
+* Context is applied with `SET LOCAL` (`set_config(..., true)`) inside the same
+  transaction that reads or writes the data, so a pooled connection cannot leak a
+  tenant to the next request. `app/db/tenant.py` refuses to apply context outside
+  a transaction.
+* The active company lives in the **server-side session row** (never in a client
+  value). `POST /api/v1/session/company` verifies an active membership first,
+  rotates the session token, then writes the audit row.
+* Every authenticated request re-verifies that the session's company still has an
+  active membership; if not, the session is revoked and `401` is returned.
+* Removing a membership revokes all sessions bound to that company in the same
+  transaction (`membership_revoked`), leaving other memberships untouched.
 
 ### 7.1 Composite foreign keys
 
 Tenant-owned children reference parents by `(id, company_id)` so a row can never
-point at another company's parent — even if a policy is missing:
+point at another company's parent — even if a policy is missing. This is
+implemented today for `company_setting_entry → company_settings`:
+
+```sql
+ALTER TABLE touche.company_settings
+    ADD CONSTRAINT uq_company_settings_id_company_id UNIQUE (id, company_id);
+
+ALTER TABLE touche.company_setting_entry
+    ADD CONSTRAINT fk_company_setting_entry_settings
+        FOREIGN KEY (settings_id, company_id)
+        REFERENCES touche.company_settings (id, company_id)
+        ON DELETE CASCADE;
+```
+
+Future business tables follow the same pattern, e.g.:
 
 ```sql
 CREATE TABLE touche.trade_deal (
@@ -249,6 +302,37 @@ CREATE TABLE touche.sales_order (
         REFERENCES touche.trade_deal (id, company_id)
 );
 ```
+
+### 7.2 RLS isolation matrix (executed)
+
+`backend/tests/test_rls_isolation.py` runs 16 tests with the **runtime** role on
+the isolated test database:
+
+| Requirement | Test | Verified behaviour |
+| ----------- | ---- | ------------------ |
+| Runtime role is least privilege | `test_runtime_role_is_least_privileged` | `rolbypassrls=false`, `rolsuper=false` |
+| Cannot disable RLS | `test_runtime_role_cannot_switch_rls_off` | `SET row_security = off` + query raises |
+| No DDL | `test_runtime_role_has_no_ddl_rights` | `CREATE TABLE` denied |
+| Missing context fails closed | `test_missing_tenant_context_returns_no_rows` | 0 rows from company/membership/settings/audit |
+| Transaction pooling cannot leak | `test_context_is_cleared_after_commit` | after `COMMIT`, setting empty and reads return 0 |
+| No cross-connection leakage | `test_two_connections_never_share_context` | each connection sees only its own tenant |
+| Reads are scoped | `test_settings_are_scoped_to_the_active_company` | only the active company's entries |
+| Company visibility needs membership | `test_company_rows_require_a_membership` | companies A+B visible, C hidden |
+| Membership rows are actor-scoped | `test_user_b_sees_only_their_own_membership` | 1 row for user B |
+| Audit reads are tenant-scoped | `test_audit_rows_are_scoped_to_the_active_company` | only company A rows |
+| Cross-tenant insert rejected | `test_cross_tenant_insert_is_rejected` | RLS violation |
+| Cross-tenant update/delete no-op | `test_cross_tenant_update_changes_nothing`, `..._delete_...` | 0 rows, data intact |
+| Composite FK blocks cross-tenant child | `test_composite_foreign_key_blocks_a_cross_tenant_child` | FK violation |
+| Audit is append-only | `test_runtime_role_cannot_update_or_delete_audit_rows`, `test_trigger_also_protects_the_table_from_the_owner` | permission denied / trigger raises |
+
+### 7.3 Scope boundaries (deliberate)
+
+`app_user`, `auth_session` and `login_attempt` are **not** protected by RLS:
+authentication must read a user by email and a session by token hash *before* any
+actor or tenant is known. Their protection is the absence of any direct API
+exposure plus least-privilege grants; every access goes through
+`AuthService`/`AdminService`. Any future exposure of these tables must go through
+a `SECURITY DEFINER` function, not a loosened policy. See ADR-023.
 
 The composite foreign key makes cross-company references structurally
 impossible; RLS then prevents cross-company *reads*.
@@ -371,8 +455,8 @@ class DocumentStorage(Protocol):
 
 * Next.js 16 App Router, React 19, TypeScript strict, Tailwind CSS 4, shadcn/ui
   style primitives (owned in-repo, not an external dependency), Lucide icons.
-* Server components perform the status probes; the page is `force-dynamic` so a
-  build can never embed a stale "online" label.
+* Server components perform the status probes; status pages are `force-dynamic`
+  so a build can never embed a stale "online" label.
 * All DTO types come from `src/lib/api/schema.d.ts`, generated by
   `openapi-typescript` from `frontend/openapi/openapi.json`, which is exported
   from FastAPI. Drift is a build failure (`scripts/generate-api-types.ps1 -Check`,
@@ -382,6 +466,46 @@ class DocumentStorage(Protocol):
 * Navigation placeholders are disabled buttons labelled with the stage in which
   they become available — no dead links, no fake screens, no fabricated KPIs.
 * Presentation helpers (`src/lib/status.ts`) are pure and unit tested.
+
+### 13.1 Routes (Stage 1A)
+
+| Route | Group | Access | Purpose |
+| ----- | ----- | ------ | ------- |
+| `/login` | `(auth)` | public | Sign in; redirects an authenticated visitor onward |
+| `/select-company` | `(auth)` | session | Choose the active company (multi-membership accounts) |
+| `/` | `(app)` | session + company | Command Center: identity, company, permissions, probes |
+| `/account` | `(app)` | session + company | Profile, memberships, permissions, session policy |
+| `/status` | root | public | Read-only infrastructure status (no session data) |
+| `/api/v1/[...path]` | root | — | Same-origin proxy to FastAPI |
+
+`(app)/layout.tsx` loads the session on the server, applies `resolveRoute()`
+(pure, unit tested) and redirects anonymous visitors to
+`/login?next=<pathname>`; accounts without an active company go to
+`/select-company`. The pathname reaches the layout through `src/proxy.ts`
+(formerly `middleware.ts`), which only copies it into an `x-pathname` request
+header.
+
+### 13.2 Session handling in the browser
+
+* The session cookie is `HttpOnly`; no JavaScript reads it.
+* Browser mutations go through the same-origin proxy, so the cookie is
+  first-party on `localhost:3000` and `Origin`/CSRF validation behave exactly as
+  in production.
+* The CSRF token is delivered in the session payload (server-rendered prop) and
+  sent back as `X-CSRF-Token`; it is never persisted in `localStorage` or
+  `sessionStorage`.
+* `loadSession()` is wrapped in React `cache()` so a layout and a page share one
+  `/auth/me` call per request.
+* When the API is unreachable the shell renders an explicit "session unavailable"
+  screen and performs no redirect, rather than guessing authentication state.
+
+### 13.3 Status and health screens
+
+`/status` is public and read-only (liveness, readiness, contract count, and
+explicit `Unreachable`/`Degraded` states). The authenticated Command Center shows
+the same probes next to the signed-in identity and active company — no fabricated
+KPI, deal or financial figure is rendered anywhere.
+
 
 ---
 
@@ -395,18 +519,21 @@ persisted in logs; document bodies are never logged.
 
 ---
 
-## 15. Scheduled maintenance (planned)
+## 15. Scheduled maintenance (contract only — not executed in 1A)
 
-| Job | Purpose | Planned stage |
-| --- | ------- | ------------- |
-| `sessions.expire` | delete sessions past idle/absolute expiry | 1A |
-| `idempotency.expire` | delete idempotency records older than TTL (24 h) | 1A |
-| `audit.retention` | enforce the documented audit retention window | 1A |
-| `outbox.relay` | deliver pending outbox events, exponential backoff | 2 |
-| `outbox.prune` | delete delivered events after retention | 2 |
+| Job | Purpose | Status |
+| --- | ------- | ------ |
+| `sessions.expire` | delete sessions past idle/absolute expiry | contract; rows are already rejected and revoked on use |
+| `idempotency.expire` | delete idempotency records older than TTL (24 h) | table exists; middleware and job in Stage 1B/2 |
+| `audit.retention` | enforce the documented audit retention window | contract only — requires the trigger to be disabled by the owner, deliberately auditable |
+| `outbox.relay` | deliver pending outbox events, exponential backoff | Stage 2 |
+| `outbox.prune` | delete delivered events after retention | Stage 2 |
 
-Stage 0 does not run background workers. Jobs will be idempotent, single-writer
-guarded (advisory lock), and observable through the same structured logs.
+No background worker exists yet, so nothing above is scheduled. Expiry is
+enforced *synchronously*: an expired session is rejected and revoked on use, so
+correctness does not depend on a job. When jobs arrive they will be idempotent,
+single-writer guarded (advisory lock) and observable through the same structured
+logs.
 
 ---
 
@@ -414,20 +541,139 @@ guarded (advisory lock), and observable through the same structured logs.
 
 Local development is the only environment that exists today. The API refuses to
 start with unsafe production settings (insecure cookie, non-HTTPS CORS,
-non-JSON logging, debug enabled), and CORS is restricted to the local frontend
+non-JSON logging, debug enabled, a cookie `Domain` combined with the `__Host-`
+prefix), and CORS/Origin validation is restricted to the configured frontend
 origins.
 
-Explicit non-goals for Stage 0: authentication, sessions, companies,
-memberships, RLS policies, audit table, idempotency storage, business modules,
-AI agents, Gmail/WhatsApp/E-YAY/Touche Finance/TOUCHE ONE clients, Kubernetes,
-Redis, Kafka and any additional infrastructure.
+Explicit non-goals for Stage 1A: business modules, CRM, deals, quotations,
+logistics, financial postings/approvals, integrations (E-YAY, Touche Finance,
+Gmail, WhatsApp Business, TOUCHE ONE), AI agents, idempotency middleware,
+scheduled cleanup jobs, membership/audit HTTP APIs, invitations, password reset
+and MFA.
+
+Deferred infrastructure (requires a new ADR and a demonstrated need): Kubernetes,
+Redis, Kafka, a separate worker platform, microservices.
 
 Known environment limitation: this workstation has **no Docker/WSL**, so
-`infra/docker-compose.yml` was authored but not executed here. Stage 0 was
-verified against a native portable PostgreSQL 17.6 cluster started by
+`infra/docker-compose.yml` was authored but not executed here. Stages 0 and 1A
+were verified against a native portable PostgreSQL 17.6 cluster started by
 `scripts/db/bootstrap-local-postgres.ps1`. Both paths share the same role
 bootstrap SQL (`scripts/db/01-roles-and-database.sql`,
 `scripts/db/02-schema-grants.sql`).
+
+---
+
+## 17. Authentication and session security (implemented)
+
+### 17.1 Password storage
+
+* Argon2id (`argon2-cffi`) with a per-hash random salt, encoded hash stored in
+  `app_user.password_hash`. Parameters are configuration (time 2, memory 19 MiB,
+  parallelism 1 by default; a cheaper profile is used by tests).
+* Password policy (minimum 12 characters, three character classes, no leading or
+  trailing whitespace, maximum 512 characters) is enforced when a password is
+  **set** (CLI now, reset flows later), never when it is verified.
+* Verification failures are indistinguishable: `PasswordService.verify_dummy()`
+  performs an equivalent hash comparison for unknown accounts.
+* Hashes are re-computed on login when cost parameters change (`needs_rehash`).
+* No password, hash or token is ever placed in a response body, an audit row or
+  a log line.
+
+### 17.2 Session mechanics
+
+| Aspect | Implementation |
+| ------ | -------------- |
+| Token | `secrets.token_urlsafe(32)` (256 bits), returned once in `Set-Cookie` |
+| Storage | `auth_session.token_hash` = SHA-256 hex; plaintext token never stored |
+| CSRF | separate 256-bit token stored on the session row; sent as `X-CSRF-Token`; compared in constant time |
+| Cookie | `HttpOnly`, `SameSite=Lax`, `Path=/`, `Max-Age=idle`, `Secure` outside local dev, `__Host-` prefix outside local dev |
+| Idle timeout | `now - last_activity_at >= 30 min` → revoke + `SESSION_EXPIRED` |
+| Absolute timeout | `now >= expires_at` (12 h from login, never extended) → revoke + `SESSION_EXPIRED` |
+| Rotation | new token **and** new CSRF token on company switch; the old token stops working immediately |
+| Revocation | `revoked_at` + `revoked_reason` (`logout`, `idle_timeout`, `absolute_timeout`, `membership_revoked`, `user_disabled`) |
+| Concurrency | one session per login; multiple sessions per user are allowed (separate devices) |
+
+### 17.3 Request protection order
+
+```
+CORS → X-Request-ID correlation → Origin validation → route
+     → session resolution (cookie → hashed lookup → expiry → membership)
+     → CSRF validation (mutations) → permission check → service
+```
+
+* **Origin validation** (ASGI middleware) rejects *every* non-GET request whose
+  `Origin` is missing or not in `TOUCHE_CORS_ALLOWED_ORIGINS`, before routing.
+  Browsers always send `Origin` on non-GET requests, so "missing" means a
+  non-browser client or a stripped header; both fail closed.
+* **CSRF** is validated against the presented session, not merely against a
+  second cookie: a token from another session is rejected.
+* **Rate limiting** runs before credential verification (10 failures per account
+  and 30 per source per 300 s), backed by `login_attempt`, returning `429` with
+  `Retry-After`.
+
+### 17.4 Failure disclosure
+
+| Situation | Client sees |
+| --------- | ----------- |
+| Unknown email | `401` "Email or password is incorrect." |
+| Wrong password | `401` "Email or password is incorrect." |
+| Disabled account | `401` "Email or password is incorrect." |
+| Rate limited | `429` + `Retry-After` (no account information) |
+| Company the user cannot access | `403` "You are not authorised to access that company." |
+| Revoked/expired session | `401` (`SESSION_EXPIRED` when it existed and timed out) |
+
+The internal reason (`unknown_user`, `invalid_password`, `user_disabled`,
+`login_rate_limited`, `company_switch_without_membership`,
+`membership_revoked`) is recorded in `login_attempt`/`audit_record` for operators
+and never returned.
+
+### 17.5 Audit events
+
+| Action value | When | Actor | Company |
+| ------------ | ---- | ----- | ------- |
+| `auth.login.success` | credentials accepted, session created | user | active company when auto-selected |
+| `auth.login.failure` | any credential failure | user (if known) or system | null |
+| `auth.logout` | session revoked by the user | user | active company |
+| `session.company.switch` | company changed | user | target company |
+| `session.revoked` | expiry, disablement, membership revocation | user/system | company (when bound) |
+| `membership.changed` | grant/reactivate/revoke via CLI | system | affected company |
+| `access.denied` | forbidden switch, revoked membership, login rate limit | user/system | null (the denial itself proves no access) |
+| `identity.bootstrap` | first admin/company created by the CLI | system | new company |
+
+Details are redacted (`password`, `token`, `csrf`, `cookie`, `authorization`,
+`api_key`, `secret`, `credential` → `[redacted]`), strings are bounded to 512
+characters, and inserts use a Core `INSERT` without `RETURNING` so the
+tenant-scoped read policy can stay strict (ADR-021).
+
+### 17.6 Trusted administration (CLI)
+
+`python -m app.cli` (wrapped by `scripts/bootstrap-admin.ps1` /
+`bootstrap-admin.sh`) is the only supported way to create users, companies and
+memberships in Stage 1A. It:
+
+* connects with the **migration** role (documented privilege, never used by the
+  API process);
+* reads passwords from a hidden interactive prompt or `--password-stdin`, never
+  from argv, and never prints them;
+* validates email/country/currency/role and refuses duplicates instead of
+  silently overwriting;
+* writes `membership.changed` / `identity.bootstrap` audit rows.
+
+---
+
+## 18. Verification of Stage 1A
+
+* Backend: `python -m pytest` — 120 tests (38 Stage 0 + 82 Stage 1A), including
+  live PostgreSQL RLS isolation and session/CSRF/rate-limit flows.
+* Frontend: `npm test` — 45 tests (22 Stage 0 + 23 Stage 1A), plus
+  `format:check`, `eslint`, `typecheck` and a production `build`.
+* Live: `scripts\verify-identity.ps1` — 31 HTTP-level checks against the running
+  API and web shell (cookie flags, rotation, CSRF/Origin rejection, rate limit,
+  company isolation, proxy behaviour, redirects).
+* Membership revocation was also verified live: revoking a membership revoked the
+  bound session (1 row) and the next request returned `401`, while a colleague's
+  session on the same company continued to work.
+
 
 
 

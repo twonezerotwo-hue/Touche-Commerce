@@ -1,7 +1,7 @@
 # TOUCHE COMMERCE — API contracts
 
-**Version:** v1 · Stage 0 (health endpoints implemented; the rest is the binding
-design for Stage 1A+).
+**Version:** v1 · Stage 1A **implemented** for health, authentication, sessions and
+company selection; later sections remain the binding design for Stage 1B+.
 **Source of truth:** `backend/app/api/v1/schemas/*` → `/api/v1/openapi.json` →
 `frontend/src/lib/api/schema.d.ts`.
 
@@ -11,16 +11,18 @@ design for Stage 1A+).
 
 | Item | Contract |
 | ---- | -------- |
-| Base URL (local) | `http://127.0.0.1:8000` |
+| Base URL (local) | `http://127.0.0.1:8000` (browser calls `http://localhost:3000/api/v1/*`, proxied same-origin) |
 | Namespace | `/api/v1` (breaking changes require `/api/v2`) |
 | Content type | `application/json; charset=utf-8` |
-| Authentication (1A) | `touche_session` cookie, `HttpOnly`, `Secure`, `SameSite=Lax` |
-| CSRF (1A) | `X-CSRF-Token` header on every non-GET request |
+| Authentication | `touche_session` cookie (`__Host-touche_session` outside local dev), `HttpOnly`, `SameSite=Lax`, `Secure` outside local dev |
+| CSRF | `X-CSRF-Token` header required on every authenticated non-GET request |
+| Origin validation | Every non-GET request must carry a trusted `Origin` header, including `/auth/login` |
 | Request correlation | `X-Request-ID` header, echoed on every response |
-| Idempotency | `Idempotency-Key` header on mutating requests |
-| Concurrency | `ETag` response header + `If-Match` request header |
+| Idempotency | `Idempotency-Key` header on mutating requests (Stage 1B) |
+| Concurrency | `ETag` response header + `If-Match` request header (Stage 1B) |
 | CORS | Local origins only (`http://localhost:3000`, `http://127.0.0.1:3000`) |
-| Caching | No response may be cached: `Cache-Control: no-store` on errors; status pages are `force-dynamic` |
+| Caching | Session-bearing responses are `Cache-Control: no-store`; status pages are `force-dynamic` |
+
 
 ### 1.1 Request id
 
@@ -66,8 +68,11 @@ Every non-2xx response has this shape (and only this shape):
 | ---- | ---- | ------- |
 | `BAD_REQUEST` | 400 | Malformed request that is not a validation error |
 | `VALIDATION_ERROR` | 422 | Field-level validation failed; `details` lists `field`, `message`, `type` |
-| `UNAUTHORIZED` | 401 | Missing/expired session *(Stage 1A)* |
-| `FORBIDDEN` | 403 | Authenticated but not permitted, or no active membership *(Stage 1A)* |
+| `UNAUTHORIZED` | 401 | Missing, expired or revoked session |
+| `SESSION_EXPIRED` | 401 | Session existed but reached its idle or absolute timeout |
+| `ORIGIN_REJECTED` | 403 | `Origin` missing or not trusted on a state-changing request |
+| `CSRF_REJECTED` | 403 | `X-CSRF-Token` missing or not bound to the presented session |
+| `FORBIDDEN` | 403 | Authenticated but not permitted, or no active membership |
 | `NOT_FOUND` | 404 | Unknown route or resource |
 | `METHOD_NOT_ALLOWED` | 405 | Wrong HTTP method |
 | `CONFLICT` | 409 | Generic state conflict |
@@ -287,58 +292,191 @@ Content-Type: application/json
 
 ---
 
-## 6. Session and company switching (Stage 1A design)
+## 6. Authentication, sessions and company selection (implemented)
 
-### 6.1 `POST /api/v1/session/company`
+### 6.0 Common session payload
 
-Switches the active company for the current session. The active company is
-server-side state; the request only *selects* a candidate.
-
-Request:
-
-```json
-{ "company_id": "8f14e45f-ceea-4b7b-9d0b-9d1f0f2b7c11" }
-```
-
-Success `200`:
+`POST /auth/login`, `GET /auth/me` and `POST /session/company` return the same
+shape:
 
 ```json
 {
+  "user": {
+    "user_id": "5f0c1d0e-2f8f-4c55-9a64-2a5f3d7b8c11",
+    "email": "amina@touche.example",
+    "display_name": "Amina Haddad",
+    "status": "active"
+  },
   "session": {
-    "session_id": "…",
-    "user_id": "…",
-    "company": { "id": "8f14e45f-…", "name": "TOUCHE Trading", "role": "trader" },
-    "expires_at": "2026-10-23T10:30:00Z"
-  }
+    "session_id": "a8c9e0f1-1b2c-4d3e-8f90-1234567890ab",
+    "company": {
+      "company_id": "8f14e45f-ceea-4b7b-9d0b-9d1f0f2b7c11",
+      "name": "TOUCHE Trading",
+      "country": "GB",
+      "default_currency": "GBP",
+      "status": "active",
+      "role": "admin",
+      "permissions": ["audit.view", "company.view", "membership.manage", "settings.manage", "settings.view"]
+    },
+    "created_at": "2026-10-22T08:00:00Z",
+    "last_activity_at": "2026-10-22T08:12:31Z",
+    "idle_expires_at": "2026-10-22T08:42:31Z",
+    "expires_at": "2026-10-22T20:00:00Z",
+    "csrf_token": "sD3…43chars",
+    "ip_address": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 …"
+  },
+  "memberships": [
+    {
+      "company_id": "8f14e45f-ceea-4b7b-9d0b-9d1f0f2b7c11",
+      "name": "TOUCHE Trading",
+      "country": "GB",
+      "default_currency": "GBP",
+      "status": "active",
+      "role": "admin",
+      "permissions": ["audit.view", "company.view", "membership.manage", "settings.manage", "settings.view"]
+    }
+  ]
 }
+```
+
+Rules:
+
+* The session token is **never** in the body — only in the `Set-Cookie` header.
+* `session.company` is `null` until a company is chosen. It is auto-selected only
+  when the user has exactly one active membership.
+* `permissions` is derived server-side from the role (`viewer`, `trader`,
+  `approver`, `admin`). `finance.approve` belongs to `approver` only — `admin`
+  never receives it (ADR-003).
+* Session-bearing responses carry `Cache-Control: no-store` and `Vary: Cookie`.
+
+### 6.1 `POST /api/v1/auth/login`
+
+```http
+POST /api/v1/auth/login
+Origin: http://localhost:3000
+Content-Type: application/json
+
+{ "email": "amina@touche.example", "password": "…" }
 ```
 
 Behaviour:
 
-1. Authenticate the session cookie; reject `401` when absent/expired.
-2. Verify an **active, verified membership** for `(user_id, company_id)`; else
-   `403 FORBIDDEN` (never reveal whether the company exists).
-3. Update `session.company_id`, rotate the session token, reset the idle timer,
-   issue a new cookie.
-4. Write an audit record (`action='session.company.switch'`, `request_id`).
-5. Return only the membership summary, no unrelated company data.
+1. **Rate limit first** — 10 failed attempts per account and 30 per source IP per
+   300 s (configurable). Exceeding either returns `429 RATE_LIMITED` with
+   `Retry-After`, even when the password is correct.
+2. Look up the account by normalised email and verify with Argon2id. Unknown
+   accounts run an equivalent dummy verification so response time does not reveal
+   existence.
+3. Disabled accounts, unknown accounts and wrong passwords all return
+   `401 UNAUTHORIZED` with the single message
+   `"Email or password is incorrect."`.
+4. On success: create the session row (hashed token, CSRF token, expiry), update
+   `last_login_at`, write `auth.login.success` (actor, company if auto-selected,
+   request id) and set the cookie.
 
-Errors: `401 UNAUTHORIZED`, `403 FORBIDDEN`, `422 VALIDATION_ERROR` (malformed
-UUID), `429 RATE_LIMITED` (credential-guessing protection).
+| Response | Meaning |
+| -------- | ------- |
+| `200` | Session created; body as §6.0 |
+| `401 UNAUTHORIZED` | Generic credential failure |
+| `403 ORIGIN_REJECTED` | `Origin` missing/untrusted |
+| `422 VALIDATION_ERROR` | Malformed email/password fields |
+| `429 RATE_LIMITED` | Login rate limit; honour `Retry-After` |
 
-### 6.2 Session lifecycle endpoints (Stage 1A)
+`Set-Cookie: touche_session=<token>; Max-Age=1800; Path=/; HttpOnly; SameSite=Lax`
+(`Secure` and the `__Host-` prefix outside local development). The browser-side
+lifetime is the idle window; the absolute expiry is enforced server-side.
 
-| Method | Path | Purpose |
-| ------ | ---- | ------- |
-| `POST` | `/api/v1/auth/login` | Create session (rate limited, CSRF-exempt) |
-| `POST` | `/api/v1/auth/logout` | Revoke the current session |
-| `GET` | `/api/v1/session` | Current actor, company, roles, permissions, expiry |
-| `POST` | `/api/v1/session/company` | Switch active company (above) |
+### 6.2 `GET /api/v1/auth/me`
 
-Every authenticated request re-verifies the membership referenced by the
-session. Removal of a membership revokes all sessions bound to that company.
+Returns §6.0 for the presented cookie. `401 UNAUTHORIZED` when the cookie is
+missing, unknown or revoked; `401 SESSION_EXPIRED` when the row exists but the
+idle or absolute deadline passed (the row is revoked and audited in that case).
+The membership bound to the session is re-validated on every call.
+
+### 6.3 `POST /api/v1/auth/logout`
+
+Requires a valid session **and** `X-CSRF-Token`. Revokes the row immediately
+(`revoked_reason='logout'`), writes `auth.logout`, clears the cookie
+(`Max-Age=0`) and returns `{"status": "signed_out"}`. Calling it with an
+already-revoked session returns `401` (the client clears its cookie regardless).
+
+### 6.4 `GET /api/v1/companies`
+
+```json
+{
+  "companies": [ { "company_id": "…", "name": "TOUCHE Trading", "country": "GB",
+                   "default_currency": "GBP", "status": "active", "role": "admin",
+                   "permissions": ["…"] } ],
+  "active_company_id": null
+}
+```
+
+Only companies with an **active membership** for the caller are returned. The
+list is derived from the database on every request, so a revoked membership
+disappears immediately.
+
+### 6.5 `POST /api/v1/session/company`
+
+```http
+POST /api/v1/session/company
+Origin: http://localhost:3000
+X-CSRF-Token: sD3…43chars
+Content-Type: application/json
+
+{ "company_id": "8f14e45f-ceea-4b7b-9d0b-9d1f0f2b7c11" }
+```
+
+Behaviour:
+
+1. Authenticate the session and require a valid CSRF token (`403 CSRF_REJECTED`).
+2. Verify an **active membership** for `(user_id, company_id)`. The client value is
+   only a lookup key; on failure the response is `403 FORBIDDEN` and an
+   `access.denied` audit row records the requested company id — no distinction
+   between "does not exist" and "not a member".
+3. Update `session.company_id`, **rotate** the session and CSRF tokens, reset the
+   idle timer, keep the absolute expiry, re-issue the cookie.
+4. Write `session.company.switch` and return §6.0.
+
+Errors: `401 UNAUTHORIZED`, `403 CSRF_REJECTED` / `FORBIDDEN`,
+`422 VALIDATION_ERROR`.
+
+### 6.6 Session policy and revocation
+
+| Event | Effect |
+| ----- | ------ |
+| 30 min without activity | Session revoked (`idle_timeout`), `401 SESSION_EXPIRED` |
+| 12 h since login | Session revoked (`absolute_timeout`), `401 SESSION_EXPIRED` |
+| Account disabled | Session revoked (`user_disabled`), `401 UNAUTHORIZED` |
+| Membership revoked | Every session bound to that company is revoked (`membership_revoked`); the next request returns `401`; other companies/memberships are untouched |
+| Logout | Revoked immediately, cookie cleared |
+
+### 6.7 Role → permission matrix (implemented)
+
+| Permission | viewer | trader | approver | admin |
+| ---------- | :----: | :----: | :------: | :---: |
+| `company.view` | ✓ | ✓ | ✓ | ✓ |
+| `settings.view` | ✓ | ✓ | ✓ | ✓ |
+| `settings.manage` | — | — | — | ✓ |
+| `membership.manage` | — | — | — | ✓ |
+| `audit.view` | — | — | — | ✓ |
+| `trade.write` | — | ✓ | — | — |
+| `finance.approve` | — | — | ✓ | — |
+
+An administrator cannot approve financial documents; an approver cannot manage
+memberships. Checks use `require_permission(...)`, never role comparisons
+(ADR-003).
+
+### 6.8 Reserved identity endpoints (Stage 1B)
+
+`GET /api/v1/audit-records` and `GET/POST/DELETE /api/v1/companies/{id}/memberships`
+are designed but **not mounted**; requesting them returns `404`. Membership
+administration is performed by the privileged CLI (`python -m app.cli`) until the
+Stage 1B admin UI exists.
 
 ---
+
+
 
 ## 7. Trade deal → sales order (Stage 2 design)
 
@@ -363,13 +501,13 @@ session. Removal of a membership revokes all sessions bound to that company.
 | `GET` | `/api/v1/health/live` | 0 | Implemented |
 | `GET` | `/api/v1/health/ready` | 0 | Implemented |
 | `GET` | `/api/v1/openapi.json` | 0 | Implemented |
-| `POST` | `/api/v1/auth/login` | 1A | Reserved |
-| `POST` | `/api/v1/auth/logout` | 1A | Reserved |
-| `GET` | `/api/v1/session` | 1A | Reserved |
-| `POST` | `/api/v1/session/company` | 1A | Reserved |
-| `GET/POST` | `/api/v1/companies` | 1A | Reserved |
-| `GET/POST/DELETE` | `/api/v1/companies/{id}/memberships` | 1A | Reserved |
-| `GET` | `/api/v1/audit-records` | 1A | Reserved |
+| `POST` | `/api/v1/auth/login` | 1A | Implemented |
+| `GET` | `/api/v1/auth/me` | 1A | Implemented |
+| `POST` | `/api/v1/auth/logout` | 1A | Implemented |
+| `GET` | `/api/v1/companies` | 1A | Implemented |
+| `POST` | `/api/v1/session/company` | 1A | Implemented |
+| `GET` | `/api/v1/audit-records` | 1B | Reserved |
+| `GET/POST/DELETE` | `/api/v1/companies/{id}/memberships` | 1B | Reserved |
 | `GET/POST/PATCH` | `/api/v1/trade-deals` | 2 | Reserved |
 | `POST` | `/api/v1/trade-deals/{id}/transitions` | 2 | Reserved |
 | `GET/POST/PATCH` | `/api/v1/sales-orders` | 2 | Reserved |
