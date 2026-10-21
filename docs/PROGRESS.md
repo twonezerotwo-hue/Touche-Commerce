@@ -691,8 +691,15 @@ Deleted: `frontend/src/app/page.tsx` (moved into `(app)/page.tsx`),
 
 ## 19. Git and next task
 
-* Branch `main`; Stage 1A implementation committed as the next commit after
-  `7ca8587` (hash recorded in the follow-up documentation commit).
+* Branch `main`.
+* Stage 1A implementation commit: **`16c5860`**
+  (`feat(stage1a): identity, sessions, authorization and multi-company isolation`,
+  87 files changed, 10 384 insertions, 619 deletions).
+* Follow-up documentation commit records this report (the commit that contains
+  this section).
+* `scripts\generate-api-types.ps1 -Check` was re-run **after** the implementation
+  commit and reported "generated API types are up to date" (contract is
+  deterministic).
 * Nothing pushed: no remote is configured, and pushing requires explicit approval.
 
 **Next recommended task: Stage 1B — product UI foundation** (only on explicit
@@ -706,4 +713,5 @@ audit read APIs for admins, idempotency middleware on the first mutating endpoin
 session/idempotency cleanup command, and password reset/invitation flows.
 
 Do not start Stage 1B automatically.
+
 
