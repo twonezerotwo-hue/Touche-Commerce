@@ -236,6 +236,34 @@
         "title": "CompanySwitchRequest",
         "type": "object"
       },
+      "CompletenessCheckResponse": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "satisfied": {
+            "title": "Satisfied",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "satisfied",
+          "detail"
+        ],
+        "title": "CompletenessCheckResponse",
+        "type": "object"
+      },
       "CounterpartyCreateRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1633,6 +1661,247 @@
         "title": "DealUpdateRequest",
         "type": "object"
       },
+      "DiscrepancyListResponse": {
+        "properties": {
+          "accounting_writes_enabled": {
+            "const": false,
+            "default": false,
+            "title": "Accounting Writes Enabled",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DiscrepancyResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "read_only": {
+            "const": true,
+            "default": true,
+            "title": "Read Only",
+            "type": "boolean"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "DiscrepancyListResponse",
+        "type": "object"
+      },
+      "DiscrepancyResolveRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "notes": {
+            "maxLength": 2000,
+            "minLength": 3,
+            "title": "Notes",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notes"
+        ],
+        "title": "DiscrepancyResolveRequest",
+        "type": "object"
+      },
+      "DiscrepancyResponse": {
+        "properties": {
+          "assigned_to": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To"
+          },
+          "code": {
+            "enum": [
+              "MISSING_EVIDENCE",
+              "MISSING_FINANCE_REFERENCE",
+              "AMOUNT_MISMATCH",
+              "CURRENCY_MISMATCH",
+              "DUPLICATE_REFERENCE",
+              "INCOMPLETE_COSTS",
+              "UNMATCHED_FINANCE_ITEM",
+              "SOURCE_STALE",
+              "COMPANY_MAPPING_INVALID",
+              "MANUAL_REVIEW_REQUIRED"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "expected": {
+            "additionalProperties": true,
+            "title": "Expected",
+            "type": "object"
+          },
+          "finance_source_reference_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finance Source Reference Id"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "observed": {
+            "additionalProperties": true,
+            "title": "Observed",
+            "type": "object"
+          },
+          "resolution_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Notes"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "resolved_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved By"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "INFO",
+              "WARNING",
+              "ERROR",
+              "BLOCKING"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "source_entity_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Entity Id"
+          },
+          "source_entity_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Entity Type"
+          },
+          "status": {
+            "enum": [
+              "OPEN",
+              "RESOLVED",
+              "DISMISSED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "code",
+          "severity",
+          "status",
+          "title",
+          "detail",
+          "expected",
+          "observed",
+          "created_at",
+          "updated_at",
+          "version"
+        ],
+        "title": "DiscrepancyResponse",
+        "type": "object"
+      },
       "DocumentArchiveRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1932,6 +2201,239 @@
           "error"
         ],
         "title": "ErrorEnvelope",
+        "type": "object"
+      },
+      "EvidenceLinkListResponse": {
+        "properties": {
+          "accounting_writes_enabled": {
+            "const": false,
+            "default": false,
+            "title": "Accounting Writes Enabled",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceLinkResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "read_only": {
+            "const": true,
+            "default": true,
+            "title": "Read Only",
+            "type": "boolean"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "EvidenceLinkListResponse",
+        "type": "object"
+      },
+      "EvidenceLinkRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "finance_source_reference_id": {
+            "format": "uuid",
+            "title": "Finance Source Reference Id",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "source_entity_id": {
+            "format": "uuid",
+            "title": "Source Entity Id",
+            "type": "string"
+          },
+          "source_entity_type": {
+            "enum": [
+              "SALES_ORDER",
+              "PURCHASE_ORDER",
+              "SHIPMENT_COST"
+            ],
+            "title": "Source Entity Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "source_entity_type",
+          "source_entity_id",
+          "finance_source_reference_id"
+        ],
+        "title": "EvidenceLinkRequest",
+        "type": "object"
+      },
+      "EvidenceLinkResponse": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "format": "uuid",
+            "title": "Created By",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "data_through": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Through"
+          },
+          "finance_source_reference": {
+            "title": "Finance Source Reference",
+            "type": "string"
+          },
+          "finance_source_reference_id": {
+            "format": "uuid",
+            "title": "Finance Source Reference Id",
+            "type": "string"
+          },
+          "finance_source_type": {
+            "title": "Finance Source Type",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "provenance": {
+            "additionalProperties": true,
+            "title": "Provenance",
+            "type": "object"
+          },
+          "source_entity_id": {
+            "format": "uuid",
+            "title": "Source Entity Id",
+            "type": "string"
+          },
+          "source_entity_type": {
+            "enum": [
+              "SALES_ORDER",
+              "PURCHASE_ORDER",
+              "SHIPMENT",
+              "SHIPMENT_COST"
+            ],
+            "title": "Source Entity Type",
+            "type": "string"
+          },
+          "verification_status": {
+            "enum": [
+              "UNVERIFIED",
+              "VERIFIED",
+              "REJECTED"
+            ],
+            "title": "Verification Status",
+            "type": "string"
+          },
+          "verified_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified At"
+          },
+          "verified_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified By"
+          }
+        },
+        "required": [
+          "id",
+          "source_entity_type",
+          "source_entity_id",
+          "finance_source_reference_id",
+          "finance_source_type",
+          "finance_source_reference",
+          "currency",
+          "amount",
+          "as_of",
+          "provenance",
+          "verification_status",
+          "created_by",
+          "created_at"
+        ],
+        "title": "EvidenceLinkResponse",
         "type": "object"
       },
       "FinanceAccount": {
@@ -3624,6 +4126,369 @@
           "sales_quote_id"
         ],
         "title": "OrderConversionRequest",
+        "type": "object"
+      },
+      "OrderFinanceEvidenceGap": {
+        "properties": {
+          "code": {
+            "enum": [
+              "MISSING_EVIDENCE",
+              "MISSING_FINANCE_REFERENCE",
+              "AMOUNT_MISMATCH",
+              "CURRENCY_MISMATCH",
+              "DUPLICATE_REFERENCE",
+              "INCOMPLETE_COSTS",
+              "UNMATCHED_FINANCE_ITEM",
+              "SOURCE_STALE",
+              "COMPANY_MAPPING_INVALID",
+              "MANUAL_REVIEW_REQUIRED"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "expected": {
+            "additionalProperties": true,
+            "title": "Expected",
+            "type": "object"
+          },
+          "observed": {
+            "additionalProperties": true,
+            "title": "Observed",
+            "type": "object"
+          },
+          "severity": {
+            "enum": [
+              "INFO",
+              "WARNING",
+              "ERROR",
+              "BLOCKING"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "source_entity_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Entity Id"
+          },
+          "source_entity_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Entity Type"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "severity",
+          "title",
+          "detail",
+          "expected",
+          "observed"
+        ],
+        "title": "OrderFinanceEvidenceGap",
+        "type": "object"
+      },
+      "OrderFinanceOrder": {
+        "properties": {
+          "confirmed_at": {
+            "title": "Confirmed At",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "customer_name": {
+            "title": "Customer Name",
+            "type": "string"
+          },
+          "expected_delivery_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Delivery Date"
+          },
+          "fulfilment_model": {
+            "title": "Fulfilment Model",
+            "type": "string"
+          },
+          "order_number": {
+            "title": "Order Number",
+            "type": "string"
+          },
+          "order_total": {
+            "title": "Order Total",
+            "type": "string"
+          },
+          "sales_order_id": {
+            "format": "uuid",
+            "title": "Sales Order Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sales_order_id",
+          "order_number",
+          "customer_name",
+          "status",
+          "fulfilment_model",
+          "currency",
+          "order_total",
+          "confirmed_at"
+        ],
+        "title": "OrderFinanceOrder",
+        "type": "object"
+      },
+      "OrderFinancePurchaseOrder": {
+        "properties": {
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "is_committed": {
+            "title": "Is Committed",
+            "type": "boolean"
+          },
+          "po_number": {
+            "title": "Po Number",
+            "type": "string"
+          },
+          "purchase_order_id": {
+            "format": "uuid",
+            "title": "Purchase Order Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "total_cost": {
+            "title": "Total Cost",
+            "type": "string"
+          }
+        },
+        "required": [
+          "purchase_order_id",
+          "po_number",
+          "status",
+          "currency",
+          "total_cost",
+          "is_committed"
+        ],
+        "title": "OrderFinancePurchaseOrder",
+        "type": "object"
+      },
+      "OrderFinanceResponse": {
+        "properties": {
+          "accounting_writes_enabled": {
+            "const": false,
+            "default": false,
+            "title": "Accounting Writes Enabled",
+            "type": "boolean"
+          },
+          "classifications": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Classifications",
+            "type": "object"
+          },
+          "latest_run_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Run At"
+          },
+          "latest_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Run Id"
+          },
+          "latest_run_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "INCOMPLETE",
+                  "UNMATCHED",
+                  "POTENTIAL_MATCH",
+                  "MATCHED_EVIDENCE",
+                  "VERIFIED",
+                  "DISPUTED"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Run Status"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/ReconciliationMetricsResponse"
+          },
+          "missing_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/OrderFinanceEvidenceGap"
+            },
+            "title": "Missing Evidence",
+            "type": "array"
+          },
+          "order": {
+            "$ref": "#/components/schemas/OrderFinanceOrder"
+          },
+          "purchase_orders": {
+            "items": {
+              "$ref": "#/components/schemas/OrderFinancePurchaseOrder"
+            },
+            "title": "Purchase Orders",
+            "type": "array"
+          },
+          "read_only": {
+            "const": true,
+            "default": true,
+            "title": "Read Only",
+            "type": "boolean"
+          },
+          "shipments": {
+            "items": {
+              "$ref": "#/components/schemas/OrderFinanceShipment"
+            },
+            "title": "Shipments",
+            "type": "array"
+          }
+        },
+        "required": [
+          "order",
+          "purchase_orders",
+          "shipments",
+          "metrics",
+          "classifications",
+          "limitations",
+          "missing_evidence"
+        ],
+        "title": "OrderFinanceResponse",
+        "type": "object"
+      },
+      "OrderFinanceShipment": {
+        "properties": {
+          "costs": {
+            "items": {
+              "$ref": "#/components/schemas/OrderFinanceShipmentCost"
+            },
+            "title": "Costs",
+            "type": "array"
+          },
+          "shipment_id": {
+            "format": "uuid",
+            "title": "Shipment Id",
+            "type": "string"
+          },
+          "shipment_number": {
+            "title": "Shipment Number",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "shipment_id",
+          "shipment_number",
+          "status",
+          "costs"
+        ],
+        "title": "OrderFinanceShipment",
+        "type": "object"
+      },
+      "OrderFinanceShipmentCost": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "string"
+          },
+          "cost_id": {
+            "format": "uuid",
+            "title": "Cost Id",
+            "type": "string"
+          },
+          "cost_type": {
+            "title": "Cost Type",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "reference": {
+            "title": "Reference",
+            "type": "string"
+          },
+          "stage": {
+            "title": "Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cost_id",
+          "cost_type",
+          "stage",
+          "currency",
+          "amount",
+          "reference"
+        ],
+        "title": "OrderFinanceShipmentCost",
         "type": "object"
       },
       "OrderTransitionRequest": {
@@ -5622,6 +6487,629 @@
           "checks"
         ],
         "title": "ReadinessResponse",
+        "type": "object"
+      },
+      "ReconciliationListResponse": {
+        "properties": {
+          "accounting_writes_enabled": {
+            "const": false,
+            "default": false,
+            "title": "Accounting Writes Enabled",
+            "type": "boolean"
+          },
+          "blocking_discrepancy_count": {
+            "minimum": 0.0,
+            "title": "Blocking Discrepancy Count",
+            "type": "integer"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationRunSummaryResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "open_discrepancy_count": {
+            "minimum": 0.0,
+            "title": "Open Discrepancy Count",
+            "type": "integer"
+          },
+          "read_only": {
+            "const": true,
+            "default": true,
+            "title": "Read Only",
+            "type": "boolean"
+          },
+          "status_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Status Counts",
+            "type": "object"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset",
+          "status_counts",
+          "open_discrepancy_count",
+          "blocking_discrepancy_count"
+        ],
+        "title": "ReconciliationListResponse",
+        "type": "object"
+      },
+      "ReconciliationMetricsResponse": {
+        "properties": {
+          "accepted_sales_order_value": {
+            "title": "Accepted Sales Order Value",
+            "type": "string"
+          },
+          "commitment_based_margin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commitment Based Margin"
+          },
+          "commitment_based_margin_pct": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commitment Based Margin Pct"
+          },
+          "completeness_checks": {
+            "items": {
+              "$ref": "#/components/schemas/CompletenessCheckResponse"
+            },
+            "title": "Completeness Checks",
+            "type": "array"
+          },
+          "completeness_score": {
+            "title": "Completeness Score",
+            "type": "string"
+          },
+          "document_supported_margin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Supported Margin"
+          },
+          "estimate_vs_recorded_variance": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimate Vs Recorded Variance"
+          },
+          "estimated_landed_cost": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Landed Cost"
+          },
+          "purchase_commitment_count": {
+            "minimum": 0.0,
+            "title": "Purchase Commitment Count",
+            "type": "integer"
+          },
+          "purchase_commitments_total": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purchase Commitments Total"
+          },
+          "recorded_operational_costs": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded Operational Costs"
+          }
+        },
+        "required": [
+          "accepted_sales_order_value",
+          "purchase_commitment_count",
+          "completeness_score",
+          "completeness_checks"
+        ],
+        "title": "ReconciliationMetricsResponse",
+        "type": "object"
+      },
+      "ReconciliationRunCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "maxLength": 3,
+                "pattern": "^[A-Za-z]{2,3}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "sales_order_id": {
+            "format": "uuid",
+            "title": "Sales Order Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sales_order_id"
+        ],
+        "title": "ReconciliationRunCreateRequest",
+        "type": "object"
+      },
+      "ReconciliationRunResponse": {
+        "properties": {
+          "accounting_writes_enabled": {
+            "const": false,
+            "default": false,
+            "title": "Accounting Writes Enabled",
+            "type": "boolean"
+          },
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "blocking_discrepancy_count": {
+            "title": "Blocking Discrepancy Count",
+            "type": "integer"
+          },
+          "calculation_version": {
+            "title": "Calculation Version",
+            "type": "string"
+          },
+          "classifications": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Classifications",
+            "type": "object"
+          },
+          "company_id": {
+            "format": "uuid",
+            "title": "Company Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "format": "uuid",
+            "title": "Created By",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "customer_name": {
+            "title": "Customer Name",
+            "type": "string"
+          },
+          "data_through": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Through"
+          },
+          "discrepancies": {
+            "items": {
+              "$ref": "#/components/schemas/DiscrepancyResponse"
+            },
+            "title": "Discrepancies",
+            "type": "array"
+          },
+          "evidence_count": {
+            "title": "Evidence Count",
+            "type": "integer"
+          },
+          "evidence_links": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceLinkResponse"
+            },
+            "title": "Evidence Links",
+            "type": "array"
+          },
+          "finance_company_id": {
+            "title": "Finance Company Id",
+            "type": "string"
+          },
+          "finance_currency": {
+            "title": "Finance Currency",
+            "type": "string"
+          },
+          "finance_snapshot": {
+            "additionalProperties": true,
+            "title": "Finance Snapshot",
+            "type": "object"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/ReconciliationMetricsResponse"
+          },
+          "open_discrepancy_count": {
+            "title": "Open Discrepancy Count",
+            "type": "integer"
+          },
+          "order_number": {
+            "title": "Order Number",
+            "type": "string"
+          },
+          "read_only": {
+            "const": true,
+            "default": true,
+            "title": "Read Only",
+            "type": "boolean"
+          },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewResponse"
+            },
+            "title": "Reviews",
+            "type": "array"
+          },
+          "sales_order_id": {
+            "format": "uuid",
+            "title": "Sales Order Id",
+            "type": "string"
+          },
+          "source_references": {
+            "items": {
+              "$ref": "#/components/schemas/SourceReferenceResponse"
+            },
+            "title": "Source References",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "INCOMPLETE",
+              "UNMATCHED",
+              "POTENTIAL_MATCH",
+              "MATCHED_EVIDENCE",
+              "VERIFIED",
+              "DISPUTED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "sales_order_id",
+          "order_number",
+          "customer_name",
+          "currency",
+          "as_of",
+          "status",
+          "version",
+          "created_at",
+          "evidence_count",
+          "open_discrepancy_count",
+          "blocking_discrepancy_count",
+          "company_id",
+          "finance_company_id",
+          "finance_currency",
+          "calculation_version",
+          "metrics",
+          "classifications",
+          "limitations",
+          "finance_snapshot",
+          "source_references",
+          "evidence_links",
+          "discrepancies",
+          "reviews",
+          "created_by",
+          "updated_at"
+        ],
+        "title": "ReconciliationRunResponse",
+        "type": "object"
+      },
+      "ReconciliationRunSummaryResponse": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "blocking_discrepancy_count": {
+            "title": "Blocking Discrepancy Count",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "customer_name": {
+            "title": "Customer Name",
+            "type": "string"
+          },
+          "data_through": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Through"
+          },
+          "evidence_count": {
+            "title": "Evidence Count",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "open_discrepancy_count": {
+            "title": "Open Discrepancy Count",
+            "type": "integer"
+          },
+          "order_number": {
+            "title": "Order Number",
+            "type": "string"
+          },
+          "sales_order_id": {
+            "format": "uuid",
+            "title": "Sales Order Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "INCOMPLETE",
+              "UNMATCHED",
+              "POTENTIAL_MATCH",
+              "MATCHED_EVIDENCE",
+              "VERIFIED",
+              "DISPUTED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "sales_order_id",
+          "order_number",
+          "customer_name",
+          "currency",
+          "as_of",
+          "status",
+          "version",
+          "created_at",
+          "evidence_count",
+          "open_discrepancy_count",
+          "blocking_discrepancy_count"
+        ],
+        "title": "ReconciliationRunSummaryResponse",
+        "type": "object"
+      },
+      "ReviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "CONFIRM",
+              "DISPUTE",
+              "REQUEST_CHANGES"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "notes": {
+            "maxLength": 2000,
+            "minLength": 3,
+            "title": "Notes",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "decision",
+          "notes"
+        ],
+        "title": "ReviewRequest",
+        "type": "object"
+      },
+      "ReviewResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "CONFIRM",
+              "DISPUTE",
+              "REQUEST_CHANGES"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "new_status": {
+            "enum": [
+              "INCOMPLETE",
+              "UNMATCHED",
+              "POTENTIAL_MATCH",
+              "MATCHED_EVIDENCE",
+              "VERIFIED",
+              "DISPUTED"
+            ],
+            "title": "New Status",
+            "type": "string"
+          },
+          "notes": {
+            "title": "Notes",
+            "type": "string"
+          },
+          "previous_status": {
+            "enum": [
+              "INCOMPLETE",
+              "UNMATCHED",
+              "POTENTIAL_MATCH",
+              "MATCHED_EVIDENCE",
+              "VERIFIED",
+              "DISPUTED"
+            ],
+            "title": "Previous Status",
+            "type": "string"
+          },
+          "reviewer_id": {
+            "format": "uuid",
+            "title": "Reviewer Id",
+            "type": "string"
+          },
+          "reviewer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Name"
+          }
+        },
+        "required": [
+          "id",
+          "decision",
+          "previous_status",
+          "new_status",
+          "notes",
+          "reviewer_id",
+          "created_at"
+        ],
+        "title": "ReviewResponse",
         "type": "object"
       },
       "RfqBatchResponse": {
@@ -9028,6 +10516,86 @@
         "title": "ShipmentTransitionRequest",
         "type": "object"
       },
+      "SourceReferenceResponse": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "content_hash": {
+            "title": "Content Hash",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "data_through": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Through"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_transaction_level": {
+            "title": "Is Transaction Level",
+            "type": "boolean"
+          },
+          "observed_amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed Amount"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "source_reference": {
+            "title": "Source Reference",
+            "type": "string"
+          },
+          "source_type": {
+            "enum": [
+              "AGING_RECEIVABLE",
+              "AGING_PAYABLE",
+              "ACCOUNT",
+              "SUMMARY"
+            ],
+            "title": "Source Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source_type",
+          "source_reference",
+          "is_transaction_level",
+          "currency",
+          "as_of",
+          "content_hash",
+          "payload"
+        ],
+        "title": "SourceReferenceResponse",
+        "type": "object"
+      },
       "SupplierQuoteCreateRequest": {
         "additionalProperties": false,
         "properties": {
@@ -12106,6 +13674,816 @@
         "summary": "Verified Finance capabilities for the mapped company",
         "tags": [
           "finance"
+        ]
+      }
+    },
+    "/api/v1/finance/discrepancies": {
+      "get": {
+        "operationId": "list_discrepancies_api_v1_finance_discrepancies_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "run_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Run Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "severity",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 16,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Severity"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 16,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "currency",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 3,
+                  "pattern": "^[A-Za-z]{2,3}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Currency"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscrepancyListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List deterministic reconciliation discrepancies",
+        "tags": [
+          "finance-reconciliation"
+        ]
+      }
+    },
+    "/api/v1/finance/discrepancies/{discrepancy_id}": {
+      "get": {
+        "operationId": "get_discrepancy_api_v1_finance_discrepancies__discrepancy_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "discrepancy_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Discrepancy Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscrepancyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown discrepancy."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read one discrepancy inside the active company",
+        "tags": [
+          "finance-reconciliation"
+        ]
+      }
+    },
+    "/api/v1/finance/discrepancies/{discrepancy_id}/resolve": {
+      "post": {
+        "description": "Requires finance.reconcile. Resolution changes the discrepancy record only; it never changes a Finance ledger, invoice or payment.",
+        "operationId": "resolve_discrepancy_api_v1_finance_discrepancies__discrepancy_id__resolve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "discrepancy_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Discrepancy Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiscrepancyResolveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscrepancyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "finance.reconcile missing."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Already resolved or stale version."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "If-Match header missing."
+          }
+        },
+        "summary": "Resolve a discrepancy with reviewer notes",
+        "tags": [
+          "finance-reconciliation"
+        ]
+      }
+    },
+    "/api/v1/finance/evidence-links": {
+      "get": {
+        "operationId": "list_evidence_links_api_v1_finance_evidence_links_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceLinkListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List explicit evidence links for a run",
+        "tags": [
+          "finance-reconciliation"
+        ]
+      },
+      "post": {
+        "description": "Only transaction-level Finance aging ids are linkable. The amount is taken from the Finance snapshot, never from the request. A duplicate claim of the same source id in one run is rejected.",
+        "operationId": "create_evidence_link_api_v1_finance_evidence_links_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceLinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationRunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "trade.write missing."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid, duplicate or mismatched evidence."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "If-Match header missing."
+          }
+        },
+        "summary": "Explicitly link one Commerce source to one Finance source id",
+        "tags": [
+          "finance-reconciliation"
+        ]
+      }
+    },
+    "/api/v1/finance/orders/{sales_order_id}": {
+      "get": {
+        "description": "Shows accepted order value, purchase commitments, estimated landed cost, recorded operational costs and supported margins. Unavailable accounting facts stay labelled unavailable.",
+        "operationId": "get_order_finance_api_v1_finance_orders__sales_order_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sales_order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Sales Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderFinanceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown sales order."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Order finance view with separated commercial facts and evidence gaps",
+        "tags": [
+          "finance-reconciliation"
+        ]
+      }
+    },
+    "/api/v1/finance/reconciliation": {
+      "get": {
+        "description": "Lists tenant-scoped runs only. There is no cross-currency total: status counts are counts, and each run keeps its own currency.",
+        "operationId": "list_reconciliation_runs_api_v1_finance_reconciliation_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "currency",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 3,
+                  "pattern": "^[A-Za-z]{2,3}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Currency"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Order Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "INCOMPLETE",
+                    "UNMATCHED",
+                    "POTENTIAL_MATCH",
+                    "MATCHED_EVIDENCE",
+                    "VERIFIED",
+                    "DISPUTED"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid filter."
+          }
+        },
+        "summary": "List evidence reconciliation runs for the active company",
+        "tags": [
+          "finance-reconciliation"
+        ]
+      }
+    },
+    "/api/v1/finance/reconciliation/runs": {
+      "post": {
+        "description": "Reads Finance's supported summary and aging endpoints, records stable source ids and deterministic discrepancies. It never posts a journal, invoice or payment and never attributes a company-wide balance to an order.",
+        "operationId": "create_reconciliation_run_api_v1_finance_reconciliation_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationRunCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationRunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "trade.write or company context missing."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Mapping or currency is not usable."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Finance authentication/protocol failure."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Finance unavailable or disabled."
+          }
+        },
+        "summary": "Create an evidence reconciliation snapshot for one sales order",
+        "tags": [
+          "finance-reconciliation"
+        ]
+      }
+    },
+    "/api/v1/finance/reconciliation/runs/{run_id}": {
+      "get": {
+        "operationId": "get_reconciliation_run_api_v1_finance_reconciliation_runs__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationRunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown run or another tenant."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read one reconciliation run with evidence, discrepancies and reviews",
+        "tags": [
+          "finance-reconciliation"
+        ]
+      }
+    },
+    "/api/v1/finance/reviews": {
+      "post": {
+        "description": "Requires the distinct finance.reconcile permission. The run creator cannot review their own run. CONFIRM is the only path to VERIFIED and requires linked sales-order evidence, MATCHED_EVIDENCE and no open blocking discrepancies.",
+        "operationId": "create_review_api_v1_finance_reviews_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationRunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "finance.reconcile missing or self-review."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not verifiable in the current state."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "If-Match header missing."
+          }
+        },
+        "summary": "Record an authorised financial review decision",
+        "tags": [
+          "finance-reconciliation"
         ]
       }
     },

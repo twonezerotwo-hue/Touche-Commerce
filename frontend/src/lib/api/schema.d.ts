@@ -441,6 +441,178 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/discrepancies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List deterministic reconciliation discrepancies */
+        get: operations["list_discrepancies_api_v1_finance_discrepancies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/discrepancies/{discrepancy_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one discrepancy inside the active company */
+        get: operations["get_discrepancy_api_v1_finance_discrepancies__discrepancy_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/discrepancies/{discrepancy_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve a discrepancy with reviewer notes
+         * @description Requires finance.reconcile. Resolution changes the discrepancy record only; it never changes a Finance ledger, invoice or payment.
+         */
+        post: operations["resolve_discrepancy_api_v1_finance_discrepancies__discrepancy_id__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/evidence-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List explicit evidence links for a run */
+        get: operations["list_evidence_links_api_v1_finance_evidence_links_get"];
+        put?: never;
+        /**
+         * Explicitly link one Commerce source to one Finance source id
+         * @description Only transaction-level Finance aging ids are linkable. The amount is taken from the Finance snapshot, never from the request. A duplicate claim of the same source id in one run is rejected.
+         */
+        post: operations["create_evidence_link_api_v1_finance_evidence_links_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/orders/{sales_order_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Order finance view with separated commercial facts and evidence gaps
+         * @description Shows accepted order value, purchase commitments, estimated landed cost, recorded operational costs and supported margins. Unavailable accounting facts stay labelled unavailable.
+         */
+        get: operations["get_order_finance_api_v1_finance_orders__sales_order_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List evidence reconciliation runs for the active company
+         * @description Lists tenant-scoped runs only. There is no cross-currency total: status counts are counts, and each run keeps its own currency.
+         */
+        get: operations["list_reconciliation_runs_api_v1_finance_reconciliation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/reconciliation/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create an evidence reconciliation snapshot for one sales order
+         * @description Reads Finance's supported summary and aging endpoints, records stable source ids and deterministic discrepancies. It never posts a journal, invoice or payment and never attributes a company-wide balance to an order.
+         */
+        post: operations["create_reconciliation_run_api_v1_finance_reconciliation_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/reconciliation/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one reconciliation run with evidence, discrepancies and reviews */
+        get: operations["get_reconciliation_run_api_v1_finance_reconciliation_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record an authorised financial review decision
+         * @description Requires the distinct finance.reconcile permission. The run creator cannot review their own run. CONFIRM is the only path to VERIFIED and requires linked sales-order evidence, MATCHED_EVIDENCE and no open blocking discrepancies.
+         */
+        post: operations["create_review_api_v1_finance_reviews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/status": {
         parameters: {
             query?: never;
@@ -1477,6 +1649,17 @@ export interface components {
              */
             company_id: string;
         };
+        /** CompletenessCheckResponse */
+        CompletenessCheckResponse: {
+            /** Detail */
+            detail: string;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Satisfied */
+            satisfied: boolean;
+        };
         /** CounterpartyCreateRequest */
         CounterpartyCreateRequest: {
             /** Contact Name */
@@ -1997,6 +2180,100 @@ export interface components {
             /** Title */
             title?: string | null;
         };
+        /** DiscrepancyListResponse */
+        DiscrepancyListResponse: {
+            /**
+             * Accounting Writes Enabled
+             * @default false
+             * @constant
+             */
+            accounting_writes_enabled: false;
+            /** Items */
+            items: components["schemas"]["DiscrepancyResponse"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Read Only
+             * @default true
+             * @constant
+             */
+            read_only: true;
+            /** Total */
+            total: number;
+        };
+        /** DiscrepancyResolveRequest */
+        DiscrepancyResolveRequest: {
+            /** Notes */
+            notes: string;
+        };
+        /** DiscrepancyResponse */
+        DiscrepancyResponse: {
+            /** Assigned To */
+            assigned_to?: string | null;
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "MISSING_EVIDENCE" | "MISSING_FINANCE_REFERENCE" | "AMOUNT_MISMATCH" | "CURRENCY_MISMATCH" | "DUPLICATE_REFERENCE" | "INCOMPLETE_COSTS" | "UNMATCHED_FINANCE_ITEM" | "SOURCE_STALE" | "COMPANY_MAPPING_INVALID" | "MANUAL_REVIEW_REQUIRED";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Detail */
+            detail: string;
+            /** Expected */
+            expected: {
+                [key: string]: unknown;
+            };
+            /** Finance Source Reference Id */
+            finance_source_reference_id?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Observed */
+            observed: {
+                [key: string]: unknown;
+            };
+            /** Resolution Notes */
+            resolution_notes?: string | null;
+            /** Resolved At */
+            resolved_at?: string | null;
+            /** Resolved By */
+            resolved_by?: string | null;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "INFO" | "WARNING" | "ERROR" | "BLOCKING";
+            /** Source Entity Id */
+            source_entity_id?: string | null;
+            /** Source Entity Type */
+            source_entity_type?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "OPEN" | "RESOLVED" | "DISMISSED";
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
         /** DocumentArchiveRequest */
         DocumentArchiveRequest: {
             /** Reason */
@@ -2132,6 +2409,117 @@ export interface components {
          */
         ErrorEnvelope: {
             error: components["schemas"]["ErrorDetail"];
+        };
+        /** EvidenceLinkListResponse */
+        EvidenceLinkListResponse: {
+            /**
+             * Accounting Writes Enabled
+             * @default false
+             * @constant
+             */
+            accounting_writes_enabled: false;
+            /** Items */
+            items: components["schemas"]["EvidenceLinkResponse"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Read Only
+             * @default true
+             * @constant
+             */
+            read_only: true;
+            /** Total */
+            total: number;
+        };
+        /** EvidenceLinkRequest */
+        EvidenceLinkRequest: {
+            /**
+             * Finance Source Reference Id
+             * Format: uuid
+             */
+            finance_source_reference_id: string;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Source Entity Id
+             * Format: uuid
+             */
+            source_entity_id: string;
+            /**
+             * Source Entity Type
+             * @enum {string}
+             */
+            source_entity_type: "SALES_ORDER" | "PURCHASE_ORDER" | "SHIPMENT_COST";
+        };
+        /** EvidenceLinkResponse */
+        EvidenceLinkResponse: {
+            /** Amount */
+            amount: string;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Currency */
+            currency: string;
+            /** Data Through */
+            data_through?: string | null;
+            /** Finance Source Reference */
+            finance_source_reference: string;
+            /**
+             * Finance Source Reference Id
+             * Format: uuid
+             */
+            finance_source_reference_id: string;
+            /** Finance Source Type */
+            finance_source_type: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Notes */
+            notes?: string | null;
+            /** Provenance */
+            provenance: {
+                [key: string]: unknown;
+            };
+            /**
+             * Source Entity Id
+             * Format: uuid
+             */
+            source_entity_id: string;
+            /**
+             * Source Entity Type
+             * @enum {string}
+             */
+            source_entity_type: "SALES_ORDER" | "PURCHASE_ORDER" | "SHIPMENT" | "SHIPMENT_COST";
+            /**
+             * Verification Status
+             * @enum {string}
+             */
+            verification_status: "UNVERIFIED" | "VERIFIED" | "REJECTED";
+            /** Verified At */
+            verified_at?: string | null;
+            /** Verified By */
+            verified_by?: string | null;
         };
         /** FinanceAccount */
         FinanceAccount: {
@@ -2865,6 +3253,144 @@ export interface components {
              */
             sales_quote_id: string;
         };
+        /** OrderFinanceEvidenceGap */
+        OrderFinanceEvidenceGap: {
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "MISSING_EVIDENCE" | "MISSING_FINANCE_REFERENCE" | "AMOUNT_MISMATCH" | "CURRENCY_MISMATCH" | "DUPLICATE_REFERENCE" | "INCOMPLETE_COSTS" | "UNMATCHED_FINANCE_ITEM" | "SOURCE_STALE" | "COMPANY_MAPPING_INVALID" | "MANUAL_REVIEW_REQUIRED";
+            /** Detail */
+            detail: string;
+            /** Expected */
+            expected: {
+                [key: string]: unknown;
+            };
+            /** Observed */
+            observed: {
+                [key: string]: unknown;
+            };
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "INFO" | "WARNING" | "ERROR" | "BLOCKING";
+            /** Source Entity Id */
+            source_entity_id?: string | null;
+            /** Source Entity Type */
+            source_entity_type?: string | null;
+            /** Title */
+            title: string;
+        };
+        /** OrderFinanceOrder */
+        OrderFinanceOrder: {
+            /** Confirmed At */
+            confirmed_at: string;
+            /** Currency */
+            currency: string;
+            /** Customer Name */
+            customer_name: string;
+            /** Expected Delivery Date */
+            expected_delivery_date?: string | null;
+            /** Fulfilment Model */
+            fulfilment_model: string;
+            /** Order Number */
+            order_number: string;
+            /** Order Total */
+            order_total: string;
+            /**
+             * Sales Order Id
+             * Format: uuid
+             */
+            sales_order_id: string;
+            /** Status */
+            status: string;
+        };
+        /** OrderFinancePurchaseOrder */
+        OrderFinancePurchaseOrder: {
+            /** Currency */
+            currency: string;
+            /** Is Committed */
+            is_committed: boolean;
+            /** Po Number */
+            po_number: string;
+            /**
+             * Purchase Order Id
+             * Format: uuid
+             */
+            purchase_order_id: string;
+            /** Status */
+            status: string;
+            /** Total Cost */
+            total_cost: string;
+        };
+        /** OrderFinanceResponse */
+        OrderFinanceResponse: {
+            /**
+             * Accounting Writes Enabled
+             * @default false
+             * @constant
+             */
+            accounting_writes_enabled: false;
+            /** Classifications */
+            classifications: {
+                [key: string]: string;
+            };
+            /** Latest Run At */
+            latest_run_at?: string | null;
+            /** Latest Run Id */
+            latest_run_id?: string | null;
+            /** Latest Run Status */
+            latest_run_status?: ("INCOMPLETE" | "UNMATCHED" | "POTENTIAL_MATCH" | "MATCHED_EVIDENCE" | "VERIFIED" | "DISPUTED") | null;
+            /** Limitations */
+            limitations: string[];
+            metrics: components["schemas"]["ReconciliationMetricsResponse"];
+            /** Missing Evidence */
+            missing_evidence: components["schemas"]["OrderFinanceEvidenceGap"][];
+            order: components["schemas"]["OrderFinanceOrder"];
+            /** Purchase Orders */
+            purchase_orders: components["schemas"]["OrderFinancePurchaseOrder"][];
+            /**
+             * Read Only
+             * @default true
+             * @constant
+             */
+            read_only: true;
+            /** Shipments */
+            shipments: components["schemas"]["OrderFinanceShipment"][];
+        };
+        /** OrderFinanceShipment */
+        OrderFinanceShipment: {
+            /** Costs */
+            costs: components["schemas"]["OrderFinanceShipmentCost"][];
+            /**
+             * Shipment Id
+             * Format: uuid
+             */
+            shipment_id: string;
+            /** Shipment Number */
+            shipment_number: string;
+            /** Status */
+            status: string;
+        };
+        /** OrderFinanceShipmentCost */
+        OrderFinanceShipmentCost: {
+            /** Amount */
+            amount: string;
+            /**
+             * Cost Id
+             * Format: uuid
+             */
+            cost_id: string;
+            /** Cost Type */
+            cost_type: string;
+            /** Currency */
+            currency: string;
+            /** Reference */
+            reference: string;
+            /** Stage */
+            stage: string;
+        };
         /** OrderTransitionRequest */
         OrderTransitionRequest: {
             /** Reason */
@@ -3582,6 +4108,268 @@ export interface components {
             status: "ready";
             /** Version */
             version: string;
+        };
+        /** ReconciliationListResponse */
+        ReconciliationListResponse: {
+            /**
+             * Accounting Writes Enabled
+             * @default false
+             * @constant
+             */
+            accounting_writes_enabled: false;
+            /** Blocking Discrepancy Count */
+            blocking_discrepancy_count: number;
+            /** Currency */
+            currency?: string | null;
+            /** Items */
+            items: components["schemas"]["ReconciliationRunSummaryResponse"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Open Discrepancy Count */
+            open_discrepancy_count: number;
+            /**
+             * Read Only
+             * @default true
+             * @constant
+             */
+            read_only: true;
+            /** Status Counts */
+            status_counts: {
+                [key: string]: number;
+            };
+            /** Total */
+            total: number;
+        };
+        /** ReconciliationMetricsResponse */
+        ReconciliationMetricsResponse: {
+            /** Accepted Sales Order Value */
+            accepted_sales_order_value: string;
+            /** Commitment Based Margin */
+            commitment_based_margin?: string | null;
+            /** Commitment Based Margin Pct */
+            commitment_based_margin_pct?: string | null;
+            /** Completeness Checks */
+            completeness_checks: components["schemas"]["CompletenessCheckResponse"][];
+            /** Completeness Score */
+            completeness_score: string;
+            /** Document Supported Margin */
+            document_supported_margin?: string | null;
+            /** Estimate Vs Recorded Variance */
+            estimate_vs_recorded_variance?: string | null;
+            /** Estimated Landed Cost */
+            estimated_landed_cost?: string | null;
+            /** Purchase Commitment Count */
+            purchase_commitment_count: number;
+            /** Purchase Commitments Total */
+            purchase_commitments_total?: string | null;
+            /** Recorded Operational Costs */
+            recorded_operational_costs?: string | null;
+        };
+        /** ReconciliationRunCreateRequest */
+        ReconciliationRunCreateRequest: {
+            /** As Of */
+            as_of?: string | null;
+            /** Currency */
+            currency?: string | null;
+            /**
+             * Sales Order Id
+             * Format: uuid
+             */
+            sales_order_id: string;
+        };
+        /** ReconciliationRunResponse */
+        ReconciliationRunResponse: {
+            /**
+             * Accounting Writes Enabled
+             * @default false
+             * @constant
+             */
+            accounting_writes_enabled: false;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Blocking Discrepancy Count */
+            blocking_discrepancy_count: number;
+            /** Calculation Version */
+            calculation_version: string;
+            /** Classifications */
+            classifications: {
+                [key: string]: string;
+            };
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Currency */
+            currency: string;
+            /** Customer Name */
+            customer_name: string;
+            /** Data Through */
+            data_through?: string | null;
+            /** Discrepancies */
+            discrepancies: components["schemas"]["DiscrepancyResponse"][];
+            /** Evidence Count */
+            evidence_count: number;
+            /** Evidence Links */
+            evidence_links: components["schemas"]["EvidenceLinkResponse"][];
+            /** Finance Company Id */
+            finance_company_id: string;
+            /** Finance Currency */
+            finance_currency: string;
+            /** Finance Snapshot */
+            finance_snapshot: {
+                [key: string]: unknown;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Limitations */
+            limitations: string[];
+            metrics: components["schemas"]["ReconciliationMetricsResponse"];
+            /** Open Discrepancy Count */
+            open_discrepancy_count: number;
+            /** Order Number */
+            order_number: string;
+            /**
+             * Read Only
+             * @default true
+             * @constant
+             */
+            read_only: true;
+            /** Reviews */
+            reviews: components["schemas"]["ReviewResponse"][];
+            /**
+             * Sales Order Id
+             * Format: uuid
+             */
+            sales_order_id: string;
+            /** Source References */
+            source_references: components["schemas"]["SourceReferenceResponse"][];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "INCOMPLETE" | "UNMATCHED" | "POTENTIAL_MATCH" | "MATCHED_EVIDENCE" | "VERIFIED" | "DISPUTED";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** ReconciliationRunSummaryResponse */
+        ReconciliationRunSummaryResponse: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Blocking Discrepancy Count */
+            blocking_discrepancy_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Customer Name */
+            customer_name: string;
+            /** Data Through */
+            data_through?: string | null;
+            /** Evidence Count */
+            evidence_count: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Open Discrepancy Count */
+            open_discrepancy_count: number;
+            /** Order Number */
+            order_number: string;
+            /**
+             * Sales Order Id
+             * Format: uuid
+             */
+            sales_order_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "INCOMPLETE" | "UNMATCHED" | "POTENTIAL_MATCH" | "MATCHED_EVIDENCE" | "VERIFIED" | "DISPUTED";
+            /** Version */
+            version: number;
+        };
+        /** ReviewRequest */
+        ReviewRequest: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "CONFIRM" | "DISPUTE" | "REQUEST_CHANGES";
+            /** Notes */
+            notes: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+        };
+        /** ReviewResponse */
+        ReviewResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "CONFIRM" | "DISPUTE" | "REQUEST_CHANGES";
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * New Status
+             * @enum {string}
+             */
+            new_status: "INCOMPLETE" | "UNMATCHED" | "POTENTIAL_MATCH" | "MATCHED_EVIDENCE" | "VERIFIED" | "DISPUTED";
+            /** Notes */
+            notes: string;
+            /**
+             * Previous Status
+             * @enum {string}
+             */
+            previous_status: "INCOMPLETE" | "UNMATCHED" | "POTENTIAL_MATCH" | "MATCHED_EVIDENCE" | "VERIFIED" | "DISPUTED";
+            /**
+             * Reviewer Id
+             * Format: uuid
+             */
+            reviewer_id: string;
+            /** Reviewer Name */
+            reviewer_name?: string | null;
         };
         /**
          * RfqBatchResponse
@@ -4897,6 +5685,40 @@ export interface components {
             tracking_reference?: string | null;
             /** Tracking Source */
             tracking_source?: ("MANUAL" | "DOCUMENT_EVIDENCE") | null;
+        };
+        /** SourceReferenceResponse */
+        SourceReferenceResponse: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Content Hash */
+            content_hash: string;
+            /** Currency */
+            currency: string;
+            /** Data Through */
+            data_through?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Transaction Level */
+            is_transaction_level: boolean;
+            /** Observed Amount */
+            observed_amount?: string | null;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Source Reference */
+            source_reference: string;
+            /**
+             * Source Type
+             * @enum {string}
+             */
+            source_type: "AGING_RECEIVABLE" | "AGING_PAYABLE" | "ACCOUNT" | "SUMMARY";
         };
         /** SupplierQuoteCreateRequest */
         SupplierQuoteCreateRequest: {
@@ -6606,6 +7428,482 @@ export interface operations {
             };
             /** @description Finance unavailable or integration disabled. */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_discrepancies_api_v1_finance_discrepancies_get: {
+        parameters: {
+            query?: {
+                run_id?: string | null;
+                code?: string | null;
+                severity?: string | null;
+                status?: string | null;
+                currency?: string | null;
+                limit?: number | null;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscrepancyListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_discrepancy_api_v1_finance_discrepancies__discrepancy_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                discrepancy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscrepancyResponse"];
+                };
+            };
+            /** @description Unknown discrepancy. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_discrepancy_api_v1_finance_discrepancies__discrepancy_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                discrepancy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiscrepancyResolveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscrepancyResponse"];
+                };
+            };
+            /** @description finance.reconcile missing. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Already resolved or stale version. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_evidence_links_api_v1_finance_evidence_links_get: {
+        parameters: {
+            query: {
+                run_id: string;
+                limit?: number | null;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceLinkListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_evidence_link_api_v1_finance_evidence_links_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvidenceLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationRunResponse"];
+                };
+            };
+            /** @description trade.write missing. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid, duplicate or mismatched evidence. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_order_finance_api_v1_finance_orders__sales_order_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sales_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderFinanceResponse"];
+                };
+            };
+            /** @description Unknown sales order. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_reconciliation_runs_api_v1_finance_reconciliation_get: {
+        parameters: {
+            query?: {
+                currency?: string | null;
+                order_id?: string | null;
+                status?: ("INCOMPLETE" | "UNMATCHED" | "POTENTIAL_MATCH" | "MATCHED_EVIDENCE" | "VERIFIED" | "DISPUTED") | null;
+                limit?: number | null;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationListResponse"];
+                };
+            };
+            /** @description Invalid filter. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_reconciliation_run_api_v1_finance_reconciliation_runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReconciliationRunCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationRunResponse"];
+                };
+            };
+            /** @description trade.write or company context missing. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Mapping or currency is not usable. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Finance authentication/protocol failure. */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Finance unavailable or disabled. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_reconciliation_run_api_v1_finance_reconciliation_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationRunResponse"];
+                };
+            };
+            /** @description Unknown run or another tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_review_api_v1_finance_reviews_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationRunResponse"];
+                };
+            };
+            /** @description finance.reconcile missing or self-review. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not verifiable in the current state. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
                 headers: {
                     [name: string]: unknown;
                 };

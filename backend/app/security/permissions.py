@@ -33,6 +33,8 @@ class Permission(StrEnum):
     AUDIT_VIEW = "audit.view"
     TRADE_WRITE = "trade.write"
     FINANCE_APPROVE = "finance.approve"
+    # Stage 5D: a distinct financial-review capability. Admin never inherits it.
+    FINANCE_RECONCILE = "finance.reconcile"
 
 
 ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
@@ -41,7 +43,12 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
         {Permission.COMPANY_VIEW, Permission.SETTINGS_VIEW, Permission.TRADE_WRITE}
     ),
     Role.APPROVER: frozenset(
-        {Permission.COMPANY_VIEW, Permission.SETTINGS_VIEW, Permission.FINANCE_APPROVE}
+        {
+            Permission.COMPANY_VIEW,
+            Permission.SETTINGS_VIEW,
+            Permission.FINANCE_APPROVE,
+            Permission.FINANCE_RECONCILE,
+        }
     ),
     Role.ADMIN: frozenset(
         {
@@ -54,9 +61,9 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     ),
 }
 
-assert not (ROLE_PERMISSIONS[Role.ADMIN] & {Permission.FINANCE_APPROVE}), (  # noqa: S101
-    "ADR-003: admin must never inherit financial approval authority"
-)
+assert not (  # noqa: S101
+    ROLE_PERMISSIONS[Role.ADMIN] & {Permission.FINANCE_APPROVE, Permission.FINANCE_RECONCILE}
+), "ADR-003: admin never inherits financial approval or reconciliation review"
 
 
 def coerce_role(value: str) -> Role:

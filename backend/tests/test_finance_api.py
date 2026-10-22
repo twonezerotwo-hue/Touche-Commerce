@@ -666,10 +666,19 @@ def test_finance_routes_are_get_only_and_never_advertise_credentials(
     finance_app: FastAPI,
 ) -> None:
     spec = finance_app.openapi()
-    finance_paths = {
-        path: item for path, item in spec["paths"].items() if path.startswith("/api/v1/finance")
+    # Stage 5D adds reconciliation mutations under /api/v1/finance; the Stage 5C
+    # Finance-ledger surface itself stays strictly GET-only.
+    stage5c_paths = {
+        "/api/v1/finance/status",
+        "/api/v1/finance/capabilities",
+        "/api/v1/finance/summary",
+        "/api/v1/finance/accounts",
+        "/api/v1/finance/aging",
     }
-    assert finance_paths
+    finance_paths = {
+        path: item for path, item in spec["paths"].items() if path in stage5c_paths
+    }
+    assert set(finance_paths) == stage5c_paths
     for item in finance_paths.values():
         assert set(item) == {"get"}
     rendered = json.dumps(spec)

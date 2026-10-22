@@ -74,6 +74,13 @@ class ErrorCode(StrEnum):
     FINANCE_UNAVAILABLE = "FINANCE_UNAVAILABLE"
     FINANCE_PROTOCOL_ERROR = "FINANCE_PROTOCOL_ERROR"
     FINANCE_AUDIT_UNAVAILABLE = "FINANCE_AUDIT_UNAVAILABLE"
+    # Stage 5D â€” evidence reconciliation. These never imply an accounting write.
+    RECONCILIATION_CURRENCY_MISMATCH = "RECONCILIATION_CURRENCY_MISMATCH"
+    RECONCILIATION_EVIDENCE_INVALID = "RECONCILIATION_EVIDENCE_INVALID"
+    RECONCILIATION_EVIDENCE_DUPLICATE = "RECONCILIATION_EVIDENCE_DUPLICATE"
+    RECONCILIATION_SOURCE_NOT_MATCHABLE = "RECONCILIATION_SOURCE_NOT_MATCHABLE"
+    RECONCILIATION_NOT_VERIFIABLE = "RECONCILIATION_NOT_VERIFIABLE"
+    RECONCILIATION_STATE_INVALID = "RECONCILIATION_STATE_INVALID"
     INTERNAL_ERROR = "INTERNAL_ERROR"
     HTTP_ERROR = "HTTP_ERROR"
 
@@ -239,9 +246,7 @@ class TransitionDisabledError(ApiError):
 
     status_code = 409
     code = ErrorCode.TRANSITION_DISABLED
-    default_message = (
-        "The WON transition is disabled until the sales order module is implemented."
-    )
+    default_message = "The WON transition is disabled until the sales order module is implemented."
 
 
 class ReasonRequiredError(ApiError):
@@ -387,6 +392,59 @@ class FinanceAuditUnavailableError(ApiError):
     default_message = "The Finance read could not be audited, so it was not served."
 
 
+class ReconciliationCurrencyMismatchError(ApiError):
+    """A reconciliation run or source attempted to mix two currencies."""
+
+    status_code = 409
+    code = ErrorCode.RECONCILIATION_CURRENCY_MISMATCH
+    default_message = (
+        "The reconciliation currency must match the accepted order and the Finance source."
+    )
+
+
+class ReconciliationEvidenceInvalidError(ApiError):
+    """The alleged evidence does not prove a supported Commerce-to-Finance link."""
+
+    status_code = 409
+    code = ErrorCode.RECONCILIATION_EVIDENCE_INVALID
+    default_message = "The proposed evidence link is not supported by the source records."
+
+
+class ReconciliationDuplicateEvidenceError(ApiError):
+    """A Finance source reference is already claimed in this run."""
+
+    status_code = 409
+    code = ErrorCode.RECONCILIATION_EVIDENCE_DUPLICATE
+    default_message = "This Finance source reference is already linked in this run."
+
+
+class ReconciliationSourceNotMatchableError(ApiError):
+    """Company-wide observations cannot be used as order-level evidence."""
+
+    status_code = 409
+    code = ErrorCode.RECONCILIATION_SOURCE_NOT_MATCHABLE
+    default_message = (
+        "Only transaction-level Finance aging items can be linked. Company-wide "
+        "summary or account balances do not identify an order."
+    )
+
+
+class ReconciliationNotVerifiableError(ApiError):
+    """A reviewer tried to confirm a run without sufficient verified evidence."""
+
+    status_code = 409
+    code = ErrorCode.RECONCILIATION_NOT_VERIFIABLE
+    default_message = "This reconciliation does not yet meet the verification requirements."
+
+
+class ReconciliationStateError(ApiError):
+    """The requested reconciliation action is invalid in the current state."""
+
+    status_code = 409
+    code = ErrorCode.RECONCILIATION_STATE_INVALID
+    default_message = "This action is not allowed in the reconciliation's current state."
+
+
 def build_error_payload(
     *,
     code: ErrorCode | str,
@@ -508,4 +566,3 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(RequestValidationError, handle_validation_error)
     app.add_exception_handler(StarletteHTTPException, handle_http_exception)
     app.add_exception_handler(Exception, handle_unexpected_error)
-

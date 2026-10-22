@@ -23,6 +23,8 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
 from http.cookiejar import CookieJar
 from pathlib import Path
 from typing import Any
@@ -48,7 +50,7 @@ FINANCE_PYTHON = "py"
 COMMERCE_API = "http://127.0.0.1:8000"
 FRONTEND = "http://127.0.0.1:3000"
 FINANCE_PORT = 8877
-PASSWORD = "Stage5C-Isolated-Horse-9"  # noqa: S105 - temporary isolated test account only
+PASSWORD = "Stage5D-Isolated-Horse-9"  # noqa: S105 - temporary isolated test account only
 ORIGIN = "http://localhost:3000"
 
 
@@ -87,7 +89,7 @@ def _finance_env(base: Path, **extra: str) -> dict[str, str]:
 
 
 def _seed_finance(base: Path) -> None:
-    seed = r'''
+    seed = r"""
 import sqlite3
 from pathlib import Path
 
@@ -122,6 +124,15 @@ try:
     fis(con, "F-REV", "2026-02-20", "Customer A", [("600", 0, 100_000)])
     fis(con, "F-COST", "2026-02-21", "Supplier B", [("740", 10_000, 0)])
     fis(con, "F-EUR-1", "2026-02-22", "Customer EUR", [("120", 5_000, 0)], para_birimi="EUR")
+    fis(
+        con,
+        "F-USD-AR-1",
+        "2026-02-21",
+        "Buyer Ltd",
+        [("120", 25_000, 0)],
+        vade="2026-03-31",
+        para_birimi="USD",
+    )
     con.commit()
 finally:
     con.close()
@@ -129,14 +140,13 @@ finally:
 print(f"ISOLATED_BASE={config.BASE_DIR}")
 print(f"ISOLATED_DB={cekirdek.DB_PATH}")
 print(f"ISOLATED_WORKBOOK={config.ana_excel_yolu()}")
-'''
+"""
     _run(
         [FINANCE_PYTHON, "-3.12", "-c", seed],
         cwd=FINANCE_SCRIPTS,
         env=_finance_env(base),
         label="isolated Finance seed",
     )
-
 
 
 def _create_key(base: Path) -> tuple[str, str]:
@@ -150,7 +160,7 @@ def _create_key(base: Path) -> tuple[str, str]:
             "--json",
             "create",
             "--label",
-            "stage5c-isolated-http",
+            "stage5d-isolated-http",
             "--companies",
             "gursar_mimarlik",
         ],
@@ -172,9 +182,11 @@ def _seed_commerce(settings: Settings) -> dict[str, Any]:
     database = Database(settings, dsn_override=migration_dsn)
     password_hash = PasswordService(settings).hash(PASSWORD)
     suffix = uuid4().hex[:8]
-    company_a_name = f"Stage5C Commerce {suffix}"
-    company_b_name = f"Stage5C Other {suffix}"
-    email = f"stage5c-{suffix}@touche.example"
+    company_a_name = f"Stage5D Commerce {suffix}"
+    company_b_name = f"Stage5D Other {suffix}"
+    email = f"stage5d-{suffix}@touche.example"
+    trader_email = f"stage5d-trader-{suffix}@touche.example"
+    reviewer_email = f"stage5d-reviewer-{suffix}@touche.example"
     try:
         with database.transaction() as session:
             company_a = admin.create_company(
@@ -186,7 +198,19 @@ def _seed_commerce(settings: Settings) -> dict[str, Any]:
             user = admin.create_user(
                 session,
                 email=email,
-                display_name="Stage 5C Isolated Operator",
+                display_name="Stage 5D Isolated Admin",
+                password_hash=password_hash,
+            )
+            trader = admin.create_user(
+                session,
+                email=trader_email,
+                display_name="Stage 5D Isolated Trader",
+                password_hash=password_hash,
+            )
+            reviewer = admin.create_user(
+                session,
+                email=reviewer_email,
+                display_name="Stage 5D Isolated Reviewer",
                 password_hash=password_hash,
             )
             admin.grant_membership(
@@ -195,6 +219,12 @@ def _seed_commerce(settings: Settings) -> dict[str, Any]:
             admin.grant_membership(
                 session, user_id=user.id, company_id=company_b.id, role=Role.VIEWER
             )
+            admin.grant_membership(
+                session, user_id=trader.id, company_id=company_a.id, role=Role.TRADER
+            )
+            admin.grant_membership(
+                session, user_id=reviewer.id, company_id=company_a.id, role=Role.APPROVER
+            )
             return {
                 "company_a": str(company_a.id),
                 "company_b": str(company_b.id),
@@ -202,6 +232,8 @@ def _seed_commerce(settings: Settings) -> dict[str, Any]:
                 "company_b_name": company_b_name,
                 "user_id": str(user.id),
                 "email": email,
+                "trader_email": trader_email,
+                "reviewer_email": reviewer_email,
             }
     finally:
         database.dispose()
@@ -210,9 +242,7 @@ def _seed_commerce(settings: Settings) -> dict[str, Any]:
 class Client:
     def __init__(self) -> None:
         self.jar = CookieJar()
-        self.opener = urllib.request.build_opener(
-            urllib.request.HTTPCookieProcessor(self.jar)
-        )
+        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.jar))
 
     def request(
         self,
@@ -225,7 +255,7 @@ class Client:
         body = json.dumps(payload).encode("utf-8") if payload is not None else None
         request_headers = {
             "Accept": "application/json",
-            "User-Agent": "stage5c-isolated-verifier",
+            "User-Agent": "stage5d-isolated-verifier",
             **dict(headers or {}),
         }
         if body is not None:
@@ -250,6 +280,481 @@ class Client:
             return {}
 
 
+def _login_client(email: str, company_id: str) -> tuple[Client, str]:
+    client = Client()
+    status, body, text = client.request(
+        "POST",
+        f"{COMMERCE_API}/api/v1/auth/login",
+        payload={"email": email, "password": PASSWORD},
+        headers={"Origin": ORIGIN},
+    )
+    if status != 200:
+        raise AssertionError(f"login failed for {email}: {status} {text}")
+    csrf = str(body["session"]["csrf_token"])
+    if body["session"]["company"] is None:
+        status, body, text = client.request(
+            "POST",
+            f"{COMMERCE_API}/api/v1/session/company",
+            payload={"company_id": company_id},
+            headers={"Origin": ORIGIN, "X-CSRF-Token": csrf},
+        )
+        if status != 200:
+            raise AssertionError(f"company switch failed for {email}: {status} {text}")
+        csrf = str(body["session"]["csrf_token"])
+    return client, csrf
+
+
+def _stage5d_acceptance(world: dict[str, Any]) -> dict[str, Any]:
+    """Create and reconcile a real Commerce order through HTTP."""
+
+    texts: list[str] = []
+    trader, trader_csrf = _login_client(world["trader_email"], world["company_a"])
+    reviewer, reviewer_csrf = _login_client(world["reviewer_email"], world["company_a"])
+    future = (date.today() + timedelta(days=30)).isoformat()
+
+    def post(
+        client: Client,
+        csrf: str,
+        path: str,
+        payload: dict[str, Any] | None,
+        *,
+        expected: int | tuple[int, ...] = (200, 201, 204),
+        if_match: str | None = None,
+    ) -> dict[str, Any]:
+        headers = {"Origin": ORIGIN, "X-CSRF-Token": csrf, "Idempotency-Key": uuid4().hex}
+        if if_match:
+            headers["If-Match"] = if_match
+        status, body, text = client.request(
+            "POST", f"{COMMERCE_API}{path}", payload=payload, headers=headers
+        )
+        texts.append(text)
+        allowed = (expected,) if isinstance(expected, int) else expected
+        if status not in allowed:
+            raise AssertionError(f"POST {path}: expected {allowed}, got {status}: {text}")
+        return body
+
+    def get(client: Client, path: str, *, expected: int = 200) -> dict[str, Any]:
+        status, body, text = client.request("GET", f"{COMMERCE_API}{path}")
+        texts.append(text)
+        if status != expected:
+            raise AssertionError(f"GET {path}: expected {expected}, got {status}: {text}")
+        return body
+
+    supplier = post(
+        trader,
+        trader_csrf,
+        "/api/v1/counterparties",
+        {"name": "Stage 5D Supplier", "type": "supplier", "country": "TR"},
+        expected=201,
+    )
+    buyer = post(
+        trader,
+        trader_csrf,
+        "/api/v1/counterparties",
+        {"name": "Buyer Ltd", "type": "buyer", "country": "TR"},
+        expected=201,
+    )
+    product = post(
+        trader,
+        trader_csrf,
+        "/api/v1/products",
+        {
+            "sku": "S5D-ALM",
+            "name": "Stage 5D Almond",
+            "unit": "kg",
+            "currency": "USD",
+            "unit_price": "2.0000",
+        },
+        expected=201,
+    )
+    deal = post(
+        trader,
+        trader_csrf,
+        "/api/v1/deals",
+        {
+            "title": "Stage 5D reconciliation order",
+            "counterparty_id": buyer["id"],
+            "currency": "USD",
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": "100.000",
+                    "unit_price": "2.0000",
+                }
+            ],
+        },
+        expected=201,
+    )
+    deal = post(
+        trader,
+        trader_csrf,
+        f"/api/v1/deals/{deal['id']}/transitions",
+        {"to": "OPEN"},
+        if_match=f'"v{deal["version"]}"',
+    )
+
+    rfqs = post(
+        trader,
+        trader_csrf,
+        "/api/v1/rfqs",
+        {
+            "deal_id": deal["id"],
+            "supplier_ids": [supplier["id"]],
+            "requested_currency": "USD",
+            "delivery_location": "Rotterdam, NL",
+            "response_due_date": future,
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "description": "Almond kernels, 25 kg bags",
+                    "quantity": "100.000",
+                    "unit": "kg",
+                }
+            ],
+        },
+        expected=201,
+    )
+    rfq = rfqs["items"][0]
+    post(
+        trader,
+        trader_csrf,
+        f"/api/v1/rfqs/{rfq['id']}/transitions",
+        {"to": "PREPARED"},
+    )
+    post(
+        trader,
+        trader_csrf,
+        f"/api/v1/rfqs/{rfq['id']}/transitions",
+        {"to": "SENT", "channel": "email", "evidence": "message-id:<stage5d-rfq>"},
+    )
+    supplier_quote = post(
+        trader,
+        trader_csrf,
+        f"/api/v1/rfqs/{rfq['id']}/quotes",
+        {
+            "currency": "USD",
+            "incoterm": "CIF",
+            "named_delivery_place": "Rotterdam, NL",
+            "payment_terms": "30 days net",
+            "lead_time_days": 21,
+            "valid_until": future,
+            "source_reference": "email: stage5d supplier quote",
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": "100.000",
+                    "unit_price": "1.6000",
+                }
+            ],
+        },
+        expected=201,
+    )
+    scenario = post(
+        trader,
+        trader_csrf,
+        "/api/v1/pricing-scenarios",
+        {
+            "supplier_quote_id": supplier_quote["id"],
+            "target_currency": "USD",
+            "margin_pct": "20",
+            "markup_pct": "0",
+            "components": [
+                {
+                    "cost_type": "FREIGHT",
+                    "amount": "40.00",
+                    "currency": "USD",
+                    "basis": "ORDER",
+                    "source_reference": "stage5d-freight-quote",
+                    "verification_status": "VERIFIED",
+                }
+            ],
+        },
+        expected=201,
+    )
+    sales_quote = post(
+        trader,
+        trader_csrf,
+        "/api/v1/sales-quotes",
+        {
+            "scenario_id": scenario["id"],
+            "customer_id": buyer["id"],
+            "valid_until": future,
+            "incoterm": "CIF",
+            "named_delivery_place": "Rotterdam, NL",
+            "payment_terms": "30 days net",
+        },
+        expected=201,
+    )
+    submitted_quote = post(
+        trader,
+        trader_csrf,
+        f"/api/v1/sales-quotes/{sales_quote['id']}/submit",
+        {},
+        if_match=f'"v{sales_quote["version"]}"',
+    )
+    approved_quote = post(
+        reviewer,
+        reviewer_csrf,
+        f"/api/v1/sales-quotes/{sales_quote['id']}/approve",
+        {},
+        if_match=f'"v{submitted_quote["version"]}"',
+    )
+    acceptance = post(
+        trader,
+        trader_csrf,
+        f"/api/v1/deals/{deal['id']}/customer-acceptance",
+        {
+            "channel": "SIGNED_QUOTE",
+            "accepted_at": datetime.now(tz=UTC).isoformat(),
+            "accepted_by_name": "Dana Buyer",
+            "evidence_reference": "stage5d signed order",
+        },
+        expected=201,
+    )
+    order = post(
+        trader,
+        trader_csrf,
+        f"/api/v1/deals/{deal['id']}/sales-order",
+        {
+            "sales_quote_id": approved_quote["id"],
+            "acceptance_evidence_id": acceptance["id"],
+            "fulfilment_model": "PURCHASE_RESALE",
+        },
+        expected=201,
+    )
+    if Decimal(str(order["order_total"])) != Decimal("250.00"):
+        raise AssertionError(f"unexpected accepted order total: {order['order_total']}")
+
+    purchase_order = post(
+        trader,
+        trader_csrf,
+        "/api/v1/purchase-orders",
+        {
+            "sales_order_id": order["id"],
+            "supplier_id": supplier["id"],
+            "supplier_quote_id": supplier_quote["id"],
+            "incoterm": "CIF",
+            "named_delivery_place": "Rotterdam, NL",
+            "payment_terms": "30 days net",
+            "expected_dispatch_date": future,
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": "100.000",
+                    "unit": "kg",
+                    "unit_cost": "1.6000",
+                }
+            ],
+        },
+        expected=201,
+    )
+    post(
+        reviewer,
+        reviewer_csrf,
+        f"/api/v1/purchase-orders/{purchase_order['id']}/transitions",
+        {"target": "APPROVED"},
+        if_match=f'"v{purchase_order["version"]}"',
+    )
+    shipment = post(
+        trader,
+        trader_csrf,
+        "/api/v1/shipments",
+        {
+            "sales_order_id": order["id"],
+            "transport_mode": "SEA",
+            "origin": "Jebel Ali, AE",
+            "destination": "Rotterdam, NL",
+            "carrier": "Stage 5D Carrier",
+            "forwarder": "Stage 5D Forwarder",
+            "planned_dispatch_at": (datetime.now(tz=UTC) + timedelta(days=3)).isoformat(),
+            "estimated_arrival_at": (datetime.now(tz=UTC) + timedelta(days=21)).isoformat(),
+            "items": [
+                {
+                    "sales_order_item_id": order["items"][0]["id"],
+                    "quantity": "10.000",
+                }
+            ],
+        },
+        expected=201,
+    )
+    post(
+        trader,
+        trader_csrf,
+        f"/api/v1/shipments/{shipment['id']}/costs",
+        {
+            "cost_type": "FREIGHT",
+            "stage": "INCURRED",
+            "amount": "20.00",
+            "currency": "USD",
+            "reference": "stage5d-freight-invoice",
+        },
+        expected=(200, 201),
+    )
+    run = post(
+        trader,
+        trader_csrf,
+        "/api/v1/finance/reconciliation/runs",
+        {
+            "sales_order_id": order["id"],
+            "currency": "USD",
+            "as_of": date.today().isoformat(),
+        },
+        expected=201,
+    )
+    if run["status"] != "UNMATCHED":
+        raise AssertionError(f"new complete run was not UNMATCHED: {run['status']}")
+    source = next(
+        (
+            item
+            for item in run["source_references"]
+            if item["source_type"] == "AGING_RECEIVABLE"
+            and item["source_reference"] == "F-USD-AR-1"
+        ),
+        None,
+    )
+    if source is None:
+        raise AssertionError("isolated Finance USD AR source id was not captured")
+    if Decimal(str(source["observed_amount"])) != Decimal(str(order["order_total"])):
+        raise AssertionError("Finance source amount does not match the accepted order total")
+
+    evidence = post(
+        trader,
+        trader_csrf,
+        "/api/v1/finance/evidence-links",
+        {
+            "run_id": run["id"],
+            "source_entity_type": "SALES_ORDER",
+            "source_entity_id": order["id"],
+            "finance_source_reference_id": source["id"],
+            "notes": "Signed order and Finance open item reviewed together.",
+        },
+        expected=201,
+        if_match=f'"v{run["version"]}"',
+    )
+    if evidence["status"] != "MATCHED_EVIDENCE":
+        raise AssertionError(f"exact evidence did not reach MATCHED_EVIDENCE: {evidence['status']}")
+
+    unauthorized = post(
+        trader,
+        trader_csrf,
+        "/api/v1/finance/reviews",
+        {"run_id": evidence["id"], "decision": "CONFIRM", "notes": "Trader must not review."},
+        expected=403,
+        if_match=f'"v{evidence["version"]}"',
+    )
+    if unauthorized["error"]["code"] != "FORBIDDEN":
+        raise AssertionError("unauthorized reviewer did not receive FORBIDDEN")
+
+    verified = post(
+        reviewer,
+        reviewer_csrf,
+        "/api/v1/finance/reviews",
+        {
+            "run_id": evidence["id"],
+            "decision": "CONFIRM",
+            "notes": "Source id, amount and currency checked.",
+        },
+        expected=201,
+        if_match=f'"v{evidence["version"]}"',
+    )
+    if verified["status"] != "VERIFIED":
+        raise AssertionError(f"reviewer confirmation did not verify: {verified['status']}")
+
+    unmatched_run = post(
+        trader,
+        trader_csrf,
+        "/api/v1/finance/reconciliation/runs",
+        {
+            "sales_order_id": order["id"],
+            "currency": "USD",
+            "as_of": date.today().isoformat(),
+        },
+        expected=201,
+    )
+    unmatched_review = post(
+        reviewer,
+        reviewer_csrf,
+        "/api/v1/finance/reviews",
+        {
+            "run_id": unmatched_run["id"],
+            "decision": "CONFIRM",
+            "notes": "No evidence exists for this run.",
+        },
+        expected=409,
+        if_match=f'"v{unmatched_run["version"]}"',
+    )
+    if unmatched_review["error"]["code"] != "RECONCILIATION_NOT_VERIFIABLE":
+        raise AssertionError("unlinked run was not refused verification")
+    if unmatched_run["status"] == "VERIFIED":
+        raise AssertionError("unlinked run was incorrectly verified")
+
+    get(trader, f"/api/v1/finance/reconciliation/runs/{verified['id']}")
+    get(trader, "/api/v1/finance/reconciliation?currency=USD")
+    get(trader, f"/api/v1/finance/orders/{order['id']}")
+    get(trader, f"/api/v1/finance/discrepancies?run_id={unmatched_run['id']}")
+
+    frontend_checks = {
+        f"{FRONTEND}/finance/reconciliation?currency=USD": "Reconciliation",
+        f"{FRONTEND}/finance/reconciliation/{verified['id']}": verified["order_number"],
+        f"{FRONTEND}/finance/discrepancies": "Discrepancies",
+        f"{FRONTEND}/finance/orders/{order['id']}": order["order_number"],
+    }
+    for url, marker in frontend_checks.items():
+        status, _body, text = trader.request("GET", url)
+        texts.append(text)
+        if status != 200 or marker not in text:
+            raise AssertionError(f"frontend did not render {url}: {status}")
+
+    admin, admin_csrf = _login_client(world["email"], world["company_a"])
+    status, _body, text = admin.request(
+        "POST",
+        f"{COMMERCE_API}/api/v1/session/company",
+        payload={"company_id": world["company_b"]},
+        headers={"Origin": ORIGIN, "X-CSRF-Token": admin_csrf},
+    )
+    texts.append(text)
+    if status != 200:
+        raise AssertionError(f"cross-tenant switch failed: {status} {text}")
+    get(admin, f"/api/v1/finance/reconciliation/runs/{verified['id']}", expected=404)
+    other_runs = get(admin, "/api/v1/finance/reconciliation?currency=USD")
+    if other_runs["items"]:
+        raise AssertionError("cross-tenant reconciliation runs were visible")
+
+    post_status, _post_body, post_text = trader.request(
+        "POST",
+        f"{COMMERCE_API}/api/v1/finance/summary?currency=USD",
+        headers={"Origin": ORIGIN},
+    )
+    texts.append(post_text)
+    if post_status != 405:
+        raise AssertionError(f"Finance ledger write route was not rejected: {post_status}")
+
+    joined = "\n".join(texts)
+    if "s" * 43 in joined:
+        raise AssertionError("Finance credentials leaked into Stage 5D responses")
+
+    return {
+        "order_number": order["order_number"],
+        "order_total": order["order_total"],
+        "run_status": verified["status"],
+        "evidence_status": verified["evidence_links"][0]["verification_status"],
+        "review_decision": verified["reviews"][-1]["decision"],
+        "unauthorized_review": unauthorized["error"]["code"],
+        "unlinked_run_cannot_verify": True,
+        "finance_source_id": source["source_reference"],
+        "finance_source_amount": source["observed_amount"],
+        "frontend_routes": [
+            "reconciliation",
+            "reconciliation_run",
+            "discrepancies",
+            "order_finance",
+        ],
+        "cross_tenant_isolated": True,
+        "write_route_rejected": post_status,
+        "credentials_in_responses": False,
+    }
+
+
 def _wait(url: str, *, timeout: float, label: str) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -268,7 +773,6 @@ def _assert_port_free(port: int) -> None:
     with socket.socket() as probe:
         if probe.connect_ex(("127.0.0.1", port)) == 0:
             raise RuntimeError(f"Refusing to start: port {port} is already in use.")
-
 
 
 def _finance_paths(base: Path) -> dict[str, str]:
@@ -314,15 +818,12 @@ def _stop(process: subprocess.Popen[str] | None) -> None:
         process.kill()
 
 
-
 def main() -> int:
     for port in (8000, 3000, FINANCE_PORT):
         _assert_port_free(port)
 
     (BACKEND_ROOT / "var").mkdir(parents=True, exist_ok=True)
-    base = Path(
-        tempfile.mkdtemp(prefix="stage5c-finance-", dir=BACKEND_ROOT / "var")
-    )
+    base = Path(tempfile.mkdtemp(prefix="stage5d-finance-", dir=BACKEND_ROOT / "var"))
     finance_process: subprocess.Popen[str] | None = None
     backend_process: subprocess.Popen[str] | None = None
     frontend_process: subprocess.Popen[str] | None = None
@@ -332,9 +833,7 @@ def main() -> int:
         paths = _finance_paths(base)
         for name, value in paths.items():
             if not Path(value).resolve().is_relative_to(base.resolve()):
-                raise RuntimeError(
-                    f"isolated Finance {name} escaped the temp base: {value}"
-                )
+                raise RuntimeError(f"isolated Finance {name} escaped the temp base: {value}")
         key_id, secret = _create_key(base)
 
         loaded = Settings()
@@ -470,7 +969,6 @@ def main() -> int:
             shutil.rmtree(base, ignore_errors=True)
 
 
-
 def _acceptance(
     *,
     world: dict[str, Any],
@@ -512,9 +1010,7 @@ def _acceptance(
         response_status, payload, text = client.request("GET", f"{COMMERCE_API}{path}")
         texts.append(text)
         if response_status != expected:
-            raise AssertionError(
-                f"GET {path}: expected {expected}, got {response_status}: {text}"
-            )
+            raise AssertionError(f"GET {path}: expected {expected}, got {response_status}: {text}")
         return payload, text
 
     status_body, _ = get_api("/api/v1/finance/status")
@@ -552,16 +1048,13 @@ def _acceptance(
     if not receivable_body["items"] or not receivable_body["items"][0]["open_items"]:
         raise AssertionError("receivable aging did not expose open Finance source ids")
 
-    missing_currency, missing_currency_text = get_api(
-        "/api/v1/finance/summary", expected=409
-    )
+    missing_currency, missing_currency_text = get_api("/api/v1/finance/summary", expected=409)
     texts.append(missing_currency_text)
     if missing_currency["error"]["code"] != "FINANCE_CURRENCY_REQUIRED":
         raise AssertionError(f"missing currency was not preserved: {missing_currency}")
 
     get_api("/api/v1/dashboard/summary")
     get_api("/api/v1/integrations/finance/status")
-
 
     overview_status, _overview_body, overview_text = client.request(
         "GET", f"{FRONTEND}/finance?currency=TL"
@@ -593,6 +1086,8 @@ def _acceptance(
     if payables_page_status != 200 or "Supplier B" not in payables_page_text:
         raise AssertionError("frontend did not render payable aging")
 
+    stage5d = _stage5d_acceptance(world)
+
     switched_b_status, _switched_b_body, switched_b_text = client.request(
         "POST",
         f"{COMMERCE_API}/api/v1/session/company",
@@ -605,9 +1100,7 @@ def _acceptance(
     b_status, _ = get_api("/api/v1/finance/status")
     if b_status["state"] != "not_configured" or b_status["mapping"] is not None:
         raise AssertionError(f"other tenant saw a Finance mapping: {b_status}")
-    b_summary, b_summary_text = get_api(
-        "/api/v1/finance/summary?currency=TL", expected=409
-    )
+    b_summary, b_summary_text = get_api("/api/v1/finance/summary?currency=TL", expected=409)
     texts.append(b_summary_text)
     if b_summary["error"]["code"] != "FINANCE_NOT_CONFIGURED":
         raise AssertionError(f"other tenant summary was not refused: {b_summary}")
@@ -638,7 +1131,8 @@ def _acceptance(
         "accounts_returned": len(accounts_body["accounts"]),
         "receivable_items": len(receivable_body["items"]),
         "payable_items": len(payable_body["items"]),
-        "frontend_routes": ["overview", "accounts", "receivables", "payables"],
+        "finance_frontend_routes": ["overview", "accounts", "receivables", "payables"],
+        "stage5d": stage5d,
         "cross_tenant_isolated": True,
         "write_route_rejected": post_status,
         "credentials_in_responses": False,
@@ -647,7 +1141,6 @@ def _acceptance(
         "finance_db_unchanged": True,
         "finance_workbook_unchanged": True,
     }
-
 
 
 if __name__ == "__main__":

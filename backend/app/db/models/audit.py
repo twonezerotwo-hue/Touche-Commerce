@@ -100,6 +100,11 @@ class AuditAction(StrEnum):
     FINANCE_MAPPING_CONFIGURED = "finance.mapping.configured"
     FINANCE_MAPPING_DISABLED = "finance.mapping.disabled"
     FINANCE_READ = "finance.read"
+    # Stage 5D read-only evidence reconciliation.
+    FINANCE_RECONCILIATION_RUN_CREATED = "finance.reconciliation_run.created"
+    FINANCE_EVIDENCE_LINKED = "finance.evidence.linked"
+    FINANCE_DISCREPANCY_RESOLVED = "finance.discrepancy.resolved"
+    FINANCE_RECONCILIATION_REVIEWED = "finance.reconciliation.reviewed"
 
 
 _AUDIT_ACTIONS = tuple(action.value for action in AuditAction)
