@@ -1,4 +1,4 @@
-﻿"""Unit tests for the Stage 5C Finance client and connector contract.
+"""Unit tests for the Stage 5C Finance client and connector contract.
 
 No database, no Finance code and no live Finance process is used here. A local
 stub server proves the authenticated HTTP shape; a fake client proves mapping,
@@ -576,4 +576,3 @@ def test_connector_modules_do_not_open_finance_sqlite() -> None:
         source = Path(module.__file__).read_text(encoding="utf-8")
         assert "sqlite3" not in source
         assert "finans.db" not in source
-

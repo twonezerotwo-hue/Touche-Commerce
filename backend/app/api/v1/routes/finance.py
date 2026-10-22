@@ -1,4 +1,4 @@
-﻿"""Authenticated, read-only Finance integration (Stage 5C).
+"""Authenticated, read-only Finance integration (Stage 5C).
 
 Every endpoint resolves the Finance company from the *active Commerce company's*
 explicit mapping. Callers cannot submit a Finance company id, credentials or URL.
@@ -449,4 +449,3 @@ def get_finance_aging(
     )
     _no_store(response)
     return aging_response(result)
-

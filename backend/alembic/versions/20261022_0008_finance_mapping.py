@@ -213,4 +213,3 @@ def downgrade() -> None:
         schema=SCHEMA,
     )
     op.drop_table("finance_company_mapping", schema=SCHEMA)
-

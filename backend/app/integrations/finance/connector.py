@@ -517,4 +517,3 @@ def _parse_timestamp(value: str | None) -> datetime:
         except ValueError:
             pass
     return datetime.now(tz=UTC)
-

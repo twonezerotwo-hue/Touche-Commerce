@@ -1,4 +1,4 @@
-﻿"""Stage 5C authenticated Finance API integration tests.
+"""Stage 5C authenticated Finance API integration tests.
 
 These use the isolated PostgreSQL test database and a local Finance-shaped stub.
 They verify real Commerce sessions, active-company membership, RLS mapping,
@@ -683,4 +683,3 @@ def test_status_404_for_unauthenticated(
     response = client.get(f"{FINANCE}/status")
     assert response.status_code == 401
     assert _error(response) == "UNAUTHORIZED"
-
