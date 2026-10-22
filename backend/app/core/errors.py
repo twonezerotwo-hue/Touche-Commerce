@@ -51,7 +51,12 @@ class ErrorCode(StrEnum):
     VERSION_CONFLICT = "VERSION_CONFLICT"
     PRECONDITION_REQUIRED = "PRECONDITION_REQUIRED"
     IDEMPOTENCY_CONFLICT = "IDEMPOTENCY_CONFLICT"
+    IDEMPOTENCY_IN_PROGRESS = "IDEMPOTENCY_IN_PROGRESS"
+    IDEMPOTENCY_KEY_REQUIRED = "IDEMPOTENCY_KEY_REQUIRED"
     ALREADY_WON = "ALREADY_WON"
+    INVALID_TRANSITION = "INVALID_TRANSITION"
+    TRANSITION_DISABLED = "TRANSITION_DISABLED"
+    REASON_REQUIRED = "REASON_REQUIRED"
     RATE_LIMITED = "RATE_LIMITED"
     PAYLOAD_TOO_LARGE = "PAYLOAD_TOO_LARGE"
     NOT_READY = "NOT_READY"
@@ -190,6 +195,76 @@ class AlreadyWonError(ApiError):
     status_code = 409
     code = ErrorCode.ALREADY_WON
     default_message = "The deal was already marked as WON."
+
+
+class ConflictError(ApiError):
+    """A uniqueness or business rule conflict that is not about versions."""
+
+    status_code = 409
+    code = ErrorCode.CONFLICT
+    default_message = "The request conflicts with the current state of the resource."
+
+
+class InvalidTransitionError(ApiError):
+    """The deal state machine does not allow this edge (ADR-025)."""
+
+    status_code = 409
+    code = ErrorCode.INVALID_TRANSITION
+    default_message = "This status transition is not allowed from the current status."
+
+
+class TransitionDisabledError(ApiError):
+    """``WON`` stays unreachable until the sales-order module exists."""
+
+    status_code = 409
+    code = ErrorCode.TRANSITION_DISABLED
+    default_message = (
+        "The WON transition is disabled until the sales order module is implemented."
+    )
+
+
+class ReasonRequiredError(ApiError):
+    """LOST and CANCELLED must explain themselves."""
+
+    status_code = 422
+    code = ErrorCode.REASON_REQUIRED
+    default_message = "A reason of 3 to 500 characters is required for this transition."
+
+
+class IdempotencyInProgressError(ApiError):
+    """A duplicate request with the same key is still being processed."""
+
+    status_code = 409
+    code = ErrorCode.IDEMPOTENCY_IN_PROGRESS
+    default_message = "An identical request is still being processed. Retry shortly."
+
+
+class IdempotencyKeyRequiredError(ApiError):
+    """The endpoint requires an Idempotency-Key header."""
+
+    status_code = 400
+    code = ErrorCode.IDEMPOTENCY_KEY_REQUIRED
+    default_message = "This endpoint requires an Idempotency-Key header."
+
+
+class InvalidCursorError(ApiError):
+    """The pagination cursor is malformed or belongs to another filter set."""
+
+    status_code = 422
+    code = ErrorCode.VALIDATION_ERROR
+    default_message = "The pagination cursor is not valid for this request."
+
+    def __init__(self, message: str | None = None) -> None:
+        super().__init__(
+            message,
+            details=[
+                {
+                    "field": "query.cursor",
+                    "message": message or self.default_message,
+                    "type": "invalid_cursor",
+                }
+            ],
+        )
 
 
 class NotReadyError(ApiError):

@@ -54,6 +54,14 @@ class AuditAction(StrEnum):
     MEMBERSHIP_CHANGED = "membership.changed"
     ACCESS_DENIED = "access.denied"
     IDENTITY_BOOTSTRAPPED = "identity.bootstrap"
+    # Stage 1B trade module.
+    COUNTERPARTY_CREATED = "counterparty.created"
+    COUNTERPARTY_UPDATED = "counterparty.updated"
+    PRODUCT_CREATED = "product.created"
+    PRODUCT_UPDATED = "product.updated"
+    DEAL_CREATED = "deal.created"
+    DEAL_UPDATED = "deal.updated"
+    DEAL_TRANSITIONED = "deal.transitioned"
 
 
 _AUDIT_ACTIONS = tuple(action.value for action in AuditAction)

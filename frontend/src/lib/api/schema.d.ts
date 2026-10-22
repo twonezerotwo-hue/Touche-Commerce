@@ -101,6 +101,133 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/counterparties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List counterparties
+         * @description Cursor-paginated, newest first. Filters are bound to the cursor: reusing a cursor with a different filter set is rejected with 422 instead of returning a misleading page.
+         */
+        get: operations["list_counterparties_api_v1_counterparties_get"];
+        put?: never;
+        /** Create a counterparty */
+        post: operations["create_counterparty_api_v1_counterparties_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/counterparties/{counterparty_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one counterparty */
+        get: operations["get_counterparty_api_v1_counterparties__counterparty_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a counterparty (If-Match required)
+         * @description Requires If-Match with the ETag from the last read. A stale version returns 409 VERSION_CONFLICT including the current ETag; a missing header returns 428 PRECONDITION_REQUIRED. Unknown fields (for example status) are rejected.
+         */
+        patch: operations["update_counterparty_api_v1_counterparties__counterparty_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/dashboard/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Trade dashboard for the active company
+         * @description Deal counts by status, open pipeline per currency, catalogue/CRM totals and the most recent deals and audit activity. All values come from the database in one transaction; nothing is inferred in the browser.
+         */
+        get: operations["dashboard_summary_api_v1_dashboard_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/deals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List deals
+         * @description Cursor-paginated, newest first. Every row carries its total value computed from the deal lines, so a table never has to sum client-side.
+         */
+        get: operations["list_deals_api_v1_deals_get"];
+        put?: never;
+        /**
+         * Create a deal with its lines
+         * @description Creates the deal, every line, the initial DRAFT history entry and the audit record in one transaction. A deal cannot reference a counterparty or product belonging to another company (composite foreign keys plus RLS).
+         */
+        post: operations["create_deal_api_v1_deals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/deals/{deal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one deal with lines, history and allowed transitions */
+        get: operations["get_deal_api_v1_deals__deal_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update deal header fields (If-Match required)
+         * @description Header fields only: title, counterparty, currency, expected close date and notes. Sending status is rejected with 422 because status changes belong to the transition endpoint. Closed deals cannot be edited. Lines are immutable.
+         */
+        patch: operations["update_deal_api_v1_deals__deal_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/deals/{deal_id}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move a deal through the state machine
+         * @description Requires Idempotency-Key. The optional If-Match header adds optimistic concurrency on top of row locking. The deal update, the deal_transition history row and the audit row commit in one transaction.
+         */
+        post: operations["transition_deal_api_v1_deals__deal_id__transitions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health/live": {
         parameters: {
             query?: never;
@@ -139,6 +266,45 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List products
+         * @description Cursor-paginated catalogue, newest first; search matches SKU and name.
+         */
+        get: operations["list_products_api_v1_products_get"];
+        put?: never;
+        /** Create a product */
+        post: operations["create_product_api_v1_products_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/{product_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one product */
+        get: operations["get_product_api_v1_products__product_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update a product (If-Match required) */
+        patch: operations["update_product_api_v1_products__product_id__patch"];
         trace?: never;
     };
     "/api/v1/session/company": {
@@ -236,6 +402,441 @@ export interface components {
              * Format: uuid
              */
             company_id: string;
+        };
+        /** CounterpartyCreateRequest */
+        CounterpartyCreateRequest: {
+            /** Contact Name */
+            contact_name?: string | null;
+            /** Country */
+            country?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /**
+             * Type
+             * @default buyer
+             * @enum {string}
+             */
+            type: "buyer" | "supplier" | "both";
+        };
+        /** CounterpartyListResponse */
+        CounterpartyListResponse: {
+            /** Has More */
+            has_more: boolean;
+            /** Items */
+            items: components["schemas"]["CounterpartyResponse"][];
+            /**
+             * Next Cursor
+             * @description Opaque cursor for the next page.
+             */
+            next_cursor: string | null;
+        };
+        /** CounterpartyResponse */
+        CounterpartyResponse: {
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /** Contact Name */
+            contact_name: string | null;
+            /** Country */
+            country: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Email */
+            email: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes: string | null;
+            /** Phone */
+            phone: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "archived";
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "buyer" | "supplier" | "both";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Version
+             * @description Optimistic concurrency version; also sent as ETag.
+             */
+            version: number;
+        };
+        /** CounterpartyUpdateRequest */
+        CounterpartyUpdateRequest: {
+            /** Contact Name */
+            contact_name?: string | null;
+            /** Country */
+            country?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Status */
+            status?: ("active" | "archived") | null;
+            /** Type */
+            type?: ("buyer" | "supplier" | "both") | null;
+        };
+        /** DashboardActivity */
+        DashboardActivity: {
+            /** Action */
+            action: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Outcome */
+            outcome: string;
+            /** Resource Id */
+            resource_id: string | null;
+            /** Resource Type */
+            resource_type: string | null;
+        };
+        /** DashboardCurrencyTotal */
+        DashboardCurrencyTotal: {
+            /** Currency */
+            currency: string;
+            /** Deal Count */
+            deal_count: number;
+            /** Total Value */
+            total_value: string;
+        };
+        /** DashboardStatusCount */
+        DashboardStatusCount: {
+            /** Deal Count */
+            deal_count: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "OPEN" | "NEGOTIATION" | "WON" | "LOST" | "CANCELLED";
+            /** Total Value */
+            total_value: string;
+        };
+        /** DashboardSummaryResponse */
+        DashboardSummaryResponse: {
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /** Counterparties Active */
+            counterparties_active: number;
+            /** Counterparties Total */
+            counterparties_total: number;
+            /** Deals Total */
+            deals_total: number;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Pipeline */
+            pipeline: components["schemas"]["DashboardCurrencyTotal"][];
+            /** Products Active */
+            products_active: number;
+            /** Products Total */
+            products_total: number;
+            /** Recent Activity */
+            recent_activity: components["schemas"]["DashboardActivity"][];
+            /** Recent Deals */
+            recent_deals: components["schemas"]["DealSummaryResponse"][];
+            /** Status Counts */
+            status_counts: components["schemas"]["DashboardStatusCount"][];
+        };
+        /**
+         * DealCreateRequest
+         * @example {
+         *       "counterparty_id": "7f7b0a54-0f43-4d7d-9a1b-3f5f3f0f0a11",
+         *       "currency": "USD",
+         *       "expected_close_date": "2026-11-30",
+         *       "items": [
+         *         {
+         *           "product_id": "0f6a1f43-2b61-4a4d-9ad6-5a1f1a1f1a11",
+         *           "quantity": "50.000",
+         *           "unit_price": "2450.0000"
+         *         }
+         *       ],
+         *       "title": "50 MT aluminium ingots"
+         *     }
+         */
+        DealCreateRequest: {
+            /**
+             * Counterparty Id
+             * Format: uuid
+             */
+            counterparty_id: string;
+            /** Currency */
+            currency: string;
+            /** Expected Close Date */
+            expected_close_date?: string | null;
+            /** Items */
+            items: components["schemas"]["DealItemRequest"][];
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Reference
+             * @description Optional human reference; generated when omitted.
+             */
+            reference?: string | null;
+            /** Title */
+            title: string;
+        };
+        /** DealItemRequest */
+        DealItemRequest: {
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Quantity */
+            quantity: number | string;
+            /** Unit Price */
+            unit_price: number | string;
+        };
+        /** DealItemResponse */
+        DealItemResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Line Total */
+            line_total: string;
+            /** Name */
+            name: string;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Quantity */
+            quantity: string;
+            /** Sku */
+            sku: string;
+            /**
+             * Unit
+             * @enum {string}
+             */
+            unit: "kg" | "mt" | "lb" | "unit" | "l" | "m3";
+            /** Unit Price */
+            unit_price: string;
+        };
+        /** DealListResponse */
+        DealListResponse: {
+            /** Has More */
+            has_more: boolean;
+            /** Items */
+            items: components["schemas"]["DealSummaryResponse"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** DealResponse */
+        DealResponse: {
+            /**
+             * Allowed Transitions
+             * @description Statuses reachable from the current status; WON is never listed.
+             */
+            allowed_transitions: ("DRAFT" | "OPEN" | "NEGOTIATION" | "WON" | "LOST" | "CANCELLED")[];
+            /** Closed At */
+            closed_at: string | null;
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Counterparty Id
+             * Format: uuid
+             */
+            counterparty_id: string;
+            /** Counterparty Name */
+            counterparty_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Currency */
+            currency: string;
+            /** Expected Close Date */
+            expected_close_date: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Items */
+            items: components["schemas"]["DealItemResponse"][];
+            /** Notes */
+            notes: string | null;
+            /** Reference */
+            reference: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "OPEN" | "NEGOTIATION" | "WON" | "LOST" | "CANCELLED";
+            /** Title */
+            title: string;
+            /** Total Value */
+            total_value: string;
+            /** Transitions */
+            transitions: components["schemas"]["DealTransitionResponse"][];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Version
+             * @description Optimistic concurrency version; also sent as ETag.
+             */
+            version: number;
+        };
+        /**
+         * DealSummaryResponse
+         * @description List projection: no lines or history, only what a table needs.
+         */
+        DealSummaryResponse: {
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Counterparty Id
+             * Format: uuid
+             */
+            counterparty_id: string;
+            /** Counterparty Name */
+            counterparty_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Expected Close Date */
+            expected_close_date: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reference */
+            reference: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "OPEN" | "NEGOTIATION" | "WON" | "LOST" | "CANCELLED";
+            /** Title */
+            title: string;
+            /** Total Value */
+            total_value: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** DealTransitionRequest */
+        DealTransitionRequest: {
+            /**
+             * Reason
+             * @description Required (3-500 characters) for LOST and CANCELLED.
+             */
+            reason?: string | null;
+            /**
+             * To
+             * @enum {string}
+             */
+            to: "DRAFT" | "OPEN" | "NEGOTIATION" | "WON" | "LOST" | "CANCELLED";
+        };
+        /** DealTransitionResponse */
+        DealTransitionResponse: {
+            /**
+             * Actor Id
+             * Format: uuid
+             */
+            actor_id: string;
+            /** From Status */
+            from_status: ("DRAFT" | "OPEN" | "NEGOTIATION" | "WON" | "LOST" | "CANCELLED") | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Reason */
+            reason: string | null;
+            /** Request Id */
+            request_id: string | null;
+            /**
+             * To Status
+             * @enum {string}
+             */
+            to_status: "DRAFT" | "OPEN" | "NEGOTIATION" | "WON" | "LOST" | "CANCELLED";
+            /** Version After */
+            version_after: number;
+        };
+        /**
+         * DealUpdateRequest
+         * @description Header-only update. ``status`` is intentionally absent (ADR-025).
+         */
+        DealUpdateRequest: {
+            /** Counterparty Id */
+            counterparty_id?: string | null;
+            /** Currency */
+            currency?: string | null;
+            /** Expected Close Date */
+            expected_close_date?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Title */
+            title?: string | null;
         };
         /**
          * ErrorDetail
@@ -389,6 +990,92 @@ export interface components {
              * @constant
              */
             status: "signed_out";
+        };
+        /** ProductCreateRequest */
+        ProductCreateRequest: {
+            /**
+             * Currency
+             * @description ISO 4217 code.
+             */
+            currency: string;
+            /** Name */
+            name: string;
+            /** Sku */
+            sku: string;
+            /**
+             * Unit
+             * @enum {string}
+             */
+            unit: "kg" | "mt" | "lb" | "unit" | "l" | "m3";
+            /** Unit Price */
+            unit_price: number | string;
+        };
+        /** ProductListResponse */
+        ProductListResponse: {
+            /** Has More */
+            has_more: boolean;
+            /** Items */
+            items: components["schemas"]["ProductResponse"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** ProductResponse */
+        ProductResponse: {
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Sku */
+            sku: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "archived";
+            /**
+             * Unit
+             * @enum {string}
+             */
+            unit: "kg" | "mt" | "lb" | "unit" | "l" | "m3";
+            /** Unit Price */
+            unit_price: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** ProductUpdateRequest */
+        ProductUpdateRequest: {
+            /** Currency */
+            currency?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Sku */
+            sku?: string | null;
+            /** Status */
+            status?: ("active" | "archived") | null;
+            /** Unit */
+            unit?: ("kg" | "mt" | "lb" | "unit" | "l" | "m3") | null;
+            /** Unit Price */
+            unit_price?: number | string | null;
         };
         /**
          * ReadinessResponse
@@ -690,6 +1377,518 @@ export interface operations {
             };
         };
     };
+    list_counterparties_api_v1_counterparties_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                status?: ("active" | "archived") | null;
+                type?: ("buyer" | "supplier" | "both") | null;
+                limit?: number | null;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of counterparties. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CounterpartyListResponse"];
+                };
+            };
+            /** @description No valid session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No active company or permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid cursor, limit or filter. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_counterparty_api_v1_counterparties_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CounterpartyCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CounterpartyResponse"];
+                };
+            };
+            /** @description Invalid idempotency key. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing trade.write. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Duplicate name or key conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid payload. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_counterparty_api_v1_counterparties__counterparty_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                counterparty_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The counterparty. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CounterpartyResponse"];
+                };
+            };
+            /** @description Unknown counterparty. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_counterparty_api_v1_counterparties__counterparty_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                counterparty_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CounterpartyUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated; the new ETag is returned. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CounterpartyResponse"];
+                };
+            };
+            /** @description Malformed If-Match or key. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unknown counterparty. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Version or key conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid payload. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    dashboard_summary_api_v1_dashboard_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dashboard snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardSummaryResponse"];
+                };
+            };
+            /** @description No active company or permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_deals_api_v1_deals_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                status?: ("DRAFT" | "OPEN" | "NEGOTIATION" | "WON" | "LOST" | "CANCELLED") | null;
+                counterparty_id?: string | null;
+                limit?: number | null;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of deals. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DealListResponse"];
+                };
+            };
+            /** @description Invalid cursor, limit or filter. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_deal_api_v1_deals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DealCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DealResponse"];
+                };
+            };
+            /** @description Unknown counterparty/product. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Duplicate reference or key conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid payload. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_deal_api_v1_deals__deal_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The deal. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DealResponse"];
+                };
+            };
+            /** @description Unknown deal for this company. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_deal_api_v1_deals__deal_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DealUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated; the new ETag is returned. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DealResponse"];
+                };
+            };
+            /** @description Malformed If-Match. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unknown deal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Closed deal, version or key conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid payload, including status. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    transition_deal_api_v1_deals__deal_id__transitions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DealTransitionRequest"];
+            };
+        };
+        responses: {
+            /** @description Transition accepted; the new ETag is returned. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DealResponse"];
+                };
+            };
+            /** @description Missing/invalid Idempotency-Key. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unknown deal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description INVALID_TRANSITION, TRANSITION_DISABLED, ALREADY_WON, VERSION_CONFLICT, IDEMPOTENCY_CONFLICT or IDEMPOTENCY_IN_PROGRESS. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unknown target or missing reason. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     health_live_api_v1_health_live_get: {
         parameters: {
             query?: never;
@@ -730,6 +1929,184 @@ export interface operations {
             };
             /** @description A required dependency is unavailable. */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_products_api_v1_products_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                status?: ("active" | "archived") | null;
+                limit?: number | null;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of products. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductListResponse"];
+                };
+            };
+            /** @description Invalid cursor, limit or filter. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_product_api_v1_products_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductResponse"];
+                };
+            };
+            /** @description Missing trade.write. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Duplicate SKU or key conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid payload. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_product_api_v1_products__product_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductResponse"];
+                };
+            };
+            /** @description Unknown product. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_product_api_v1_products__product_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated; the new ETag is returned. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductResponse"];
+                };
+            };
+            /** @description Version or key conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
                 headers: {
                     [name: string]: unknown;
                 };

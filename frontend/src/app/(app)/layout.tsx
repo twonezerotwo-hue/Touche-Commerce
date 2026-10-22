@@ -49,7 +49,7 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
         <footer className="border-t border-white/[0.06] px-5 py-4 lg:px-10">
           <div className="flex flex-wrap items-center justify-between gap-2 text-[10.5px] uppercase tracking-[0.18em] text-mist-600">
             <span>TOUCHE COMMERCE · Internal platform</span>
-            <span>Stage 1A · identity, sessions &amp; tenancy</span>
+            <span>Stage 1B · CRM, catalogue &amp; deal workspace</span>
           </div>
         </footer>
       </div>

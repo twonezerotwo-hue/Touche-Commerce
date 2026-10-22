@@ -24,10 +24,12 @@ import argparse
 import getpass
 import sys
 from collections.abc import Sequence
+from datetime import UTC, datetime
+from decimal import Decimal
 from typing import NoReturn
 
 from email_validator import EmailNotValidError, validate_email
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import ConfigurationError, Settings, get_settings
@@ -37,17 +39,33 @@ from app.db.models import (
     AuditActorType,
     AuditOutcome,
     Company,
+    Counterparty,
+    Deal,
+    DealStatus,
     Membership,
+    Product,
     User,
 )
 from app.security.passwords import PasswordPolicyError, PasswordService, validate_password_strength
 from app.security.permissions import Role
 from app.services import admin
 from app.services.audit import record_audit
+from app.services.catalog import ProductService
+from app.services.crm import CounterpartyService
+from app.services.trade import DealCreateData, DealItemInput, DealService
+from app.services.trade_meta import WriteMeta
 
 EXIT_OK = 0
 EXIT_USAGE = 2
 EXIT_CONFLICT = 3
+
+#: Demo data is a development convenience and never a deployment feature.
+DEMO_ENVIRONMENTS = frozenset({"local", "test", "ci"})
+
+
+def seed_demo_environment(environment: str) -> bool:
+    """True only in environments where fabricated trade data is acceptable."""
+    return environment in DEMO_ENVIRONMENTS
 
 
 class CliError(RuntimeError):
@@ -382,6 +400,217 @@ def cmd_list(args: argparse.Namespace, settings: Settings) -> int:
 
 
 
+def cmd_seed_demo(args: argparse.Namespace, settings: Settings) -> int:
+    """Insert an explicitly requested, clearly labelled demonstration data set."""
+    if not seed_demo_environment(settings.environment):
+        _fail(
+            f"refusing to seed demo data in environment {settings.environment!r}: "
+            "demo data is only allowed in local, test or ci.",
+            EXIT_CONFLICT,
+        )
+
+    database = _privileged_database(settings)
+    summary: list[tuple[str, str]] = []
+    try:
+        with database.transaction() as session:
+            company = admin.find_company_by_name(session, args.company)
+            if company is None:
+                raise CliError(f"no company named {args.company!r}.")
+            memberships = admin.list_memberships(session, company.id)
+            if not memberships:
+                raise CliError(
+                    f"{company.name!r} has no members; grant a membership before seeding."
+                )
+            actor_id = next(
+                (
+                    membership.user_id
+                    for membership, _user in memberships
+                    if membership.role == Role.ADMIN and membership.status == "active"
+                ),
+                memberships[0][0].user_id,
+            )
+
+            existing = (
+                session.execute(
+                    select(func.count())
+                    .select_from(Counterparty)
+                    .where(Counterparty.company_id == company.id)
+                ).scalar_one()
+                + session.execute(
+                    select(func.count())
+                    .select_from(Product)
+                    .where(Product.company_id == company.id)
+                ).scalar_one()
+                + session.execute(
+                    select(func.count()).select_from(Deal).where(Deal.company_id == company.id)
+                ).scalar_one()
+            )
+            if existing and not args.force:
+                raise CliError(
+                    f"{company.name!r} already contains trade data; nothing was written. "
+                    "Pass --force to add a suffixed demo set instead."
+                )
+
+            suffix = f"-{datetime.now(tz=UTC):%H%M%S}" if existing else ""
+            meta = WriteMeta(
+                company_id=company.id, actor_id=actor_id, request_id="cli-seed-demo"
+            )
+            crm = CounterpartyService(database)
+            catalog = ProductService(database)
+            trade = DealService(database)
+
+            suppliers = [
+                crm.create(
+                    session,
+                    meta=meta,
+                    data={
+                        "name": f"Nordwind Metals GmbH{suffix}",
+                        "type": "supplier",
+                        "country": "DE",
+                        "contact_name": "Lena Brandt",
+                        "email": "lena@nordwind.example",
+                    },
+                ),
+                crm.create(
+                    session,
+                    meta=meta,
+                    data={
+                        "name": f"Adriatic Steel Trading{suffix}",
+                        "type": "buyer",
+                        "country": "IT",
+                        "contact_name": "Marco Rossi",
+                        "email": "marco@adriatic.example",
+                    },
+                ),
+                crm.create(
+                    session,
+                    meta=meta,
+                    data={
+                        "name": f"Gulf Aluminium FZE{suffix}",
+                        "type": "both",
+                        "country": "AE",
+                        "contact_name": "Hala Nassar",
+                    },
+                ),
+            ]
+            products = [
+                catalog.create(
+                    session,
+                    meta=meta,
+                    data={
+                        "sku": f"ALU-A7{suffix}",
+                        "name": "Aluminium ingot A7",
+                        "unit": "mt",
+                        "currency": "USD",
+                        "unit_price": Decimal("2450.0000"),
+                    },
+                ),
+                catalog.create(
+                    session,
+                    meta=meta,
+                    data={
+                        "sku": f"CU-CATH{suffix}",
+                        "name": "Copper cathode Grade A",
+                        "unit": "mt",
+                        "currency": "USD",
+                        "unit_price": Decimal("9100.0000"),
+                    },
+                ),
+                catalog.create(
+                    session,
+                    meta=meta,
+                    data={
+                        "sku": f"ZN-99{suffix}",
+                        "name": "Zinc ingot 99.995%",
+                        "unit": "mt",
+                        "currency": "USD",
+                        "unit_price": Decimal("2800.0000"),
+                    },
+                ),
+            ]
+
+            # __DEMO_DEALS__
+            draft = trade.create(
+                session,
+                meta=meta,
+                data=DealCreateData(
+                    title="25 MT aluminium ingots Q4",
+                    counterparty_id=suppliers[0].id,
+                    currency="USD",
+                    expected_close_date=None,
+                    notes="Demo deal: still a draft.",
+                    reference=None,
+                    items=(
+                        DealItemInput(products[0].id, Decimal("25.000"), Decimal("2450.0000")),
+                    ),
+                ),
+            )
+            open_deal = trade.create(
+                session,
+                meta=meta,
+                data=DealCreateData(
+                    title="40 MT copper cathode",
+                    counterparty_id=suppliers[1].id,
+                    currency="USD",
+                    expected_close_date=None,
+                    notes="Demo deal: open.",
+                    reference=None,
+                    items=(
+                        DealItemInput(products[1].id, Decimal("40.000"), Decimal("9100.0000")),
+                    ),
+                ),
+            )
+            trade.transition(
+                session,
+                meta=meta,
+                deal_id=open_deal.id,
+                target=DealStatus.OPEN,
+                reason=None,
+            )
+            cancelled = trade.create(
+                session,
+                meta=meta,
+                data=DealCreateData(
+                    title="12 MT zinc ingots",
+                    counterparty_id=suppliers[2].id,
+                    currency="USD",
+                    expected_close_date=None,
+                    notes="Demo deal: cancelled.",
+                    reference=None,
+                    items=(
+                        DealItemInput(products[2].id, Decimal("12.000"), Decimal("2800.0000")),
+                    ),
+                ),
+            )
+            trade.transition(
+                session,
+                meta=meta,
+                deal_id=cancelled.id,
+                target=DealStatus.CANCELLED,
+                reason="Demo data: buyer withdrew before confirmation.",
+            )
+
+            summary = [
+                ("Environment", f"{settings.environment} (DEMO DATA — DEVELOPMENT ONLY)"),
+                ("Company", company.name),
+                ("Counterparties", ", ".join(item.name for item in suppliers)),
+                ("Products", ", ".join(item.sku for item in products)),
+                (
+                    "Deals",
+                    f"{draft.reference} DRAFT · {open_deal.reference} OPEN · "
+                    f"{cancelled.reference} CANCELLED",
+                ),
+            ]
+    except CliError as exc:
+        _fail(str(exc), EXIT_CONFLICT)
+    finally:
+        database.dispose()
+
+    _print_summary("Demo data seeded", summary)
+    print("These records are fabricated demo data and are safe to delete.")
+    return EXIT_OK
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m app.cli",
@@ -443,6 +672,18 @@ def build_parser() -> argparse.ArgumentParser:
     list_parser.add_argument("what", choices=["companies", "users", "memberships"])
     list_parser.add_argument("--company", help="Company name (memberships only).")
     list_parser.set_defaults(handler=cmd_list)
+
+    seed_demo = subparsers.add_parser(
+        "seed-demo",
+        help="Seed clearly labelled demo CRM/catalogue/deal data (development only).",
+    )
+    seed_demo.add_argument("--company", required=True, help="Company name to seed.")
+    seed_demo.add_argument(
+        "--force",
+        action="store_true",
+        help="Add a suffixed demo set even when the company already has trade data.",
+    )
+    seed_demo.set_defaults(handler=cmd_seed_demo)
 
     return parser
 

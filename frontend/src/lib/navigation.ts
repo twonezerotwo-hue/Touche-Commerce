@@ -31,16 +31,16 @@ export interface NavItem {
  * screens.
  */
 export const NAV_ITEMS: readonly NavItem[] = [
-  { label: "Command Center", icon: LayoutDashboard, href: "/", stage: "Stage 0" },
+  { label: "Command Center", icon: LayoutDashboard, href: "/", stage: "Stage 1B" },
+  { label: "Deals", icon: Handshake, href: "/deals", stage: "Stage 1B" },
+  { label: "CRM", icon: Users, href: "/crm", stage: "Stage 1B" },
+  { label: "Products", icon: Package, href: "/products", stage: "Stage 1B" },
   { label: "Account", icon: UserRound, href: "/account", stage: "Stage 1A" },
-  { label: "Trade Workspace", icon: Handshake, stage: "Stage 2" },
-  { label: "CRM", icon: Users, stage: "Stage 3" },
-  { label: "RFQ & Quotes", icon: FileText, stage: "Stage 3" },
-  { label: "Products", icon: Package, stage: "Stage 3" },
-  { label: "Logistics", icon: Truck, stage: "Stage 3" },
+  { label: "RFQ & Quotes", icon: FileText, stage: "Stage 2" },
+  { label: "Logistics", icon: Truck, stage: "Stage 2" },
   { label: "Finance", icon: Banknote, stage: "Stage 4" },
   { label: "AI Office", icon: Sparkles, stage: "Stage 5" },
-  { label: "Settings", icon: Settings, stage: "Stage 1B" },
+  { label: "Settings", icon: Settings, stage: "Stage 2" },
 ];
 
 /** Public links outside the authenticated shell. */

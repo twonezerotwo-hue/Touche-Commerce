@@ -113,22 +113,31 @@ class CompanySettingEntry(Base):
 
 
 class IdempotencyRecord(Base):
-    """Durable home for the idempotent-replay contract.
+    """Durable home for the idempotent-replay contract (ADR-012).
 
-    The middleware arrives with the first mutating business endpoint
-    (Stage 1B/2); the table and its cleanup job ship now so the contract has a
-    real storage target instead of an unimplemented promise.
+    The record is written inside the *same* transaction as the business change
+    (Stage 1B), so a replay can only exist for an operation that actually
+    committed. ``endpoint`` is part of the identity, which is why the same key
+    used against a different endpoint is a different operation rather than a
+    conflict.
     """
 
     __tablename__ = "idempotency_record"
     __table_args__ = (
         UniqueConstraint(
-            "actor_id", "company_id", "key", name="uq_idempotency_record_actor_company_key"
+            "actor_id",
+            "company_id",
+            "endpoint",
+            "key",
+            name="uq_idempotency_record_actor_company_endpoint_key",
         ),
         CheckConstraint(
             "status IN ('in_flight', 'completed', 'failed')", name="ck_idempotency_status"
         ),
         CheckConstraint("char_length(key) BETWEEN 1 AND 200", name="ck_idempotency_key_length"),
+        CheckConstraint(
+            "char_length(endpoint) BETWEEN 1 AND 160", name="ck_idempotency_endpoint_length"
+        ),
         CheckConstraint(
             "char_length(request_fingerprint) = 64", name="ck_idempotency_fingerprint"
         ),
@@ -149,6 +158,7 @@ class IdempotencyRecord(Base):
         ),
         nullable=True,
     )
+    endpoint: Mapped[str] = mapped_column(String(160), nullable=False)
     key: Mapped[str] = mapped_column(String(200), nullable=False)
     request_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
     status: Mapped[str] = mapped_column(

@@ -92,6 +92,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "name": "meta",
                 "description": "Service identity and discovery endpoints.",
             },
+            {
+                "name": "counterparties",
+                "description": (
+                    "Tenant-scoped customers and suppliers. Reads need company.view; "
+                    "writes need trade.write and support Idempotency-Key and If-Match."
+                ),
+            },
+            {
+                "name": "products",
+                "description": (
+                    "Tenant-scoped product catalogue with SKU, unit, currency and price."
+                ),
+            },
+            {
+                "name": "deals",
+                "description": (
+                    "Trade deals with a validated state machine. Status only changes "
+                    "through POST /deals/{id}/transitions; WON is disabled until sales "
+                    "orders exist."
+                ),
+            },
+            {
+                "name": "dashboard",
+                "description": "Aggregates for the command center, scoped to the active company.",
+            },
         ],
     )
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import Depends, Request
 
@@ -91,3 +92,24 @@ def require_company_context(
     if context.company_id is None or context.active_membership is None:
         raise ForbiddenError("Select a company before using this resource.")
     return context
+
+
+def require_company_permission(permission: Permission) -> Callable[..., SessionContext]:
+    """Enforce a permission *inside* an active company (trade endpoints)."""
+
+    def dependency(
+        context: Annotated[SessionContext, Depends(require_company_context)],
+    ) -> SessionContext:
+        if permission not in context.permissions:
+            raise ForbiddenError()
+        return context
+
+    return dependency
+
+
+def active_company_id(context: SessionContext) -> UUID:
+    """Return the verified company id; the dependency has already checked it."""
+    company_id = context.company_id
+    if company_id is None:  # pragma: no cover - guarded by require_company_context
+        raise ForbiddenError("Select a company before using this resource.")
+    return company_id

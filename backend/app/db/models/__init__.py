@@ -18,6 +18,17 @@ from app.db.models.identity import (
 )
 from app.db.models.outbox import OutboxEvent
 from app.db.models.tenant_data import CompanySettingEntry, CompanySettings, IdempotencyRecord
+from app.db.models.trade import (
+    Counterparty,
+    CounterpartyType,
+    Deal,
+    DealItem,
+    DealStatus,
+    DealTransition,
+    Product,
+    ProductUnit,
+    RecordStatus,
+)
 
 __all__ = [
     "SCHEMA",
@@ -30,11 +41,20 @@ __all__ = [
     "CompanySettingEntry",
     "CompanySettings",
     "CompanyStatus",
+    "Counterparty",
+    "CounterpartyType",
+    "Deal",
+    "DealItem",
+    "DealStatus",
+    "DealTransition",
     "IdempotencyRecord",
     "LoginAttempt",
     "Membership",
     "MembershipStatus",
     "OutboxEvent",
+    "Product",
+    "ProductUnit",
+    "RecordStatus",
     "User",
     "UserSession",
     "UserStatus",
