@@ -1,9 +1,9 @@
 # TOUCHE COMMERCE — Progress
 
 **Last updated:** 2026-10-22 (local)
-**Current stage:** Stage 4 — Sales orders, procurement, logistics and trade documents (implemented and verified locally)
-**Current milestone:** 4F — stabilisation passed (284 backend tests, 88 frontend tests, 45/45 live checks)
-**Stage 5:** NOT_STARTED (must not begin without an explicit instruction)
+**Current stage:** Stage 5C — real read-only Finance integration (implemented and isolated-HTTP verified locally)
+**Current milestone:** 5C — 355 backend tests, 96 frontend tests, `ISOLATED_HTTP_VERIFIED`
+**Stage 5:** IN_PROGRESS (Stage 5A/5B/5C implemented; Stage 5D not started)
 
 Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
 `FAILED`. Nothing is marked `PASSED` without an executed command in this file.
@@ -37,7 +37,9 @@ Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
 | CRM, catalogue, deal state machine, dashboard | PASSED | Stage 1B — §20 |
 | Sourcing, landed cost, FX snapshots, sales quotes | PASSED | Stage 3 — §21 |
 | Sales orders, procurement, shipments, trade documents | PASSED | Stage 4 — §22 |
-| Accounting, payments, external integrations, AI assistants | NOT_STARTED | Stage 5+ (explicitly excluded from Stage 4) |
+| Finance read-only connector (Stage 5C) | PASSED | §24 — 20 connector + 18 API tests, isolated HTTP |
+| Financial reconciliation | NOT_STARTED | Stage 5D |
+| Accounting, payments, external integrations, AI assistants | NOT_STARTED | no accounting write path exists |
 
 > This table records the **Stage 0** baseline. Stage 1A results are in
 > §11–§19 below; the Stage 0 numbers were re-verified as a regression during
@@ -1408,4 +1410,141 @@ Docs: `docs/STAGE5_FINANCE_DISCOVERY.md`, `docs/PROGRESS.md`,
 * Stage 5B is blocked until Finance implements and verifies the authenticated
   read-only `/api/integration/v1` contract in `docs/STAGE5_FINANCE_DISCOVERY.md`
   §8.1. Stage 5C additionally requires §8.2/§8.3 and remains draft-only.
+
+
+---
+
+## 24. Stage 5C — real read-only Finance integration (2026-10-22)
+
+### 24.1 Verified revisions
+
+| Item | Verified value |
+| ---- | -------------- |
+| Commerce branch | `stage-5c`, created from clean `stage-5` at `6381f59` |
+| Finance branch | `feat/finance-integration-v1` |
+| Finance HEAD | `107c30e2ae4b5e4c22891f01ca730d3284994de5` |
+| Finance base | `main` at `8dce8245c013ec74b81cf93927a067a4cc334c78` |
+| Finance repository changes | none, read-only |
+| Migration | `0008_finance_mapping` (`finance_company_mapping`) |
+
+### 24.2 Delivered
+
+* Server-only key id/secret settings (`SecretStr`), disabled by default and
+  restricted to loopback HTTP.
+* Authenticated `FinanceIntegrationClient` for Finance v1: bounded paths,
+  1 MiB response cap, no redirects, JSON/contract/read-only validation and
+  service headers. No cookies, Tailscale or owner fallback.
+* `FinanceConnector` verifying the explicit mapping against Finance
+  capabilities and authorized company list; explicit currency selection.
+* Normalized Commerce errors preserving `details.finance_code` and
+  `finance_request_id`.
+* Tenant-scoped `finance_company_mapping` with RLS and runtime `SELECT` only;
+  admin-only CLI `finance-map set/list/disable` with live verification and audit.
+* Five `/api/v1/finance/*` endpoints, all GET only; every successful read audited.
+* Premium `/finance` workspace: connection state, mapped company, currencies,
+  data-through, source balances, accounts, receivable/payable FIFO aging and open
+  Finance source ids. Invoice/payment data is explicitly “Not available”.
+* Stage 5A health endpoint retained unchanged.
+
+### 24.3 Configuration without secret values
+
+```text
+TOUCHE_FINANCE_INTEGRATION_ENABLED=true|false
+TOUCHE_FINANCE_INTEGRATION_BASE_URL=http://127.0.0.1:8765
+TOUCHE_FINANCE_INTEGRATION_KEY_ID=key_<16 hex>
+TOUCHE_FINANCE_INTEGRATION_SECRET=<server-side only>
+TOUCHE_FINANCE_INTEGRATION_TIMEOUT_SECONDS=2
+```
+
+Mapping command:
+
+```powershell
+python -m app.cli finance-map set --company "<Commerce company>" `
+  --finance-company gursar_mimarlik --actor "<company admin email>"
+```
+
+### 24.4 Automated results
+
+| Command | Result |
+| ------- | ------ |
+| `pytest` (backend) | **355 passed** (317 Stage 5A baseline + 38 Stage 5C) |
+| new connector tests | **20 passed** |
+| new API integration tests | **18 passed** |
+| `ruff check app tests` | passed |
+| `mypy app` | passed (98 files) |
+| `npm test` | **96 passed / 17 files** |
+| `npm run lint` | passed |
+| `npm run typecheck` | passed |
+| `npm run format:check` | passed |
+| `npm run build` | passed; `/finance` present |
+| OpenAPI regeneration | passed; no drift after regeneration |
+
+### 24.5 Real HTTP acceptance
+
+Executed with `backend/scripts/verify_finance_http.py` against a disposable
+Finance runtime (synthetic SQLite ledger, temporary key, port 8877), the
+isolated Commerce test PostgreSQL database, the Commerce CLI mapping, the real
+Commerce API and Next.js server.
+
+```text
+verification              ISOLATED_HTTP_VERIFIED
+finance_company           gursar_mimarlik
+currencies                EUR, TL
+summary_currency          TL
+accounts_returned         2
+receivable_items          1
+payable_items             1
+frontend_routes           overview, accounts, receivables, payables
+cross_tenant_isolated     true
+write_route_rejected      405
+credentials_in_responses  false
+finance_db_unchanged      true
+finance_workbook_unchanged true
+```
+
+The verifier refuses occupied ports, confirms every Finance path resolves inside
+its temporary base, and stops only the isolated processes it started. The live
+Finance application was not started.
+
+### 24.6 Live source hash evidence
+
+```text
+C:\ai-excel\veri\finans.db
+C9BA0EB7EC82F1DE50105F1E0019CA695B48843319B7E1D2184296632EF52BE1
+
+C:\Users\twone\OneDrive\Desktop\Touche\Touche Holding - AI Ready Finans Yönetim Sistemi.xlsx
+E03740DA624522EA9AC4869D3ADDDFB008C96DC7D2A78759CE760D810B0FA51E
+```
+
+Both hashes are unchanged before and after the Stage 5C work.
+
+### 24.7 Honest limitations
+
+* HTTP verification is **isolated**, not a live Finance connection. Live Finance
+  was deliberately not started and no live credential was read.
+* Finance has no structured invoice/payment/counterparty/project/report
+  endpoints; Commerce does not invent them.
+* TLS/mTLS, remote deployment, Windows ACL proof and HSM/KMS are not verified.
+* The mapping CLI currently supports one Finance company per Commerce company
+  (`UNIQUE(company_id)`).
+* Stage 5D reconciliation has not begun.
+
+### 24.8 Next safe milestone
+
+Stage 5D may begin with **read-only reconciliation** only: persist deterministic
+source-to-Finance matching evidence, report variances, require human exception
+approval, and never auto-post a journal, invoice or payment. A real Commerce →
+Finance mapping must be configured first.
+
+
+### 24.9 Git
+
+* Branch: `stage-5c`, created from the clean Stage 5A HEAD `6381f59`.
+* `e03114b` — `feat(stage5c): add read-only Finance connector and explicit mapping`
+  (backend, migration, CLI, tests, verifier, generated OpenAPI, env example).
+* `521e230` — `feat(stage5c): add premium read-only Finance workspace`
+  (navigation, `/finance`, components and frontend tests).
+* `876d52d` — `style(stage5c): normalize file endings`.
+* The documentation commit containing this section.
+* No merge, push, deployment or Finance repository change was performed.
 

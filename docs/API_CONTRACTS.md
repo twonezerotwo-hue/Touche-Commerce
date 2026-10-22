@@ -1,8 +1,8 @@
 # TOUCHE COMMERCE — API contracts
 
-**Version:** v1 · Stage 1B **implemented** for health, authentication, sessions,
-company selection, counterparties, products, deals, transitions and the dashboard.
-Later sections remain the binding design for Stage 2+.
+**Version:** v1 · Stages 0–4 and Stage 5C **implemented** for health,
+authentication, sessions, company selection, trade/sourcing/operations and the
+read-only Finance connector. Stage 5D reconciliation remains design-only.
 **Source of truth:** `backend/app/api/v1/schemas/*` → `/api/v1/openapi.json` →
 `frontend/src/lib/api/schema.d.ts`.
 
@@ -979,6 +979,11 @@ specified in `docs/STAGE5_FINANCE_DISCOVERY.md` §8 and are **not** callable yet
 | `GET` | `/api/v1/sales-orders/{id}/documents/preview` | 4 | Implemented |
 | `GET` | `/api/v1/operations/summary` | 4 | Implemented |
 | `GET` | `/api/v1/integrations/finance/status` | 5A | Implemented (health only, no accounting writes) |
+| `GET` | `/api/v1/finance/status` | 5C | Implemented (mapped read-only connector) |
+| `GET` | `/api/v1/finance/capabilities` | 5C | Implemented |
+| `GET` | `/api/v1/finance/summary` | 5C | Implemented |
+| `GET` | `/api/v1/finance/accounts` | 5C | Implemented |
+| `GET` | `/api/v1/finance/aging` | 5C | Implemented |
 
 Reserved endpoints do not exist in the running service; requesting them returns
 `404 NOT_FOUND`. They are listed so the frontend and future integrations share a
@@ -995,4 +1000,68 @@ single naming convention.
   include regenerated `schema.d.ts` and `openapi.json`.
 
 
+
+
+---
+
+## 10. Stage 5C — Finance read-only integration
+
+### 10.1 Authentication and authorization
+
+Every `/api/v1/finance/*` endpoint requires:
+
+1. a valid Commerce session cookie;
+2. an active company with a current membership;
+3. `company.view`;
+4. a tenant-owned `finance_company_mapping` row in `verified` state.
+
+The Finance company id is never a request parameter. The Finance key/secret are
+server-side settings and never appear in a response, log, audit row or browser
+asset. The old `/api/v1/integrations/finance/status` remains health-only.
+
+### 10.2 Endpoints
+
+| Method | Path | Query | Response |
+| ------ | ---- | ----- | -------- |
+| `GET` | `/finance/status` | — | connection state, mapping, currencies, data-through |
+| `GET` | `/finance/capabilities` | — | mapped company capabilities only |
+| `GET` | `/finance/summary` | `currency` | source balances + ledger watermark |
+| `GET` | `/finance/accounts` | `currency`, `from`, `to` or `as_of`, `limit`, `offset` | account rows + page |
+| `GET` | `/finance/aging` | `type=receivable\|payable`, `currency`, `as_of`, `limit`, `offset` | FIFO buckets, open source ids + page |
+
+`limit` is 1–200; `offset` is 0–1,000,000. A multi-currency Finance company
+requires `currency`; supported observed codes include `TL`, `EUR` and `USD`.
+No conversion or cross-currency aggregation exists. `from_date` is the
+Commerce field name for Finance's `from`.
+
+Status states: `not_configured`, `disabled`, `connected`, `degraded`,
+`unavailable`, `auth_error`. Status returns HTTP 200 for a completed observation;
+data endpoints return the normalized error envelope when data cannot be served.
+
+### 10.3 Errors
+
+| Commerce code | HTTP | Meaning |
+| ------------- | ---- | ------- |
+| `FINANCE_NOT_CONFIGURED` | 409 | No explicit mapping |
+| `FINANCE_MAPPING_UNVERIFIED` | 409 | Mapping has not passed live verification |
+| `FINANCE_MAPPING_DISABLED` | 409 | Mapping deliberately disabled |
+| `FINANCE_INTEGRATION_DISABLED` | 503 | Connector disabled / Finance disabled |
+| `FINANCE_AUTH_ERROR` | 502 | Finance missing/invalid credentials, scope or auth |
+| `FINANCE_COMPANY_DENIED` | 409 | Mapping points at an unauthorized/inactive company |
+| `FINANCE_CURRENCY_REQUIRED` | 409 | Multi-currency company needs one code |
+| `FINANCE_INVALID_CURRENCY` | 400 | Requested currency not in the ledger |
+| `FINANCE_UNAVAILABLE` | 503 | Timeout, unreachable or ledger unavailable |
+| `FINANCE_PROTOCOL_ERROR` | 502 | Wrong server/contract/response shape |
+| `FINANCE_AUDIT_UNAVAILABLE` | 503 | Required read audit could not be written |
+
+`details.finance_code` preserves Finance's original code (for example
+`INVALID_CREDENTIALS`, `COMPANY_DENIED`, `CURRENCY_REQUIRED`,
+`AUDIT_UNAVAILABLE`). `details.finance_request_id` is forwarded when available.
+
+### 10.4 Audit and write prohibition
+
+A successful `finance.read` audit row records actor, company, Finance company,
+endpoint, currency/date context and request id. Only GET is implemented; no
+invoice, payment, journal or reconciliation write endpoint exists in Commerce
+and the connector has no Finance write call.
 

@@ -1057,3 +1057,57 @@ additive (`entegrasyon_anahtarlari`, `entegrasyon_istek_kayitlari`,
 **Verification.** None yet, by design. The proposal is reviewed against the live
 Finance source at `8dce8245`; no Finance file, database or workbook was changed.
 
+
+---
+
+## ADR-041 — Explicit tenant-scoped Finance company mapping
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 5C)
+
+**Decision.** A Commerce company reads Finance only through one explicit row in
+`touche.finance_company_mapping`: `company_id` (unique) → Finance
+`faaliyet_key`, verification status, configuring admin and timestamps. The row is
+created/changed only by an active company admin through the privileged
+`finance-map` CLI after live Finance verification against `/capabilities` and
+`/companies`.
+
+**Reasoning.** Company names, currencies and free-text `fisler.cari` values are
+not stable identities. Matching by name would silently connect one legal entity's
+accounting data to another. A unique, audited mapping makes the relationship
+reviewable and revocable.
+
+**Consequences.** Missing, pending, invalid or disabled maps refuse data reads.
+The runtime role has `SELECT` only on the mapping; RLS prevents cross-tenant
+reads. A future multi-entity mapping requires a new ADR and migration.
+
+**Verification.** `test_finance_api.py` mapping/RLS/cross-tenant tests; CLI set
+and isolated HTTP acceptance; migration `0008_finance_mapping`.
+
+---
+
+## ADR-042 — Finance reads are one-currency, read-only and fail closed
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 5C)
+
+**Decision.** Every Commerce Finance data read requires an authenticated
+Commerce session, active company, `company.view` and a verified mapping. When
+Finance reports more than one currency, the caller must select exactly one.
+Amounts are passed through as Finance decimal strings; no conversion or
+aggregation is performed. Only GET endpoints exist. Credentials remain
+server-side. Finance error categories are preserved in
+`details.finance_code`. An unauditable read is not served.
+
+**Reasoning.** Summing TL, EUR and USD would produce a meaningless number. A
+conversion rate invented by Commerce would be a second financial calculation.
+A write path would duplicate Finance's accounting authority and recovery
+guarantees.
+
+**Consequences.** The UI exposes a currency selector and explicit
+NOT_CONFIGURED / CONNECTED / DEGRADED / UNAVAILABLE / AUTH_ERROR states. Invoice
+and payment views are marked “Not available”. Finance owns approval, posting,
+reconciliation and recovery.
+
+**Verification.** `test_finance_connector.py` (currency/error/read-only),
+`test_finance_api.py` (permission/RLS/audit/405), isolated HTTP acceptance with
+unchanged Finance database and workbook hashes.
+

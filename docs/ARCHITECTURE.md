@@ -1,10 +1,12 @@
 # TOUCHE COMMERCE — Architecture
 
-**Status:** Stages 0, 1A (identity, sessions, tenancy, audit) and 1B (CRM,
-catalogue, deals) implemented and verified locally.
+**Status:** Stages 0–4 implemented and verified locally. Stage 5A (Finance
+discovery/health), Stage 5B (Finance read-only contract) and Stage 5C (Commerce
+read-only Finance connector) are implemented; financial reconciliation (Stage
+5D) has not begun.
 **Audience:** engineers and reviewers working on Stage 2 and later.
 **Companion documents:** `docs/DECISIONS.md` (binding ADRs), `docs/API_CONTRACTS.md`,
-`docs/ROADMAP.md`, `docs/PROGRESS.md`.
+`docs/ROADMAP.md`, `docs/PROGRESS.md`, `docs/FINANCE_INTEGRATION_CONTRACT.md`.
 
 ---
 
@@ -1089,4 +1091,82 @@ Stage 5B/5C require Finance to implement the HMAC-authenticated
 (ADR-040). Commerce will then add read-only snapshots and outbox producers.
 Until that interface exists and is verified, Commerce must not fake it, poll a
 session endpoint, or write an outbox event that nobody can consume.
+
+
+---
+
+## 23. Stage 5C — real read-only Finance connector
+
+### 23.1 Boundary and data flow
+
+```text
+Browser
+  │ Commerce session cookie + X-CSRF-Token (mutations only)
+  ▼
+Next.js /finance (server component)
+  │ serverGet() with the session cookie, no Finance credential in browser
+  ▼
+Commerce FastAPI /api/v1/finance/*
+  │ active membership + company.view + explicit mapping
+  ▼
+FinanceIntegrationClient (http.client, loopback only, headers)
+  │ X-Touche-Integration-Key / X-Touche-Integration-Secret
+  ▼
+Finance /api/integration/v1/* (separate auth boundary, mode=ro SQLite)
+```
+
+Commerce never imports Finance code or opens Finance SQLite at runtime.
+
+### 23.2 Mapping and isolation
+
+`touche.finance_company_mapping` (migration `0008_finance_mapping`) is a
+tenant-owned table with one row per Commerce company and a unique
+`company_id`. It records the explicit Finance `faaliyet_key`, verification
+status, configuring admin, timestamps and non-secret verification details.
+The runtime role has `SELECT` only; RLS uses `touche.current_company_id()`.
+
+The mapping is created/changed only by an active company admin through
+`python -m app.cli finance-map set`, which verifies the Finance company against
+`/capabilities` and `/companies` before writing. No name matching is performed.
+A missing, disabled or unverified map refuses data reads.
+
+### 23.3 API and currency behavior
+
+The five Stage 5C endpoints are `GET /api/v1/finance/status`, `/capabilities`,
+`/summary`, `/accounts` and `/aging`. A caller can never submit a Finance
+company id, Finance URL or credential. A multi-currency company must select one
+currency explicitly; Finance amounts are preserved; there is no conversion or
+cross-currency aggregation.
+
+All calls are GET. POST/PUT/PATCH/DELETE have no business handler; the API
+returns `405` and no accounting write path exists. Every successful read writes
+an audit record with the Commerce actor/company, Finance company, endpoint,
+currency/date context and request id. Secrets and headers are never recorded.
+
+### 23.4 UI
+
+`/finance` has an Overview, Accounts, Receivables and Payables view. It renders
+the connection state (`NOT_CONFIGURED`, `CONNECTED`, `DEGRADED`, `UNAVAILABLE`,
+`AUTH_ERROR`), mapped company, currencies, data-through watermark, source
+balances, account table and FIFO aging with open Finance `fis_id` source items.
+Invoice/payment data is explicitly marked “Not available” because Finance has
+no structured objects. No operational cost/pricing logic changed.
+
+### 23.5 Configuration and deployment limits
+
+The connector is disabled by default and loopback-only. Key id/secret are
+server-side `SecretStr` values. Responses are capped, redirects are not
+followed, and the client rejects non-Finance server identification or an
+unsupported contract. TLS/mTLS, remote exposure, Windows ACL enforcement and
+HSM/KMS are deployment prerequisites, not verified here.
+
+### 23.6 Verification
+
+The isolated HTTP acceptance harness
+`backend/scripts/verify_finance_http.py` creates a disposable Finance runtime,
+synthetic ledger and key, starts Finance on port 8877, configures the Commerce
+mapping through the CLI, starts Commerce/Next.js, drives login and all Finance
+views, and confirms cross-tenant refusal and unchanged Finance hashes. Result:
+`ISOLATED_HTTP_VERIFIED`. The live Finance application was never started and
+the live database/workbook hashes remained unchanged.
 

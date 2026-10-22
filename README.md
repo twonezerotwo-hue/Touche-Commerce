@@ -30,7 +30,7 @@ a private trade-document register.
 | `/api/v1/health/live` · `/api/v1/health/ready` | ✅ 200 |
 | Backend tests (unit + live DB incl. RLS matrix) | ✅ 317 passed |
 | Frontend tests / lint / typecheck / build | ✅ 88 passed, clean |
-| Finance read-only connector (`/api/v1/integrations/finance/status`) | ✅ health-only; read-only probe PASS |
+| Finance read-only connector (`/api/v1/finance/*`) | ✅ Stage 5C; isolated HTTP PASS |
 | Live identity verification (`scripts\verify-identity.ps1`) | ✅ 31 checks passed |
 | Live trade workflow (`scripts\verify-trade.ps1`) | ✅ 39 checks passed |
 | Live sourcing workflow (`scripts\verify-sourcing.ps1`) | ✅ 53 checks passed |
@@ -226,9 +226,12 @@ the `TOUCHE_` prefix; secrets are wrapped and never logged.
 | `TOUCHE_IDEMPOTENCY_TTL_HOURS` | Idempotency retention (24) |
 | `TOUCHE_PAGINATION_DEFAULT_LIMIT` / `..._MAX_LIMIT` | 25 / 100 |
 | `TOUCHE_TEST_DATABASE_NAME` | Isolated database used by the integration suite |
-| `TOUCHE_FINANCE_INTEGRATION_ENABLED` | `true` enables the loopback-only Finance health probe (default `false`; no network I/O while disabled) |
+| `TOUCHE_FINANCE_INTEGRATION_ENABLED` | `true` enables the loopback-only Finance connector (default `false`; no network I/O while disabled) |
 | `TOUCHE_FINANCE_INTEGRATION_BASE_URL` | Literal loopback origin, default `http://127.0.0.1:8765`; DNS, HTTPS, credentials, paths, queries and fragments are rejected |
-| `TOUCHE_FINANCE_INTEGRATION_TIMEOUT_SECONDS` | Probe budget, 0.1–10 s (default 2) |
+| `TOUCHE_FINANCE_INTEGRATION_KEY_ID` | Finance integration key id (`key_` + 16 hex); server-side only |
+| `TOUCHE_FINANCE_INTEGRATION_SECRET` | Finance integration secret (32+ characters); server-side only, never `NEXT_PUBLIC_*` |
+| `TOUCHE_FINANCE_INTEGRATION_TIMEOUT_SECONDS` | Request budget, 0.1–10 s (default 2) |
+| `TOUCHE_FINANCE_INTEGRATION_MAX_RESPONSE_BYTES` | Bounded Finance response, default 1 MiB |
 | `NEXT_PUBLIC_API_BASE_URL` | API origin used by server components |
 | `API_INTERNAL_BASE_URL` | Optional internal proxy target (defaults to the public base URL) |
 | `NEXT_PUBLIC_API_TIMEOUT_MS` | Client/SSR request budget (10 s) |
@@ -450,14 +453,54 @@ live carrier tracking.
 | 11 | Finance remains financial source of truth | PASS (ADR-038; no postings) |
 | 12 | Documentation and contracts current | PASS (`PROGRESS.md` §23, ADR-038/039/040, OpenAPI regenerated) |
 
-Not implemented, by design: Finance business-data reads, invoices, payments,
-ledger postings, outbox delivery to Finance, counterparty auto-matching and
-reconciliation writes. Stage 5B is blocked until Finance exposes the
-HMAC-authenticated read-only `/api/integration/v1` contract.
+Not implemented, by design: invoices, payments, ledger postings, outbox delivery
+to Finance, counterparty auto-matching and reconciliation writes. The Stage 5B
+read-only Finance contract has since been implemented and is consumed by the
+Stage 5C connector below; Stage 5D reconciliation is still not started.
 
 Reproduce the read-only proof:
 
 ```powershell
 scripts\verify-finance-readonly.ps1
 ```
+
+
+---
+
+## Stage 5C acceptance — real read-only Finance connector
+
+**Finance revision verified:** `feat/finance-integration-v1` /
+`107c30e2ae4b5e4c22891f01ca730d3284994de5`.
+
+**Commerce migration:** `0008_finance_mapping`.
+
+The connector reads only
+`GET /api/integration/v1/{health,capabilities,companies,companies/{id}/summary,companies/{id}/accounts,companies/{id}/aging}`.
+It uses dedicated server-side key/secret headers, an explicit tenant mapping
+(configured by an active company admin through `python -m app.cli finance-map`),
+one explicit currency per request and no accounting writes.
+
+Commerce endpoints:
+
+```text
+GET /api/v1/finance/status
+GET /api/v1/finance/capabilities
+GET /api/v1/finance/summary?currency=TL
+GET /api/v1/finance/accounts?currency=TL&from=...&to=...
+GET /api/v1/finance/aging?type=receivable|payable&currency=TL
+```
+
+The `/finance` page provides Overview, Accounts, Receivables and Payables views
+with connection state, mapped company, currencies, data-through, source balances
+and FIFO aging. Invoice and payment data is explicitly “Not available”.
+
+**Verification:** `ISOLATED_HTTP_VERIFIED` using a disposable Finance runtime,
+synthetic ledger, temporary credentials, real Commerce API/Next.js HTTP requests,
+cross-tenant refusal and unchanged Finance hashes. No live Finance server was
+started. Full evidence and limitations are in
+`docs/FINANCE_INTEGRATION_CONTRACT.md` and `docs/PROGRESS.md` §24.
+
+**Not implemented:** invoices, payments, bank transfers, ledger/journal writes,
+automatic reconciliation, AI Trade Director, Gmail/WhatsApp automation and
+E-YAY integration.
 

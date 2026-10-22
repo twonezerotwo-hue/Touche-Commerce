@@ -239,28 +239,43 @@ truth; Commerce remains the commercial operational source of truth (ADR-038).
   was started and no DB/workbook byte changed.
 * ADR-038/039/040.
 
-**Explicitly blocked:** business-data reads, invoices, payments, ledger postings,
-outbox delivery to Finance. Finance has no service-authenticated integration
-endpoint; one must be implemented in Finance first.
+### Stage 5B — Finance read-only data contract ✅ (implemented in Finance 2026-10-22)
 
-### Stage 5B — Finance read-only data contract (blocked on Finance)
+Finance branch `feat/finance-integration-v1` at
+`107c30e2ae4b5e4c22891f01ca730d3284994de5` exposes authenticated read-only
+`/api/integration/v1/health`, `/capabilities`, `/companies`,
+`/companies/{id}/summary`, `/companies/{id}/accounts` and
+`/companies/{id}/aging`. Dedicated key/secret authentication, explicit company
+allow-lists, per-currency reads, append-only audit and `mode=ro` SQLite were
+verified in Finance. Invoices, payments, counterparty/project masters and report
+allow-lists are not implemented.
 
-Finance implements `GET /api/integration/v1/{health,companies,counterparties,projects,receivables,payables,trial-balance,reports/...}`
-with HMAC service authentication. Commerce then adds read-only snapshots and
-reconciliation views. No writes.
+### Stage 5C — real read-only Commerce connector ✅ (implemented 2026-10-22)
 
-### Stage 5C — draft-only commercial events (blocked on 5B)
+**Delivered:** tenant-scoped explicit mapping (migration `0008_finance_mapping`),
+server-side service credentials, loopback HTTP client with bounded responses and
+no redirects, normalized error categories, `finance.read` audit rows, five
+`/api/v1/finance/*` endpoints and a premium `/finance` Overview/Accounts/AR/AP
+workspace. The connector is disabled by default and has no write path.
 
-Finance implements idempotent `POST /api/integration/v1/commercial-events` that
-creates drafts only; approval/posting stays in Finance. Commerce adds outbox
-producers for accepted orders, approved POs, delivered shipments and incurred
-logistics costs. No automatic posting, payment or messaging.
+**Verification:** backend `355 passed` (including 20 connector tests and 18 API
+tests); frontend `96 passed` across 17 files; real isolated HTTP acceptance
+`ISOLATED_HTTP_VERIFIED` with synthetic Finance data, temporary credentials,
+cross-tenant refusal and unchanged Finance hashes. See
+`docs/FINANCE_INTEGRATION_CONTRACT.md` and `docs/PROGRESS.md` §23.
 
-**Exit criteria for 5C:** a replayed event never duplicates a draft; Commerce
-never holds a Finance session; every draft is traceable to a source aggregate
-and evidence hash; Finance approval remains human; failed deliveries recover
-from the outbox without inventing success.
+**Explicitly not implemented:** invoices, payments, bank transfers, journal
+writes, draft commercial events, AI Trade Director, Gmail/WhatsApp automation and
+E-YAY integration. Finance remains the financial source of truth.
 
+### Stage 5D — financial reconciliation (next safe milestone)
+
+Reconcile accepted Commerce orders, purchase orders, shipments and logistics
+costs against Finance ledger facts with **read-only** evidence:
+deterministic matching keys, variance reports, exception queue, human approval
+and an append-only reconciliation record. No automatic journal, invoice or
+payment writes. It may begin only after the Stage 5C mapping is configured for a
+real Commerce company and Finance's read-only contract remains green.
 
 ---
 

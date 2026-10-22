@@ -6,6 +6,13 @@
 **Stop point:** read-only. No invoice, payment or ledger write path exists in
 Commerce or was added to Finance.
 
+> **Historical Stage 5A report — retained unchanged.** Finance subsequently
+> implemented the read-only `/api/integration/v1` contract on
+> `feat/finance-integration-v1` at `107c30e`, and Commerce Stage 5C implemented
+> the explicit mapping, connector and UI. See `docs/FINANCE_INTEGRATION_CONTRACT.md`
+> and `docs/PROGRESS.md` §24. Statements below that business-data reads are
+> unavailable describe the Stage 5A boundary, not the current Stage 5C API.
+
 ---
 
 ## 1. Executive summary
