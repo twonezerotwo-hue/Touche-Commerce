@@ -6,6 +6,7 @@ Importing this package registers every model on ``Base.metadata`` so Alembic
 
 from app.db.models.audit import AuditAction, AuditActorType, AuditOutcome, AuditRecord
 from app.db.models.base import SCHEMA, Base
+from app.db.models.finance import FinanceCompanyMapping, FinanceMappingStatus
 from app.db.models.identity import (
     Company,
     CompanyStatus,
@@ -105,6 +106,8 @@ __all__ = [
     "DealTransition",
     "DocumentStatus",
     "DocumentVerificationStatus",
+    "FinanceCompanyMapping",
+    "FinanceMappingStatus",
     "FulfilmentModel",
     "FxRateSnapshot",
     "IdempotencyRecord",

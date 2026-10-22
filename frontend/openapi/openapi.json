@@ -1934,6 +1934,548 @@
         "title": "ErrorEnvelope",
         "type": "object"
       },
+      "FinanceAccount": {
+        "properties": {
+          "account_code": {
+            "title": "Account Code",
+            "type": "string"
+          },
+          "balance": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          },
+          "credit": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          },
+          "debit": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_code",
+          "name",
+          "type",
+          "debit",
+          "credit",
+          "balance"
+        ],
+        "title": "FinanceAccount",
+        "type": "object"
+      },
+      "FinanceAccountsResponse": {
+        "properties": {
+          "accounting_writes_enabled": {
+            "const": false,
+            "default": false,
+            "title": "Accounting Writes Enabled",
+            "type": "boolean"
+          },
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/FinanceAccount"
+            },
+            "title": "Accounts",
+            "type": "array"
+          },
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "company_id": {
+            "title": "Company Id",
+            "type": "string"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "fetched_at": {
+            "format": "date-time",
+            "title": "Fetched At",
+            "type": "string"
+          },
+          "finance_request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finance Request Id"
+          },
+          "from_date": {
+            "format": "date",
+            "title": "From Date",
+            "type": "string"
+          },
+          "page": {
+            "$ref": "#/components/schemas/FinancePage"
+          },
+          "read_only": {
+            "const": true,
+            "default": true,
+            "title": "Read Only",
+            "type": "boolean"
+          },
+          "source": {
+            "const": "finance_ledger",
+            "default": "finance_ledger",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "company_id",
+          "from_date",
+          "as_of",
+          "accounts",
+          "page",
+          "fetched_at"
+        ],
+        "title": "FinanceAccountsResponse",
+        "type": "object"
+      },
+      "FinanceAgingBuckets": {
+        "properties": {
+          "days_1_30": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          },
+          "days_31_60": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          },
+          "days_61_90": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          },
+          "days_over_90": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          },
+          "not_due": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          }
+        },
+        "required": [
+          "not_due",
+          "days_1_30",
+          "days_31_60",
+          "days_61_90",
+          "days_over_90"
+        ],
+        "title": "FinanceAgingBuckets",
+        "type": "object"
+      },
+      "FinanceAgingItem": {
+        "properties": {
+          "advance": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          },
+          "buckets": {
+            "$ref": "#/components/schemas/FinanceAgingBuckets"
+          },
+          "counterparty": {
+            "title": "Counterparty",
+            "type": "string"
+          },
+          "counterparty_key_type": {
+            "const": "ledger.cari",
+            "title": "Counterparty Key Type",
+            "type": "string"
+          },
+          "open_items": {
+            "items": {
+              "$ref": "#/components/schemas/FinanceOpenItem"
+            },
+            "title": "Open Items",
+            "type": "array"
+          },
+          "overdue": {
+            "title": "Overdue",
+            "type": "boolean"
+          },
+          "overdue_amount": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          },
+          "total": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          }
+        },
+        "required": [
+          "counterparty",
+          "counterparty_key_type",
+          "buckets",
+          "total",
+          "advance",
+          "overdue",
+          "overdue_amount",
+          "open_items"
+        ],
+        "title": "FinanceAgingItem",
+        "type": "object"
+      },
+      "FinanceAgingResponse": {
+        "properties": {
+          "account": {
+            "title": "Account",
+            "type": "string"
+          },
+          "accounting_writes_enabled": {
+            "const": false,
+            "default": false,
+            "title": "Accounting Writes Enabled",
+            "type": "boolean"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "company_id": {
+            "title": "Company Id",
+            "type": "string"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "fetched_at": {
+            "format": "date-time",
+            "title": "Fetched At",
+            "type": "string"
+          },
+          "finance_request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finance Request Id"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FinanceAgingItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "$ref": "#/components/schemas/FinancePage"
+          },
+          "read_only": {
+            "const": true,
+            "default": true,
+            "title": "Read Only",
+            "type": "boolean"
+          },
+          "source": {
+            "const": "finance_ledger",
+            "default": "finance_ledger",
+            "title": "Source",
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/FinanceAgingSummary"
+          },
+          "type": {
+            "enum": [
+              "receivable",
+              "payable"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "company_id",
+          "type",
+          "account",
+          "summary",
+          "items",
+          "page",
+          "fetched_at"
+        ],
+        "title": "FinanceAgingResponse",
+        "type": "object"
+      },
+      "FinanceAgingSummary": {
+        "properties": {
+          "overdue": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          },
+          "overdue_ratio": {
+            "title": "Overdue Ratio",
+            "type": "number"
+          },
+          "total": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          }
+        },
+        "required": [
+          "total",
+          "overdue",
+          "overdue_ratio"
+        ],
+        "title": "FinanceAgingSummary",
+        "type": "object"
+      },
+      "FinanceBalances": {
+        "properties": {
+          "cash": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          },
+          "cost": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          },
+          "gross_profit": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          },
+          "payables": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          },
+          "receivables": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          },
+          "revenue": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          }
+        },
+        "required": [
+          "cash",
+          "receivables",
+          "payables",
+          "revenue",
+          "cost",
+          "gross_profit"
+        ],
+        "title": "FinanceBalances",
+        "type": "object"
+      },
+      "FinanceCapabilitiesResponse": {
+        "properties": {
+          "accounting_writes_enabled": {
+            "const": false,
+            "default": false,
+            "title": "Accounting Writes Enabled",
+            "type": "boolean"
+          },
+          "available_currencies": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Available Currencies",
+            "type": "array"
+          },
+          "company_name": {
+            "title": "Company Name",
+            "type": "string"
+          },
+          "contract_version": {
+            "title": "Contract Version",
+            "type": "string"
+          },
+          "currency_support": {
+            "$ref": "#/components/schemas/FinanceCurrencySupport"
+          },
+          "data_through": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Through"
+          },
+          "endpoints": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Endpoints",
+            "type": "array"
+          },
+          "fetched_at": {
+            "format": "date-time",
+            "title": "Fetched At",
+            "type": "string"
+          },
+          "finance_company_id": {
+            "title": "Finance Company Id",
+            "type": "string"
+          },
+          "finance_request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finance Request Id"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "max_page": {
+            "minimum": 1.0,
+            "title": "Max Page",
+            "type": "integer"
+          },
+          "read_only": {
+            "const": true,
+            "default": true,
+            "title": "Read Only",
+            "type": "boolean"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Scopes",
+            "type": "array"
+          },
+          "source": {
+            "const": "finance_ledger",
+            "default": "finance_ledger",
+            "title": "Source",
+            "type": "string"
+          },
+          "unsupported": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unsupported",
+            "type": "array"
+          }
+        },
+        "required": [
+          "finance_company_id",
+          "company_name",
+          "contract_version",
+          "scopes",
+          "max_page",
+          "endpoints",
+          "currency_support",
+          "unsupported",
+          "limitations",
+          "available_currencies",
+          "fetched_at"
+        ],
+        "title": "FinanceCapabilitiesResponse",
+        "type": "object"
+      },
+      "FinanceCurrencySupport": {
+        "properties": {
+          "aggregation": {
+            "title": "Aggregation",
+            "type": "boolean"
+          },
+          "available": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Available",
+            "type": "array"
+          },
+          "conversion": {
+            "title": "Conversion",
+            "type": "boolean"
+          },
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "aggregation",
+          "conversion"
+        ],
+        "title": "FinanceCurrencySupport",
+        "type": "object"
+      },
+      "FinanceLedger": {
+        "properties": {
+          "document_count": {
+            "minimum": 0.0,
+            "title": "Document Count",
+            "type": "integer"
+          },
+          "first_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Date"
+          },
+          "last_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Date"
+          },
+          "line_count": {
+            "minimum": 0.0,
+            "title": "Line Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "document_count",
+          "line_count"
+        ],
+        "title": "FinanceLedger",
+        "type": "object"
+      },
       "FinanceLinkState": {
         "description": "Outcome of one read-only Finance health probe.",
         "enum": [
@@ -2013,6 +2555,394 @@
           "checked_at"
         ],
         "title": "FinanceLinkStatusResponse",
+        "type": "object"
+      },
+      "FinanceMapping": {
+        "properties": {
+          "configured_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Configured At"
+          },
+          "finance_company_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finance Company Id"
+          },
+          "finance_company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finance Company Name"
+          },
+          "last_verified_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Verified At"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "pending",
+                  "verified",
+                  "disabled",
+                  "invalid"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "title": "FinanceMapping",
+        "type": "object"
+      },
+      "FinanceMoney": {
+        "properties": {
+          "amount": {
+            "description": "Finance decimal string, unchanged.",
+            "title": "Amount",
+            "type": "string"
+          },
+          "amount_kurus": {
+            "description": "Finance integer kuruş representation.",
+            "title": "Amount Kurus",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "amount",
+          "amount_kurus"
+        ],
+        "title": "FinanceMoney",
+        "type": "object"
+      },
+      "FinanceOpenItem": {
+        "properties": {
+          "due_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "remaining": {
+            "$ref": "#/components/schemas/FinanceMoney"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "source",
+          "remaining"
+        ],
+        "title": "FinanceOpenItem",
+        "type": "object"
+      },
+      "FinancePage": {
+        "properties": {
+          "limit": {
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "limit",
+          "offset",
+          "total"
+        ],
+        "title": "FinancePage",
+        "type": "object"
+      },
+      "FinanceStatusResponse": {
+        "properties": {
+          "accounting_writes_enabled": {
+            "const": false,
+            "default": false,
+            "title": "Accounting Writes Enabled",
+            "type": "boolean"
+          },
+          "available_currencies": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Available Currencies",
+            "type": "array"
+          },
+          "checked_at": {
+            "format": "date-time",
+            "title": "Checked At",
+            "type": "string"
+          },
+          "data_through": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Through"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "finance_request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finance Request Id"
+          },
+          "finance_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finance Status"
+          },
+          "latency_ms": {
+            "minimum": 0.0,
+            "title": "Latency Ms",
+            "type": "number"
+          },
+          "mapping": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinanceMapping"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "read_only": {
+            "const": true,
+            "default": true,
+            "title": "Read Only",
+            "type": "boolean"
+          },
+          "scope": {
+            "const": "finance_read",
+            "default": "finance_read",
+            "title": "Scope",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "not_configured",
+              "disabled",
+              "connected",
+              "degraded",
+              "unavailable",
+              "auth_error"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "detail",
+          "checked_at",
+          "latency_ms"
+        ],
+        "title": "FinanceStatusResponse",
+        "type": "object"
+      },
+      "FinanceSummaryResponse": {
+        "properties": {
+          "accounting_writes_enabled": {
+            "const": false,
+            "default": false,
+            "title": "Accounting Writes Enabled",
+            "type": "boolean"
+          },
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "balances": {
+            "$ref": "#/components/schemas/FinanceBalances"
+          },
+          "company_id": {
+            "title": "Company Id",
+            "type": "string"
+          },
+          "currencies": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Currencies",
+            "type": "array"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "data_through": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Through"
+          },
+          "fetched_at": {
+            "format": "date-time",
+            "title": "Fetched At",
+            "type": "string"
+          },
+          "finance_request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finance Request Id"
+          },
+          "holding_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holding Id"
+          },
+          "ledger": {
+            "$ref": "#/components/schemas/FinanceLedger"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "read_only": {
+            "const": true,
+            "default": true,
+            "title": "Read Only",
+            "type": "boolean"
+          },
+          "source": {
+            "const": "finance_ledger",
+            "default": "finance_ledger",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "company_id",
+          "name",
+          "active",
+          "currencies",
+          "ledger",
+          "balances",
+          "fetched_at"
+        ],
+        "title": "FinanceSummaryResponse",
         "type": "object"
       },
       "FulfilmentLineResponse": {
@@ -10802,6 +11732,507 @@
         ]
       }
     },
+    "/api/v1/finance/accounts": {
+      "get": {
+        "description": "Account-level debit, credit and balance for an explicit date range and currency. Amounts and Finance's debit-minus-credit sign are preserved.",
+        "operationId": "get_finance_accounts_api_v1_finance_accounts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "currency",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 3,
+                  "pattern": "^[A-Za-z]{2,3}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Currency"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 200,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanceAccountsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid currency or date range."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Mapping or explicit currency required."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Finance authentication/protocol failure."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Finance unavailable or integration disabled."
+          }
+        },
+        "summary": "Finance account balances for the mapped company",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/v1/finance/aging": {
+      "get": {
+        "description": "FIFO aging with Finance's documented buckets and open fis_id source items. Counterparty names are free text and are not treated as stable master keys.",
+        "operationId": "get_finance_aging_api_v1_finance_aging_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "enum": [
+                "receivable",
+                "payable"
+              ],
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "currency",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 3,
+                  "pattern": "^[A-Za-z]{2,3}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Currency"
+            }
+          },
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 200,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanceAgingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid type, currency or date."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Mapping or explicit currency required."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Finance authentication/protocol failure."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Finance unavailable or integration disabled."
+          }
+        },
+        "summary": "Finance receivable or payable FIFO aging",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/v1/finance/capabilities": {
+      "get": {
+        "description": "Returns only the mapped Finance company's capabilities. The Finance key's other authorized company ids are deliberately not exposed.",
+        "operationId": "get_finance_capabilities_api_v1_finance_capabilities_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanceCapabilitiesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Mapping missing, disabled or rejected."
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Finance authentication/protocol failure."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Finance unavailable or integration disabled."
+          }
+        },
+        "summary": "Verified Finance capabilities for the mapped company",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/v1/finance/status": {
+      "get": {
+        "description": "Resolves the active Commerce company's explicit Finance mapping, verifies it against Finance capabilities and the authorized company list, and reports NOT_CONFIGURED / CONNECTED / DEGRADED / UNAVAILABLE / AUTH_ERROR. No credentials are returned.",
+        "operationId": "get_finance_status_api_v1_finance_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanceStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "No authenticated Commerce session."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "No active membership or company.view."
+          }
+        },
+        "summary": "Read-only Finance integration status for the active company",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/v1/finance/summary": {
+      "get": {
+        "description": "Balances come from Finance's existing engine. A multi-currency company requires an explicit currency; amounts are never converted or aggregated.",
+        "operationId": "get_finance_summary_api_v1_finance_summary_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "currency",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 3,
+                  "pattern": "^[A-Za-z]{2,3}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Currency"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanceSummaryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Mapping or explicit currency required."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Finance authentication/protocol failure."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Finance unavailable or integration disabled."
+          }
+        },
+        "summary": "Finance ledger summary for the mapped company and one currency",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/v1/fx-rates": {
       "get": {
         "description": "Cursor-paginated, newest recording first. Filter by the currency pair. No endpoint returns a 'current' rate: pricing always refers to a stored snapshot so a landed cost stays reproducible.",
@@ -15014,6 +16445,10 @@
     {
       "description": "Read-only external-system status. Stage 5A exposes Finance health only; Commerce has no accounting write endpoint.",
       "name": "integrations"
+    },
+    {
+      "description": "Stage 5C authenticated read-only Finance connector. Every call requires a Commerce session, an active company, company.view and an explicit tenant-scoped Finance company mapping.",
+      "name": "finance"
     }
   ]
 }

@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import re
 import sys
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -33,6 +34,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import ConfigurationError, Settings, get_settings
+from app.core.errors import ApiError
 from app.db.engine import Database
 from app.db.models import (
     AuditAction,
@@ -43,15 +45,22 @@ from app.db.models import (
     Deal,
     DealStatus,
     Membership,
+    MembershipStatus,
     Product,
     User,
 )
+from app.integrations.finance.connector import FinanceConnector
 from app.security.passwords import PasswordPolicyError, PasswordService, validate_password_strength
-from app.security.permissions import Role
+from app.security.permissions import Role, coerce_role
 from app.services import admin
 from app.services.audit import record_audit
 from app.services.catalog import ProductService
 from app.services.crm import CounterpartyService
+from app.services.finance_mapping import (
+    all_mappings,
+    disable_mapping,
+    set_verified_mapping,
+)
 from app.services.trade import DealCreateData, DealItemInput, DealService
 from app.services.trade_meta import WriteMeta
 
@@ -400,6 +409,173 @@ def cmd_list(args: argparse.Namespace, settings: Settings) -> int:
 
 
 
+def _finance_operator(session: Session, *, email: str, company: Company) -> User:
+    """Only an active company admin may configure its Finance mapping."""
+    user = admin.find_user(session, email)
+    if user is None:
+        raise CliError(f"no user with email {email!r}.")
+    membership = session.execute(
+        select(Membership).where(
+            Membership.user_id == user.id,
+            Membership.company_id == company.id,
+        )
+    ).scalar_one_or_none()
+    if (
+        membership is None
+        or membership.status != MembershipStatus.ACTIVE.value
+        or coerce_role(membership.role) is not Role.ADMIN
+    ):
+        raise CliError(
+            f"{email!r} must be an active admin of company {company.name!r}."
+        )
+    return user
+
+
+def cmd_finance_map_set(args: argparse.Namespace, settings: Settings) -> int:
+    finance_company_id = str(args.finance_company).strip()
+    if not re.fullmatch(r"[a-z][a-z0-9_]{1,63}", finance_company_id):
+        _fail("--finance-company must be a Finance faaliyet_key such as gursar_mimarlik.")
+    actor_email = _validate_email(args.actor)
+    database = _privileged_database(settings)
+    try:
+        with database.transaction() as session:
+            company = admin.find_company_by_name(session, args.company)
+            if company is None:
+                raise CliError(f"no company named {args.company!r}.")
+            user = _finance_operator(session, email=actor_email, company=company)
+            company_id = company.id
+            user_id = user.id
+
+        connector = FinanceConnector(settings)
+        try:
+            finance_company, capabilities = connector.inspect_company(finance_company_id)
+        except ApiError as exc:
+            raise CliError(f"{exc.code}: {exc.message}") from exc
+        currencies = [
+            str(item) for item in (finance_company.get("currencies") or [])
+        ]
+        details = {
+            "currencies": currencies,
+            "data_through": finance_company.get("data_through"),
+            "contract_version": str(capabilities.get("contract_version") or ""),
+        }
+        with database.transaction() as session:
+            company = session.get(Company, company_id)
+            operator = session.get(User, user_id)
+            if company is None or operator is None:
+                raise CliError("company or operator disappeared during configuration.")
+            mapping = set_verified_mapping(
+                session,
+                company_id=company.id,
+                finance_company_id=finance_company_id,
+                finance_company_name=str(finance_company.get("name") or "") or None,
+                configured_by=operator.id,
+                verification_details=details,
+            )
+            record_audit(
+                session,
+                action=AuditAction.FINANCE_MAPPING_CONFIGURED,
+                outcome=AuditOutcome.SUCCESS,
+                actor_id=operator.id,
+                company_id=company.id,
+                resource_type="finance_company_mapping",
+                resource_id=finance_company_id,
+                details={
+                    "finance_company_id": finance_company_id,
+                    "commerce_company_id": str(company.id),
+                    "mapping_id": str(mapping.id),
+                    "currencies": details["currencies"],
+                    "data_through": details["data_through"],
+                },
+            )
+            summary = [
+                ("Commerce company", company.name),
+                ("Finance company", finance_company_id),
+                ("Finance name", str(finance_company.get("name") or "")),
+                ("Status", str(mapping.status)),
+                (
+                    "Currencies",
+                    ", ".join(currencies) or "none",
+                ),
+                ("Configured by", operator.email),
+            ]
+    except CliError as exc:
+        _fail(str(exc), EXIT_CONFLICT)
+    finally:
+        database.dispose()
+    _print_summary("Finance mapping configured", summary)
+    return EXIT_OK
+
+
+def cmd_finance_map_disable(args: argparse.Namespace, settings: Settings) -> int:
+    actor_email = _validate_email(args.actor)
+    database = _privileged_database(settings)
+    try:
+        with database.transaction() as session:
+            company = admin.find_company_by_name(session, args.company)
+            if company is None:
+                raise CliError(f"no company named {args.company!r}.")
+            user = _finance_operator(session, email=actor_email, company=company)
+            mapping = disable_mapping(session, company_id=company.id)
+            if mapping is None:
+                raise CliError(f"no Finance mapping exists for {company.name!r}.")
+            record_audit(
+                session,
+                action=AuditAction.FINANCE_MAPPING_DISABLED,
+                outcome=AuditOutcome.SUCCESS,
+                actor_id=user.id,
+                company_id=company.id,
+                resource_type="finance_company_mapping",
+                resource_id=mapping.finance_company_id,
+                details={
+                    "finance_company_id": mapping.finance_company_id,
+                    "commerce_company_id": str(company.id),
+                    "mapping_id": str(mapping.id),
+                },
+            )
+            summary = [
+                ("Commerce company", company.name),
+                ("Finance company", mapping.finance_company_id),
+                ("Status", str(mapping.status)),
+            ]
+    except CliError as exc:
+        _fail(str(exc), EXIT_CONFLICT)
+    finally:
+        database.dispose()
+    _print_summary("Finance mapping disabled", summary)
+    return EXIT_OK
+
+
+def cmd_finance_map_list(args: argparse.Namespace, settings: Settings) -> int:
+    database = _privileged_database(settings)
+    try:
+        with database.transaction() as session:
+            rows = all_mappings(session)
+            if args.company:
+                target = admin.find_company_by_name(session, args.company)
+                if target is None:
+                    raise CliError(f"no company named {args.company!r}.")
+                rows = [row for row in rows if row[1].id == target.id]
+            if not rows:
+                print("No Finance mappings.")
+            for mapping, company in rows:
+                verified = (
+                    mapping.last_verified_at.isoformat()
+                    if mapping.last_verified_at is not None
+                    else "never"
+                )
+                print(
+                    f"{company.name}  |  {mapping.finance_company_id}  |  "
+                    f"{mapping.finance_company_name or '-'}  |  {mapping.status}  |  "
+                    f"verified {verified}"
+                )
+    except CliError as exc:
+        _fail(str(exc), EXIT_CONFLICT)
+    finally:
+        database.dispose()
+    return EXIT_OK
+
+
 def cmd_seed_demo(args: argparse.Namespace, settings: Settings) -> int:
     """Insert an explicitly requested, clearly labelled demonstration data set."""
     if not seed_demo_environment(settings.environment):
@@ -672,6 +848,35 @@ def build_parser() -> argparse.ArgumentParser:
     list_parser.add_argument("what", choices=["companies", "users", "memberships"])
     list_parser.add_argument("--company", help="Company name (memberships only).")
     list_parser.set_defaults(handler=cmd_list)
+
+    finance_map = subparsers.add_parser(
+        "finance-map",
+        help="Configure the explicit Commerce → Finance company mapping.",
+    )
+    finance_map_sub = finance_map.add_subparsers(dest="finance_map_command", required=True)
+
+    finance_map_set = finance_map_sub.add_parser(
+        "set", help="Verify and set the Finance company for one Commerce company."
+    )
+    finance_map_set.add_argument("--company", required=True, help="Commerce company name.")
+    finance_map_set.add_argument(
+        "--finance-company", required=True, help="Finance faaliyet_key, e.g. gursar_mimarlik."
+    )
+    finance_map_set.add_argument(
+        "--actor", required=True, help="Email of an active company admin authorising the map."
+    )
+    finance_map_set.set_defaults(handler=cmd_finance_map_set)
+
+    finance_map_disable = finance_map_sub.add_parser(
+        "disable", help="Disable the mapping without deleting its audit context."
+    )
+    finance_map_disable.add_argument("--company", required=True)
+    finance_map_disable.add_argument("--actor", required=True)
+    finance_map_disable.set_defaults(handler=cmd_finance_map_disable)
+
+    finance_map_list = finance_map_sub.add_parser("list", help="List configured mappings.")
+    finance_map_list.add_argument("--company", help="Optional Commerce company name.")
+    finance_map_list.set_defaults(handler=cmd_finance_map_list)
 
     seed_demo = subparsers.add_parser(
         "seed-demo",

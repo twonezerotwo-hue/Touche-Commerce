@@ -124,6 +124,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "health only; Commerce has no accounting write endpoint."
                 ),
             },
+            {
+                "name": "finance",
+                "description": (
+                    "Stage 5C authenticated read-only Finance connector. Every call "
+                    "requires a Commerce session, an active company, company.view and "
+                    "an explicit tenant-scoped Finance company mapping."
+                ),
+            },
         ],
     )
 

@@ -61,6 +61,19 @@ class ErrorCode(StrEnum):
     PAYLOAD_TOO_LARGE = "PAYLOAD_TOO_LARGE"
     NOT_READY = "NOT_READY"
     SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE"
+    # Stage 5C — read-only Finance integration. Commerce-specific codes keep the
+    # underlying Finance category in details.finance_code.
+    FINANCE_NOT_CONFIGURED = "FINANCE_NOT_CONFIGURED"
+    FINANCE_MAPPING_UNVERIFIED = "FINANCE_MAPPING_UNVERIFIED"
+    FINANCE_MAPPING_DISABLED = "FINANCE_MAPPING_DISABLED"
+    FINANCE_INTEGRATION_DISABLED = "FINANCE_INTEGRATION_DISABLED"
+    FINANCE_AUTH_ERROR = "FINANCE_AUTH_ERROR"
+    FINANCE_COMPANY_DENIED = "FINANCE_COMPANY_DENIED"
+    FINANCE_CURRENCY_REQUIRED = "FINANCE_CURRENCY_REQUIRED"
+    FINANCE_INVALID_CURRENCY = "FINANCE_INVALID_CURRENCY"
+    FINANCE_UNAVAILABLE = "FINANCE_UNAVAILABLE"
+    FINANCE_PROTOCOL_ERROR = "FINANCE_PROTOCOL_ERROR"
+    FINANCE_AUDIT_UNAVAILABLE = "FINANCE_AUDIT_UNAVAILABLE"
     INTERNAL_ERROR = "INTERNAL_ERROR"
     HTTP_ERROR = "HTTP_ERROR"
 
@@ -279,6 +292,99 @@ class NotReadyError(ApiError):
     status_code = 503
     code = ErrorCode.NOT_READY
     default_message = "The service is not ready to handle requests."
+
+
+class FinanceNotConfiguredError(ApiError):
+    """No explicit Finance company mapping exists for the active company."""
+
+    status_code = 409
+    code = ErrorCode.FINANCE_NOT_CONFIGURED
+    default_message = (
+        "Finance is not configured for this company. An authorised operator must "
+        "create an explicit mapping with `python -m app.cli finance-map set`."
+    )
+
+
+class FinanceMappingUnverifiedError(ApiError):
+    """The mapping exists but has not been verified against Finance."""
+
+    status_code = 409
+    code = ErrorCode.FINANCE_MAPPING_UNVERIFIED
+    default_message = "The Finance company mapping has not been verified."
+
+
+class FinanceMappingDisabledError(ApiError):
+    """The mapping was deliberately disabled by an operator."""
+
+    status_code = 409
+    code = ErrorCode.FINANCE_MAPPING_DISABLED
+    default_message = "The Finance company mapping is disabled."
+
+
+class FinanceIntegrationDisabledError(ApiError):
+    """Commerce's read-only Finance connector is switched off."""
+
+    status_code = 503
+    code = ErrorCode.FINANCE_INTEGRATION_DISABLED
+    default_message = "The Finance integration is disabled."
+
+
+class FinanceAuthError(ApiError):
+    """Finance rejected or could not verify the dedicated service credentials."""
+
+    status_code = 502
+    code = ErrorCode.FINANCE_AUTH_ERROR
+    default_message = "Finance rejected the service credentials."
+
+
+class FinanceCompanyDeniedError(ApiError):
+    """The mapping points at a company the Finance key cannot read."""
+
+    status_code = 409
+    code = ErrorCode.FINANCE_COMPANY_DENIED
+    default_message = "The mapped Finance company is not authorised for this service key."
+
+
+class FinanceCurrencyRequiredError(ApiError):
+    """A multi-currency company needs one explicit currency."""
+
+    status_code = 409
+    code = ErrorCode.FINANCE_CURRENCY_REQUIRED
+    default_message = (
+        "Select one currency; Commerce never converts or aggregates Finance currencies."
+    )
+
+
+class FinanceInvalidCurrencyError(ApiError):
+    """The requested currency is not present in the mapped Finance ledger."""
+
+    status_code = 400
+    code = ErrorCode.FINANCE_INVALID_CURRENCY
+    default_message = "The requested currency is not available for this Finance company."
+
+
+class FinanceUnavailableError(ApiError):
+    """Finance could not be reached or is temporarily unavailable."""
+
+    status_code = 503
+    code = ErrorCode.FINANCE_UNAVAILABLE
+    default_message = "Finance is currently unavailable."
+
+
+class FinanceProtocolError(ApiError):
+    """Finance answered with a response outside the verified v1 contract."""
+
+    status_code = 502
+    code = ErrorCode.FINANCE_PROTOCOL_ERROR
+    default_message = "Finance returned a response outside the verified integration contract."
+
+
+class FinanceAuditUnavailableError(ApiError):
+    """Commerce could not write the required read audit record."""
+
+    status_code = 503
+    code = ErrorCode.FINANCE_AUDIT_UNAVAILABLE
+    default_message = "The Finance read could not be audited, so it was not served."
 
 
 def build_error_payload(

@@ -381,6 +381,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Finance account balances for the mapped company
+         * @description Account-level debit, credit and balance for an explicit date range and currency. Amounts and Finance's debit-minus-credit sign are preserved.
+         */
+        get: operations["get_finance_accounts_api_v1_finance_accounts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/aging": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Finance receivable or payable FIFO aging
+         * @description FIFO aging with Finance's documented buckets and open fis_id source items. Counterparty names are free text and are not treated as stable master keys.
+         */
+        get: operations["get_finance_aging_api_v1_finance_aging_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Verified Finance capabilities for the mapped company
+         * @description Returns only the mapped Finance company's capabilities. The Finance key's other authorized company ids are deliberately not exposed.
+         */
+        get: operations["get_finance_capabilities_api_v1_finance_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read-only Finance integration status for the active company
+         * @description Resolves the active Commerce company's explicit Finance mapping, verifies it against Finance capabilities and the authorized company list, and reports NOT_CONFIGURED / CONNECTED / DEGRADED / UNAVAILABLE / AUTH_ERROR. No credentials are returned.
+         */
+        get: operations["get_finance_status_api_v1_finance_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Finance ledger summary for the mapped company and one currency
+         * @description Balances come from Finance's existing engine. A multi-currency company requires an explicit currency; amounts are never converted or aggregated.
+         */
+        get: operations["get_finance_summary_api_v1_finance_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/fx-rates": {
         parameters: {
             query?: never;
@@ -2033,6 +2133,221 @@ export interface components {
         ErrorEnvelope: {
             error: components["schemas"]["ErrorDetail"];
         };
+        /** FinanceAccount */
+        FinanceAccount: {
+            /** Account Code */
+            account_code: string;
+            balance: components["schemas"]["FinanceMoney"];
+            credit: components["schemas"]["FinanceMoney"];
+            debit: components["schemas"]["FinanceMoney"];
+            /** Name */
+            name: string;
+            /** Type */
+            type: string;
+        };
+        /** FinanceAccountsResponse */
+        FinanceAccountsResponse: {
+            /**
+             * Accounting Writes Enabled
+             * @default false
+             * @constant
+             */
+            accounting_writes_enabled: false;
+            /** Accounts */
+            accounts: components["schemas"]["FinanceAccount"][];
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Company Id */
+            company_id: string;
+            /** Currency */
+            currency?: string | null;
+            /**
+             * Fetched At
+             * Format: date-time
+             */
+            fetched_at: string;
+            /** Finance Request Id */
+            finance_request_id?: string | null;
+            /**
+             * From Date
+             * Format: date
+             */
+            from_date: string;
+            page: components["schemas"]["FinancePage"];
+            /**
+             * Read Only
+             * @default true
+             * @constant
+             */
+            read_only: true;
+            /**
+             * Source
+             * @default finance_ledger
+             * @constant
+             */
+            source: "finance_ledger";
+        };
+        /** FinanceAgingBuckets */
+        FinanceAgingBuckets: {
+            days_1_30: components["schemas"]["FinanceMoney"];
+            days_31_60: components["schemas"]["FinanceMoney"];
+            days_61_90: components["schemas"]["FinanceMoney"];
+            days_over_90: components["schemas"]["FinanceMoney"];
+            not_due: components["schemas"]["FinanceMoney"];
+        };
+        /** FinanceAgingItem */
+        FinanceAgingItem: {
+            advance: components["schemas"]["FinanceMoney"];
+            buckets: components["schemas"]["FinanceAgingBuckets"];
+            /** Counterparty */
+            counterparty: string;
+            /**
+             * Counterparty Key Type
+             * @constant
+             */
+            counterparty_key_type: "ledger.cari";
+            /** Open Items */
+            open_items: components["schemas"]["FinanceOpenItem"][];
+            /** Overdue */
+            overdue: boolean;
+            overdue_amount: components["schemas"]["FinanceMoney"];
+            total: components["schemas"]["FinanceMoney"];
+        };
+        /** FinanceAgingResponse */
+        FinanceAgingResponse: {
+            /** Account */
+            account: string;
+            /**
+             * Accounting Writes Enabled
+             * @default false
+             * @constant
+             */
+            accounting_writes_enabled: false;
+            /** As Of */
+            as_of?: string | null;
+            /** Company Id */
+            company_id: string;
+            /** Currency */
+            currency?: string | null;
+            /**
+             * Fetched At
+             * Format: date-time
+             */
+            fetched_at: string;
+            /** Finance Request Id */
+            finance_request_id?: string | null;
+            /** Items */
+            items: components["schemas"]["FinanceAgingItem"][];
+            page: components["schemas"]["FinancePage"];
+            /**
+             * Read Only
+             * @default true
+             * @constant
+             */
+            read_only: true;
+            /**
+             * Source
+             * @default finance_ledger
+             * @constant
+             */
+            source: "finance_ledger";
+            summary: components["schemas"]["FinanceAgingSummary"];
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "receivable" | "payable";
+        };
+        /** FinanceAgingSummary */
+        FinanceAgingSummary: {
+            overdue: components["schemas"]["FinanceMoney"];
+            /** Overdue Ratio */
+            overdue_ratio: number;
+            total: components["schemas"]["FinanceMoney"];
+        };
+        /** FinanceBalances */
+        FinanceBalances: {
+            cash: components["schemas"]["FinanceMoney"];
+            cost: components["schemas"]["FinanceMoney"];
+            gross_profit: components["schemas"]["FinanceMoney"];
+            payables: components["schemas"]["FinanceMoney"];
+            receivables: components["schemas"]["FinanceMoney"];
+            revenue: components["schemas"]["FinanceMoney"];
+        };
+        /** FinanceCapabilitiesResponse */
+        FinanceCapabilitiesResponse: {
+            /**
+             * Accounting Writes Enabled
+             * @default false
+             * @constant
+             */
+            accounting_writes_enabled: false;
+            /** Available Currencies */
+            available_currencies: string[];
+            /** Company Name */
+            company_name: string;
+            /** Contract Version */
+            contract_version: string;
+            currency_support: components["schemas"]["FinanceCurrencySupport"];
+            /** Data Through */
+            data_through?: string | null;
+            /** Endpoints */
+            endpoints: string[];
+            /**
+             * Fetched At
+             * Format: date-time
+             */
+            fetched_at: string;
+            /** Finance Company Id */
+            finance_company_id: string;
+            /** Finance Request Id */
+            finance_request_id?: string | null;
+            /** Limitations */
+            limitations: string[];
+            /** Max Page */
+            max_page: number;
+            /**
+             * Read Only
+             * @default true
+             * @constant
+             */
+            read_only: true;
+            /** Scopes */
+            scopes: string[];
+            /**
+             * Source
+             * @default finance_ledger
+             * @constant
+             */
+            source: "finance_ledger";
+            /** Unsupported */
+            unsupported: string[];
+        };
+        /** FinanceCurrencySupport */
+        FinanceCurrencySupport: {
+            /** Aggregation */
+            aggregation: boolean;
+            /** Available */
+            available?: string[];
+            /** Conversion */
+            conversion: boolean;
+            /** Mode */
+            mode: string;
+        };
+        /** FinanceLedger */
+        FinanceLedger: {
+            /** Document Count */
+            document_count: number;
+            /** First Date */
+            first_date?: string | null;
+            /** Last Date */
+            last_date?: string | null;
+            /** Line Count */
+            line_count: number;
+        };
         /**
          * FinanceLinkState
          * @description Outcome of one read-only Finance health probe.
@@ -2093,6 +2408,143 @@ export interface components {
             scope: "health_only";
             /** @description Observed link state. */
             state: components["schemas"]["FinanceLinkState"];
+        };
+        /** FinanceMapping */
+        FinanceMapping: {
+            /** Configured At */
+            configured_at?: string | null;
+            /** Finance Company Id */
+            finance_company_id?: string | null;
+            /** Finance Company Name */
+            finance_company_name?: string | null;
+            /** Last Verified At */
+            last_verified_at?: string | null;
+            /** Status */
+            status?: ("pending" | "verified" | "disabled" | "invalid") | null;
+        };
+        /** FinanceMoney */
+        FinanceMoney: {
+            /**
+             * Amount
+             * @description Finance decimal string, unchanged.
+             */
+            amount: string;
+            /**
+             * Amount Kurus
+             * @description Finance integer kuruş representation.
+             */
+            amount_kurus: number;
+        };
+        /** FinanceOpenItem */
+        FinanceOpenItem: {
+            /** Due Date */
+            due_date?: string | null;
+            remaining: components["schemas"]["FinanceMoney"];
+            /** Source */
+            source: string;
+            /** Source Id */
+            source_id: string;
+        };
+        /** FinancePage */
+        FinancePage: {
+            /** Limit */
+            limit: number;
+            /** Next Offset */
+            next_offset?: number | null;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** FinanceStatusResponse */
+        FinanceStatusResponse: {
+            /**
+             * Accounting Writes Enabled
+             * @default false
+             * @constant
+             */
+            accounting_writes_enabled: false;
+            /** Available Currencies */
+            available_currencies?: string[];
+            /**
+             * Checked At
+             * Format: date-time
+             */
+            checked_at: string;
+            /** Data Through */
+            data_through?: string | null;
+            /** Detail */
+            detail: string;
+            /** Finance Request Id */
+            finance_request_id?: string | null;
+            /** Finance Status */
+            finance_status?: string | null;
+            /** Latency Ms */
+            latency_ms: number;
+            mapping?: components["schemas"]["FinanceMapping"] | null;
+            /**
+             * Read Only
+             * @default true
+             * @constant
+             */
+            read_only: true;
+            /**
+             * Scope
+             * @default finance_read
+             * @constant
+             */
+            scope: "finance_read";
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "not_configured" | "disabled" | "connected" | "degraded" | "unavailable" | "auth_error";
+        };
+        /** FinanceSummaryResponse */
+        FinanceSummaryResponse: {
+            /**
+             * Accounting Writes Enabled
+             * @default false
+             * @constant
+             */
+            accounting_writes_enabled: false;
+            /** Active */
+            active: boolean;
+            /** As Of */
+            as_of?: string | null;
+            balances: components["schemas"]["FinanceBalances"];
+            /** Company Id */
+            company_id: string;
+            /** Currencies */
+            currencies: string[];
+            /** Currency */
+            currency?: string | null;
+            /** Data Through */
+            data_through?: string | null;
+            /**
+             * Fetched At
+             * Format: date-time
+             */
+            fetched_at: string;
+            /** Finance Request Id */
+            finance_request_id?: string | null;
+            /** Holding Id */
+            holding_id?: string | null;
+            ledger: components["schemas"]["FinanceLedger"];
+            /** Name */
+            name: string;
+            /**
+             * Read Only
+             * @default true
+             * @constant
+             */
+            read_only: true;
+            /**
+             * Source
+             * @default finance_ledger
+             * @constant
+             */
+            source: "finance_ledger";
         };
         /** FulfilmentLineResponse */
         FulfilmentLineResponse: {
@@ -5969,6 +6421,292 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_finance_accounts_api_v1_finance_accounts_get: {
+        parameters: {
+            query?: {
+                currency?: string | null;
+                from?: string | null;
+                to?: string | null;
+                as_of?: string | null;
+                limit?: number | null;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinanceAccountsResponse"];
+                };
+            };
+            /** @description Invalid currency or date range. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Mapping or explicit currency required. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Finance authentication/protocol failure. */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Finance unavailable or integration disabled. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_finance_aging_api_v1_finance_aging_get: {
+        parameters: {
+            query: {
+                type: "receivable" | "payable";
+                currency?: string | null;
+                as_of?: string | null;
+                limit?: number | null;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinanceAgingResponse"];
+                };
+            };
+            /** @description Invalid type, currency or date. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Mapping or explicit currency required. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Finance authentication/protocol failure. */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Finance unavailable or integration disabled. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_finance_capabilities_api_v1_finance_capabilities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinanceCapabilitiesResponse"];
+                };
+            };
+            /** @description Mapping missing, disabled or rejected. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Finance authentication/protocol failure. */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Finance unavailable or integration disabled. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_finance_status_api_v1_finance_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinanceStatusResponse"];
+                };
+            };
+            /** @description No authenticated Commerce session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description No active membership or company.view. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_finance_summary_api_v1_finance_summary_get: {
+        parameters: {
+            query?: {
+                currency?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinanceSummaryResponse"];
+                };
+            };
+            /** @description Mapping or explicit currency required. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Finance authentication/protocol failure. */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Finance unavailable or integration disabled. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

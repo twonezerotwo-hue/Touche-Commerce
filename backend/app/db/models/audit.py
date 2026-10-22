@@ -96,6 +96,10 @@ class AuditAction(StrEnum):
     DOCUMENT_DOWNLOADED = "document.downloaded"
     DOCUMENT_ARCHIVED = "document.archived"
     DOCUMENT_VERIFIED = "document.verified"
+    # Stage 5C read-only Finance integration.
+    FINANCE_MAPPING_CONFIGURED = "finance.mapping.configured"
+    FINANCE_MAPPING_DISABLED = "finance.mapping.disabled"
+    FINANCE_READ = "finance.read"
 
 
 _AUDIT_ACTIONS = tuple(action.value for action in AuditAction)

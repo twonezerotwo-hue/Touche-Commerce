@@ -8,6 +8,7 @@ start-up instead of failing later at request time.
 
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -117,13 +118,19 @@ class Settings(BaseSettings):
     pagination_default_limit: int = Field(default=25, ge=1)
     pagination_max_limit: int = Field(default=100, ge=1)
 
-    # --- Finance integration (Stage 5A, read-only) --------------------------
+    # --- Finance integration (Stage 5C, read-only) --------------------------
     # Disabled by default: no probe, no network I/O, no accounting write path.
-    # The URL is restricted to a literal loopback address because Finance has no
-    # service-to-service credential yet (ADR-039).
+    # The dedicated service credentials stay server-side and are never exposed
+    # through the browser or OpenAPI. The URL remains a literal loopback address
+    # until a separate TLS/reverse-proxy security review exists (ADR-039).
     finance_integration_enabled: bool = False
     finance_integration_base_url: str = "http://127.0.0.1:8765"
+    finance_integration_key_id: SecretStr | None = None
+    finance_integration_secret: SecretStr | None = None
     finance_integration_timeout_seconds: float = Field(default=2.0, ge=0.1, le=10.0)
+    finance_integration_max_response_bytes: int = Field(
+        default=1_048_576, ge=1_024, le=4_194_304
+    )
 
     # --- Derived helpers ---------------------------------------------------
     @property
@@ -236,6 +243,32 @@ class Settings(BaseSettings):
         if not value or any(character in value for character in " ;,=\"\\"):
             raise ValueError("session_cookie_name must be a valid cookie name")
         return value
+
+    @field_validator("finance_integration_key_id")
+    @classmethod
+    def _validate_finance_key_id(cls, value: SecretStr | None) -> SecretStr | None:
+        """Require the Finance key-id shape without ever logging the value."""
+        if value is None:
+            return None
+        candidate = value.get_secret_value().strip()
+        if not candidate:
+            return None
+        if not re.fullmatch(r"key_[0-9a-f]{16}", candidate):
+            raise ValueError("finance_integration_key_id must match key_<16 hex characters>")
+        return SecretStr(candidate)
+
+    @field_validator("finance_integration_secret")
+    @classmethod
+    def _validate_finance_secret(cls, value: SecretStr | None) -> SecretStr | None:
+        """Bound the service secret and reject trivially small values."""
+        if value is None:
+            return None
+        candidate = value.get_secret_value().strip()
+        if not candidate:
+            return None
+        if len(candidate) < 32 or len(candidate) > 512:
+            raise ValueError("finance_integration_secret must be between 32 and 512 characters")
+        return SecretStr(candidate)
 
     @field_validator("finance_integration_base_url")
     @classmethod

@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Protocol
+from typing import Any, Protocol
 
 
 class FinanceLinkState(StrEnum):
@@ -49,3 +49,12 @@ class FinanceHealthProbe(Protocol):
     def probe(self) -> FinanceHealth:
         """Return one health observation without mutating Finance."""
         ...
+
+
+@dataclass(frozen=True, slots=True)
+class FinanceApiResponse:
+    """One authenticated Finance v1 response plus its server metadata."""
+
+    data: dict[str, Any]
+    request_id: str | None
+    generated_at: str | None
