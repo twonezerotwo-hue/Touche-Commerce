@@ -5,12 +5,14 @@ import {
   Calculator,
   ClipboardCheck,
   FileText,
+  FileWarning,
   FolderLock,
   Handshake,
   LayoutDashboard,
   Package,
   Receipt,
   ReceiptText,
+  Scale,
   Settings,
   Sparkles,
   Truck,
@@ -152,8 +154,22 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         label: "Finance",
         icon: Banknote,
         href: "/finance",
-        stage: "Stage 5C",
+        stage: "Stage 5D",
         description: "Read-only TOUCHE FINANCE ledger, accounts and aging",
+      },
+      {
+        label: "Reconciliation",
+        icon: Scale,
+        href: "/finance/reconciliation",
+        stage: "Stage 5D",
+        description: "Evidence runs, deterministic variances and human review",
+      },
+      {
+        label: "Discrepancies",
+        icon: FileWarning,
+        href: "/finance/discrepancies",
+        stage: "Stage 5D",
+        description: "Exception queue for missing or conflicting evidence",
       },
     ],
   },
@@ -244,6 +260,12 @@ export function resolveWorkspaceContext(pathname: string): WorkspaceContext {
   if (pathname === "/shipments") return { section: "Logistics", page: "Shipments" };
   if (pathname === "/documents") return { section: "Documents", page: "Trade documents" };
   if (pathname === "/finance") return { section: "Finance", page: "Finance" };
+  if (pathname.startsWith("/finance/reconciliation/")) {
+    return { section: "Finance", page: "Reconciliation run" };
+  }
+  if (pathname === "/finance/reconciliation") return { section: "Finance", page: "Reconciliation" };
+  if (pathname === "/finance/discrepancies") return { section: "Finance", page: "Discrepancies" };
+  if (pathname.startsWith("/finance/orders/")) return { section: "Finance", page: "Order finance" };
   if (pathname === "/crm") return { section: "Workspace", page: "CRM" };
   if (pathname === "/products") return { section: "Workspace", page: "Products" };
   if (pathname === "/account") return { section: "Account", page: "Profile & access" };

@@ -150,9 +150,17 @@ export default async function FinancePage({
         title="Finance"
         description="Financial truth stays in TOUCHE FINANCE. This workspace reads a mapped company through the authenticated integration contract; it never posts an invoice, payment or journal entry."
         actions={
-          <Button asChild variant="outline" size="sm">
-            <Link href="/">Back to Command Center</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm">
+              <Link href="/finance/reconciliation">Reconciliation</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/finance/discrepancies">Discrepancies</Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/">Back to Command Center</Link>
+            </Button>
+          </div>
         }
       />
 
