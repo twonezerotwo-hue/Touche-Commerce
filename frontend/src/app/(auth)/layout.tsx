@@ -20,7 +20,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <span className="block font-display text-[20px] leading-none tracking-[0.22em] text-mist-100">
               TOUCHE
             </span>
-            <span className="mt-1.5 block text-[9.5px] tracking-[0.44em] text-gold-400">
+            <span className="mt-1.5 block text-[9.5px] tracking-[0.44em] text-accent-400">
               COMMERCE
             </span>
           </div>
@@ -50,7 +50,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <ul className="mt-8 space-y-3">
               {ASSURANCES.map((item) => (
                 <li key={item} className="flex items-start gap-2.5 text-[12.5px] text-mist-400">
-                  <ShieldCheck className="mt-[1px] size-4 shrink-0 text-gold-400" aria-hidden />
+                  <ShieldCheck className="mt-[1px] size-4 shrink-0 text-accent-400" aria-hidden />
                   <span>{item}</span>
                 </li>
               ))}
@@ -67,9 +67,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </section>
         </div>
 
-        <footer className="flex flex-wrap items-center justify-between gap-2 text-[10.5px] uppercase tracking-[0.18em] text-mist-600">
+        <footer className="flex flex-wrap items-center justify-between gap-2 text-[10px] tracking-[0.18em] text-mist-600 uppercase">
           <span>TOUCHE COMMERCE · Internal platform</span>
-          <span>Stage 1A · identity &amp; tenancy</span>
+          <span>Stage 2 · commerce interface</span>
         </footer>
       </div>
     </div>

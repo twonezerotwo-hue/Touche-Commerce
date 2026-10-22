@@ -4,6 +4,8 @@ import { ArrowLeft } from "lucide-react";
 import { DealForm } from "@/components/trade/deal-form";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
 import type { CounterpartyList, ProductList } from "@/lib/trade/types";
@@ -20,14 +22,17 @@ export default async function NewDealPage() {
 
   if (!canWrite) {
     return (
-      <div className="mx-auto max-w-[900px] space-y-5">
+      <div className="mx-auto max-w-[900px] space-y-4">
+        <PageHeader
+          eyebrow="New deal"
+          back={{ href: "/deals", label: "Deals" }}
+          title="Read-only access"
+          description="Creating a deal requires the trade.write permission, granted to the trader role."
+        />
         <Alert variant="info" title="Read-only access">
-          Creating a deal requires <span className="font-mono">trade.write</span> (trader role).
+          Ask an administrator for a membership with <span className="font-mono">trade.write</span>{" "}
+          to open deals.
         </Alert>
-        <Link href="/deals" className="inline-flex items-center gap-1.5 text-[12px] text-mist-400">
-          <ArrowLeft className="size-3.5" aria-hidden />
-          Back to deals
-        </Link>
       </div>
     );
   }
@@ -40,31 +45,29 @@ export default async function NewDealPage() {
   const failure = !counterparties.ok ? counterparties : !products.ok ? products : null;
 
   return (
-    <div className="mx-auto max-w-[1100px] space-y-6">
-      <header>
-        <Link
-          href="/deals"
-          className="inline-flex items-center gap-1.5 text-[11.5px] text-mist-500 hover:text-mist-300"
-        >
-          <ArrowLeft className="size-3.5" aria-hidden />
-          Deals
-        </Link>
-        <div className="mt-3 flex items-center gap-3">
-          <span className="eyebrow">New deal</span>
-          <Badge variant="secondary">DRAFT</Badge>
-        </div>
-        <h1 className="mt-2 font-display text-[28px] leading-tight tracking-tight text-mist-100">
-          Open a trade deal
-        </h1>
-        <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-mist-500">
-          The deal and its lines are written in one transaction, together with the first history
-          entry. A repeated submission reuses the idempotency key and cannot create a duplicate.
-        </p>
-      </header>
+    <div className="mx-auto max-w-[1100px] space-y-5">
+      <PageHeader
+        eyebrow="New deal"
+        back={{ href: "/deals", label: "Deals" }}
+        meta={<Badge variant="secondary">DRAFT</Badge>}
+        title="Open a trade deal"
+        description="The deal and its lines are written in one transaction, together with the first history entry. A repeated submission reuses the idempotency key and cannot create a duplicate."
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/deals">
+              <ArrowLeft className="size-3.5" aria-hidden />
+              Cancel
+            </Link>
+          </Button>
+        }
+      />
 
       {failure ? (
         <Alert variant="danger" title="Master data unavailable">
           {failure.message}
+          {failure.requestId ? (
+            <span className="ml-1 font-mono text-[11px]">({failure.requestId})</span>
+          ) : null}
         </Alert>
       ) : (
         <DealForm

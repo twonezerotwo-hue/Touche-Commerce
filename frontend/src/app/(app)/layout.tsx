@@ -32,24 +32,24 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
   const { user, session } = state.session;
   const company = session.company;
 
+  const identity = {
+    displayName: user.display_name,
+    email: user.email,
+    companyName: company?.name ?? null,
+    role: company?.role ?? null,
+  };
+
   return (
-    <div className="relative flex min-h-screen">
+    <div className="app-canvas relative flex min-h-screen">
       <div className="hairline-grid pointer-events-none absolute inset-0 opacity-70" aria-hidden />
-      <AppSidebar
-        identity={{
-          displayName: user.display_name,
-          email: user.email,
-          companyName: company?.name ?? null,
-          role: company?.role ?? null,
-        }}
-      />
+      <AppSidebar identity={identity} />
       <div className="relative flex min-w-0 flex-1 flex-col">
-        <TopBar companyName={company?.name ?? null} role={company?.role ?? null} />
-        <main className="flex-1 px-5 py-8 lg:px-10 lg:py-10">{children}</main>
-        <footer className="border-t border-white/[0.06] px-5 py-4 lg:px-10">
-          <div className="flex flex-wrap items-center justify-between gap-2 text-[10.5px] uppercase tracking-[0.18em] text-mist-600">
-            <span>TOUCHE COMMERCE · Internal platform</span>
-            <span>Stage 1B · CRM, catalogue &amp; deal workspace</span>
+        <TopBar identity={identity} />
+        <main className="flex-1 px-4 py-7 sm:px-6 lg:px-10 lg:py-9">{children}</main>
+        <footer className="border-t border-white/[0.06] px-4 py-4 sm:px-6 lg:px-10">
+          <div className="mx-auto flex max-w-[1360px] flex-wrap items-center justify-between gap-2 text-[9.5px] tracking-[0.18em] text-mist-600 uppercase">
+            <span>TOUCHE COMMERCE · Internal trade platform</span>
+            <span>Stage 2 · Premium commerce interface</span>
           </div>
         </footer>
       </div>

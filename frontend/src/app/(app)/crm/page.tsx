@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { ArrowRight, Search, Users, X } from "lucide-react";
 
 import { CounterpartyForm } from "@/components/trade/counterparty-form";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
 import { Select } from "@/components/ui/select";
 import {
   Table,
@@ -44,149 +46,172 @@ export default async function CrmPage({
 
   const result = await serverGet<CounterpartyList>(`/counterparties?${query.toString()}`);
   const filters = { search: params.search ?? "", status: params.status ?? "" };
+  const filtered = Boolean(filters.search || filters.status);
 
   return (
-    <div className="mx-auto max-w-[1320px] space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="eyebrow">CRM</span>
-            <Badge variant="secondary">Counterparties</Badge>
+    <div className="mx-auto max-w-[1360px] space-y-5">
+      <PageHeader
+        eyebrow="Relationships"
+        meta={<Badge variant="secondary">Counterparties</Badge>}
+        title="Customers & suppliers"
+        description="Every record belongs to the active company only. Reads are open to all roles; changes require the trader permission and are audited."
+        actions={
+          <CounterpartyForm csrfToken={state.session.session.csrf_token} canWrite={canWrite} />
+        }
+      />
+
+      <div className="panel overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <div>
+            <p className="eyebrow">Directory</p>
+            <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">Trading partners</h2>
           </div>
-          <h1 className="mt-3 font-display text-[28px] leading-tight tracking-tight text-mist-100">
-            Customers &amp; suppliers
-          </h1>
-          <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-mist-500">
-            Every record belongs to the active company only. Reads are available to all roles;
-            changes require the trader permission.
-          </p>
-        </div>
-        <CounterpartyForm csrfToken={state.session.session.csrf_token} canWrite={canWrite} />
-      </header>
 
-      <form
-        action="/crm"
-        method="get"
-        className="panel flex flex-wrap items-end gap-3 rounded-xl p-4"
-      >
-        <div className="min-w-[220px] flex-1 space-y-1.5">
-          <label
-            htmlFor="crm-search"
-            className="block text-[10.5px] uppercase tracking-[0.16em] text-mist-500"
-          >
-            Search by name
-          </label>
-          <Input
-            id="crm-search"
-            name="search"
-            defaultValue={filters.search}
-            placeholder="Acme"
-            maxLength={160}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label
-            htmlFor="crm-status"
-            className="block text-[10.5px] uppercase tracking-[0.16em] text-mist-500"
-          >
-            Status
-          </label>
-          <Select id="crm-status" name="status" defaultValue={filters.status}>
-            <option value="">All</option>
-            <option value="active">Active</option>
-            <option value="archived">Archived</option>
-          </Select>
-        </div>
-        <Button type="submit" size="sm" variant="outline">
-          <Search className="size-3.5" aria-hidden />
-          Filter
-        </Button>
-        {filters.search || filters.status ? (
-          <Link
-            href="/crm"
-            className="text-[11.5px] text-mist-500 underline-offset-4 hover:text-mist-300 hover:underline"
-          >
-            Clear filters
-          </Link>
-        ) : null}
-      </form>
-
-      {!result.ok ? (
-        <Alert variant="danger" title="Counterparties unavailable">
-          {result.message}
-          {result.requestId ? (
-            <span className="ml-1 font-mono text-[11px]">({result.requestId})</span>
-          ) : null}
-        </Alert>
-      ) : result.data.items.length === 0 ? (
-        <div className="panel rounded-xl p-10 text-center">
-          <p className="font-display text-lg text-mist-200">No counterparties yet</p>
-          <p className="mx-auto mt-2 max-w-md text-[12.5px] leading-relaxed text-mist-500">
-            Create the first customer or supplier to start linking deals. Nothing is pre-seeded;
-            every row here comes from the API.
-          </p>
-        </div>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Country</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Updated</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {result.data.items.map((counterparty) => (
-              <TableRow key={counterparty.id}>
-                <TableCell>
-                  <span className="block text-[13px] text-mist-100">{counterparty.name}</span>
-                  {counterparty.email ? (
-                    <span className="mt-0.5 block text-[11px] text-mist-600">
-                      {counterparty.email}
-                    </span>
-                  ) : null}
-                </TableCell>
-                <TableCell className="capitalize">{counterparty.type}</TableCell>
-                <TableCell>{counterparty.country ?? "—"}</TableCell>
-                <TableCell>{counterparty.contact_name ?? "—"}</TableCell>
-                <TableCell>
-                  <Badge variant={counterparty.status === "active" ? "success" : "outline"}>
-                    {counterparty.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right text-[11.5px] text-mist-500">
-                  {formatTimestamp(counterparty.updated_at)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] text-mist-600">
-          {result.ok ? `${result.data.items.length} shown` : "—"}
-          {result.ok && result.data.has_more ? " · more available" : ""}
-        </p>
-        <div className="flex items-center gap-3">
-          {params.cursor ? (
-            <Link
-              href={withQuery("/crm", filters)}
-              className="text-[11.5px] text-mist-500 hover:text-mist-300"
-            >
-              First page
-            </Link>
-          ) : null}
-          {result.ok && result.data.has_more && result.data.next_cursor ? (
-            <Button asChild variant="outline" size="sm">
-              <Link href={withQuery("/crm", { ...filters, cursor: result.data.next_cursor })}>
-                Next page
-              </Link>
+          <form action="/crm" method="get" className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-mist-600"
+                aria-hidden
+              />
+              <Input
+                id="crm-search"
+                name="search"
+                defaultValue={filters.search}
+                placeholder="Search by name"
+                aria-label="Search by name"
+                maxLength={160}
+                className="h-8 w-[220px] pl-8 text-[12px]"
+              />
+            </div>
+            <div className="w-[128px]">
+              <Select
+                id="crm-status"
+                name="status"
+                defaultValue={filters.status}
+                aria-label="Filter by status"
+                className="h-8 text-[12px]"
+              >
+                <option value="">All statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </Select>
+            </div>
+            <Button type="submit" size="sm" variant="subtle">
+              Filter
             </Button>
-          ) : null}
+            {filtered ? (
+              <Button asChild size="iconSm" variant="ghost" aria-label="Clear filters">
+                <Link href="/crm">
+                  <X className="size-3.5" aria-hidden />
+                </Link>
+              </Button>
+            ) : null}
+          </form>
+        </div>
+
+        <div className="hairline" />
+
+        {!result.ok ? (
+          <div className="p-4">
+            <Alert variant="danger" title="Counterparties unavailable">
+              {result.message}
+              {result.requestId ? (
+                <span className="ml-1 font-mono text-[11px]">({result.requestId})</span>
+              ) : null}
+            </Alert>
+          </div>
+        ) : result.data.items.length === 0 ? (
+          <div className="p-4">
+            <EmptyState
+              icon={<Users className="size-4" aria-hidden />}
+              title={filtered ? "No counterparties match" : "No counterparties yet"}
+              description={
+                filtered
+                  ? "Adjust the search term or status filter, or clear both to list the full directory."
+                  : "Create the first customer or supplier to start linking deals. Nothing is pre-seeded; every row comes from the API."
+              }
+              action={
+                filtered ? (
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/crm">Clear filters</Link>
+                  </Button>
+                ) : null
+              }
+              className="border-dashed bg-transparent py-10"
+            />
+          </div>
+        ) : (
+          <Table bare>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-4">Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Country</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="pr-4 text-right">Updated</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {result.data.items.map((counterparty) => (
+                <TableRow key={counterparty.id}>
+                  <TableCell className="pl-4">
+                    <span className="block text-[12px] text-mist-100">{counterparty.name}</span>
+                    {counterparty.email ? (
+                      <span className="mt-0.5 block text-[10.5px] text-mist-600">
+                        {counterparty.email}
+                      </span>
+                    ) : null}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="capitalize">
+                      {counterparty.type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-mono text-[11px] text-mist-400">
+                    {counterparty.country ?? "—"}
+                  </TableCell>
+                  <TableCell className="text-[12px]">{counterparty.contact_name ?? "—"}</TableCell>
+                  <TableCell>
+                    <Badge dot variant={counterparty.status === "active" ? "success" : "outline"}>
+                      {counterparty.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="pr-4 text-right font-mono text-[10.5px] whitespace-nowrap text-mist-600">
+                    {formatTimestamp(counterparty.updated_at)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-3">
+          <p className="text-[10.5px] text-mist-600">
+            {result.ok ? (
+              <>
+                <span className="data-value text-mist-400">{result.data.items.length}</span> shown
+                {result.data.has_more ? " · older records available" : " · end of directory"}
+              </>
+            ) : (
+              "—"
+            )}
+          </p>
+          <div className="flex items-center gap-3">
+            {params.cursor ? (
+              <Button asChild variant="ghost" size="xs">
+                <Link href={withQuery("/crm", filters)}>First page</Link>
+              </Button>
+            ) : null}
+            {result.ok && result.data.has_more && result.data.next_cursor ? (
+              <Button asChild variant="outline" size="sm">
+                <Link href={withQuery("/crm", { ...filters, cursor: result.data.next_cursor })}>
+                  Next page
+                  <ArrowRight className="size-3.5" aria-hidden />
+                </Link>
+              </Button>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

@@ -74,15 +74,17 @@ export function CompanySwitcher({
                 className={cn(
                   "flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors",
                   isActive
-                    ? "border-gold-400/40 bg-gold-400/[0.06]"
-                    : "border-white/[0.07] bg-white/[0.015] hover:border-gold-400/30 hover:bg-white/[0.035]",
+                    ? "border-accent-400/40 bg-accent-400/[0.06]"
+                    : "border-white/[0.07] bg-white/[0.015] hover:border-accent-400/30 hover:bg-white/[0.035]",
                   pendingId !== null && !isPending && "opacity-60",
                 )}
               >
                 <span
                   className={cn(
                     "flex size-9 shrink-0 items-center justify-center rounded-md border",
-                    isActive ? "border-gold-400/40 text-gold-300" : "border-white/10 text-mist-500",
+                    isActive
+                      ? "border-accent-400/40 text-accent-300"
+                      : "border-white/10 text-mist-500",
                   )}
                 >
                   {isPending ? (

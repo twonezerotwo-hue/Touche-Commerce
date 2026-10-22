@@ -29,7 +29,7 @@ export default async function LoginPage({
             Sign in
           </h2>
         </div>
-        <Badge variant="secondary">Stage 1A</Badge>
+        <Badge variant="secondary">Credentials</Badge>
       </div>
       <p className="mt-2 text-[12.5px] leading-relaxed text-mist-500">
         Use the credentials issued by your TOUCHE COMMERCE administrator.

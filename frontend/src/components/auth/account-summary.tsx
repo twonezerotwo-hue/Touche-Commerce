@@ -41,7 +41,7 @@ export function AccountSummary({ session }: { session: AuthSession }) {
 
       <div className="space-y-2">
         <p className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.16em] text-mist-600">
-          <ShieldCheck className="size-3.5 text-gold-400" aria-hidden />
+          <ShieldCheck className="size-3.5 text-accent-400" aria-hidden />
           Permissions granted by this membership
         </p>
         {company && company.permissions.length > 0 ? (

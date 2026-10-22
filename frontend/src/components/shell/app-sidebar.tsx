@@ -1,131 +1,85 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 
-import { NAV_ITEMS, PUBLIC_NAV_ITEMS, isActivePath } from "@/lib/navigation";
-import { cn } from "@/lib/utils";
+import { Avatar } from "@/components/ui/avatar";
+import { NAV_GROUPS } from "@/lib/navigation";
 
-export interface ShellIdentity {
-  displayName: string;
-  email: string;
-  companyName: string | null;
-  role: string | null;
+import { SidebarNav } from "./sidebar-nav";
+
+export interface AppSidebarProps {
+  identity: {
+    displayName: string;
+    email: string;
+    companyName: string | null;
+    role: string | null;
+  };
 }
 
-function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/).slice(0, 2);
-  return parts.map((part) => part[0]?.toUpperCase() ?? "").join("") || "•";
-}
-
-export function AppSidebar({ identity }: { identity: ShellIdentity }) {
-  const pathname = usePathname();
+export function AppSidebar({ identity }: AppSidebarProps) {
+  const available = NAV_GROUPS.filter((group) => group.items.some((item) => item.href));
+  const roadmap = NAV_GROUPS.filter((group) => group.items.every((item) => !item.href));
 
   return (
-    <aside className="hidden w-[268px] shrink-0 flex-col border-r border-white/[0.06] bg-ink-900/60 lg:flex">
-      <div className="px-6 pb-6 pt-7">
-        <Link href="/" className="block">
-          <span className="eyebrow block">Trade management</span>
-          <span className="mt-2 block font-display text-[22px] leading-none tracking-[0.22em] text-mist-100">
-            TOUCHE
+    <aside className="relative z-20 hidden w-[252px] shrink-0 border-r border-white/[0.06] bg-ink-900/60 backdrop-blur-xl lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
+      <div className="px-5 pt-6 pb-5">
+        <Link
+          href="/"
+          className="group flex items-center gap-3"
+          aria-label="TOUCHE COMMERCE — home"
+        >
+          <span className="relative flex size-9 items-center justify-center rounded-lg border border-accent-400/35 bg-gradient-to-b from-accent-400/20 to-accent-500/5 font-display text-[15px] text-accent-100 shadow-[0_10px_24px_-16px_rgb(47_127_232/0.9)]">
+            T
+            <span className="absolute -right-px -bottom-px size-1.5 rounded-full bg-accent-400 shadow-[0_0_10px_2px_rgb(90_162_255/0.35)]" />
           </span>
-          <span className="mt-2 block text-[10.5px] tracking-[0.46em] text-gold-400">COMMERCE</span>
+          <span className="min-w-0">
+            <span className="block font-display text-[14.5px] leading-none tracking-[0.22em] text-mist-100">
+              TOUCHE
+            </span>
+            <span className="mt-1.5 block text-[8.5px] leading-none tracking-[0.42em] text-accent-300">
+              COMMERCE
+            </span>
+          </span>
         </Link>
       </div>
 
-      <div className="rule mx-6" />
+      <div className="hairline mx-5" />
 
-      <nav aria-label="Primary" className="mt-6 flex-1 overflow-y-auto px-3 pb-6">
-        <p className="eyebrow px-3 pb-3">Workspace</p>
-        <ul className="space-y-0.5">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
+      <nav aria-label="Primary" className="flex-1 overflow-y-auto px-3 py-5 [scrollbar-width:thin]">
+        {available.map((group) => (
+          <SidebarNav key={group.label} group={group} />
+        ))}
 
-            if (item.href) {
-              const isActive = isActivePath(pathname, item.href);
-              return (
-                <li key={item.label}>
-                  <Link
-                    href={item.href}
-                    aria-current={isActive ? "page" : undefined}
-                    className={cn(
-                      "group flex items-center gap-3 rounded-md px-3 py-2 text-[13px] transition-colors",
-                      isActive
-                        ? "bg-white/[0.055] text-mist-100"
-                        : "text-mist-300 hover:bg-white/[0.04] hover:text-mist-100",
-                    )}
-                  >
-                    <Icon
-                      className={cn("size-4", isActive ? "text-gold-400" : "text-mist-500")}
-                      aria-hidden
-                    />
-                    <span className="flex-1">{item.label}</span>
-                    {isActive ? (
-                      <span className="size-1.5 rounded-full bg-gold-400" aria-hidden />
-                    ) : null}
-                  </Link>
-                </li>
-              );
-            }
+        <div className="my-4 px-3">
+          <div className="hairline" />
+        </div>
 
-            return (
-              <li key={item.label}>
-                <button
-                  type="button"
-                  disabled
-                  title={`${item.label} — planned for ${item.stage}`}
-                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-[13px] text-mist-600 disabled:cursor-not-allowed"
-                >
-                  <Icon className="size-4 text-mist-600/70" aria-hidden />
-                  <span className="flex-1">{item.label}</span>
-                  <span className="text-[9.5px] uppercase tracking-[0.14em] text-mist-600/80">
-                    {item.stage}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-
-        <p className="eyebrow px-3 pb-3 pt-6">Platform</p>
-        <ul className="space-y-0.5">
-          {PUBLIC_NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            return (
-              <li key={item.label}>
-                <Link
-                  href={item.href ?? "/status"}
-                  className="flex items-center gap-3 rounded-md px-3 py-2 text-[13px] text-mist-300 transition-colors hover:bg-white/[0.04] hover:text-mist-100"
-                >
-                  <Icon className="size-4 text-mist-500" aria-hidden />
-                  <span className="flex-1">{item.label}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        {roadmap.map((group) => (
+          <SidebarNav key={group.label} group={group} muted />
+        ))}
       </nav>
 
-      <div className="px-6 pb-6">
-        <div className="rule mb-4" />
-        <div className="flex items-center gap-3">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-gold-400/30 bg-gold-400/10 font-display text-[11px] tracking-wider text-gold-200">
-            {initialsOf(identity.displayName)}
+      <div className="border-t border-white/[0.06] px-4 py-4">
+        <Link
+          href="/account"
+          className="flex items-center gap-3 rounded-lg border border-transparent px-1.5 py-1.5 transition-colors hover:border-white/[0.08] hover:bg-white/[0.025]"
+        >
+          <Avatar name={identity.displayName} size="sm" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[12px] text-mist-200">{identity.displayName}</span>
+            <span className="block truncate font-mono text-[10px] text-mist-600">
+              {identity.companyName ?? identity.email}
+            </span>
           </span>
-          <div className="min-w-0">
-            <p className="truncate text-[12px] text-mist-200">{identity.displayName}</p>
-            <p className="truncate text-[10.5px] text-mist-600">{identity.email}</p>
-          </div>
+        </Link>
+        <div className="mt-3 flex items-center justify-between px-1.5">
+          <span className="text-[9px] uppercase tracking-[0.18em] text-mist-600">
+            {identity.role ? identity.role.replace(/_/g, " ") : "No membership"}
+          </span>
+          <span className="rounded-full border border-white/10 px-1.5 py-px text-[8.5px] tracking-[0.12em] text-mist-500">
+            S2
+          </span>
         </div>
-        <p className="mt-3 text-[10.5px] leading-relaxed text-mist-600">
-          {identity.companyName ?? "No company selected"}
-          {identity.role ? (
-            <>
-              <br />
-              <span className="uppercase tracking-[0.14em] text-mist-500">{identity.role}</span>
-            </>
-          ) : null}
-        </p>
       </div>
     </aside>
   );

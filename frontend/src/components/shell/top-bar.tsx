@@ -2,76 +2,81 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowUpRight, Building2, ShieldCheck } from "lucide-react";
+import { Activity, Building2, ChevronRight, ShieldCheck } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { API_URLS } from "@/lib/api/config";
+import { Avatar } from "@/components/ui/avatar";
+import { resolveWorkspaceContext } from "@/lib/navigation";
+import { cn } from "@/lib/utils";
 
-const TITLES: Record<string, string> = {
-  "/": "Command Center",
-  "/account": "Account",
-  "/select-company": "Select company",
-  "/login": "Sign in",
-  "/status": "System status",
-};
+import { MobileNav, type MobileIdentity } from "./mobile-nav";
 
-function titleFor(pathname: string): string {
-  if (TITLES[pathname]) return TITLES[pathname];
-  const match = Object.keys(TITLES)
-    .filter((path) => path !== "/" && pathname.startsWith(`${path}/`))
-    .sort((a, b) => b.length - a.length)[0];
-  return match ? TITLES[match] : "Workspace";
+export interface TopBarProps {
+  identity: MobileIdentity;
 }
 
-export function TopBar({
-  companyName,
-  role,
-}: {
-  companyName?: string | null;
-  role?: string | null;
-}) {
+export function TopBar({ identity }: TopBarProps) {
   const pathname = usePathname();
+  const { section, page } = resolveWorkspaceContext(pathname);
 
   return (
-    <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-ink-950/75 backdrop-blur">
-      <div className="flex h-16 items-center gap-4 px-5 lg:px-10">
-        <Link href="/" className="flex items-baseline gap-2 lg:hidden">
-          <span className="font-display text-[15px] tracking-[0.2em] text-mist-100">TOUCHE</span>
-          <span className="text-[9px] tracking-[0.34em] text-gold-400">COMMERCE</span>
-        </Link>
+    <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-ink-950/75 backdrop-blur-xl">
+      <div className="flex h-14 items-center gap-3 px-4 lg:px-10">
+        <MobileNav identity={identity} />
 
-        <nav aria-label="Breadcrumb" className="hidden items-center gap-2 text-[12px] lg:flex">
-          <span className="text-mist-600">Workspace</span>
-          <span className="text-mist-600">/</span>
-          <span className="text-mist-200">{titleFor(pathname)}</span>
+        <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-2 lg:flex">
+          <span className="text-[11px] tracking-[0.02em] text-mist-600">Workspace</span>
+          <ChevronRight className="size-3 text-mist-600/70" aria-hidden />
+          <span className={cn("text-[11px]", page === section ? "text-mist-300" : "text-mist-500")}>
+            {section}
+          </span>
+          {page === section ? null : (
+            <>
+              <ChevronRight className="size-3 text-mist-600/70" aria-hidden />
+              <span className="truncate text-[11px] text-mist-200">{page}</span>
+            </>
+          )}
         </nav>
 
+        <div className="min-w-0 lg:hidden">
+          <p className="truncate text-[12px] text-mist-200">{page}</p>
+        </div>
+
         <div className="ml-auto flex items-center gap-2">
-          {companyName ? (
-            <Badge variant="outline" className="hidden max-w-[240px] truncate sm:inline-flex">
-              <Building2 className="size-3.5 text-gold-400" aria-hidden />
-              <span className="truncate">{companyName}</span>
-              {role ? (
-                <span className="ml-1 text-[9.5px] uppercase tracking-[0.14em] text-mist-600">
-                  {role}
+          <span className="hidden items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 text-[10px] text-mist-500 md:inline-flex">
+            <ShieldCheck className="size-3 text-jade-400" aria-hidden />
+            Session verified
+          </span>
+
+          {identity.companyName ? (
+            <span className="hidden max-w-[220px] items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.02] py-1 pr-3 pl-2 text-[10.5px] text-mist-400 sm:inline-flex">
+              <Building2 className="size-3 text-mist-500" aria-hidden />
+              <span className="truncate">{identity.companyName}</span>
+              {identity.role ? (
+                <span className="rounded-full bg-accent-400/10 px-1.5 py-px text-[9px] tracking-[0.08em] text-accent-300 uppercase">
+                  {identity.role.replace(/_/g, " ")}
                 </span>
               ) : null}
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="hidden sm:inline-flex">
-              <ShieldCheck className="size-3.5 text-gold-400" aria-hidden />
-              Stage 1A · identity
-            </Badge>
-          )}
-          <a
-            href={API_URLS.docs}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-white/10 px-3 text-[11.5px] text-mist-300 transition-colors hover:border-gold-400/40 hover:text-mist-100"
+            </span>
+          ) : null}
+
+          <Link
+            href="/status"
+            aria-label="System status"
+            title="System status"
+            className="hidden size-8 items-center justify-center rounded-md text-mist-500 transition-colors hover:bg-white/[0.05] hover:text-mist-200 sm:flex"
           >
-            API docs
-            <ArrowUpRight className="size-3.5" aria-hidden />
-          </a>
+            <Activity className="size-3.5" aria-hidden />
+          </Link>
+
+          <span className="hidden h-4 w-px bg-white/10 sm:block" aria-hidden />
+
+          <Link
+            href="/account"
+            aria-label="Profile and access"
+            className="rounded-full transition-opacity hover:opacity-85"
+          >
+            <Avatar name={identity.displayName} size="sm" />
+          </Link>
         </div>
       </div>
     </header>
