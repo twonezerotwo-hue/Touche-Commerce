@@ -1392,8 +1392,10 @@ Docs: `docs/STAGE5_FINANCE_DISCOVERY.md`, `docs/PROGRESS.md`,
 
 ### 23.9 Git
 
-* Branch: `stage-4` (no remote configured; nothing pushed).
-* Stage 5A changes are uncommitted at the time of writing. The Finance repository
+* Branch: `stage-5`, created from the verified Stage 4 HEAD (`ace7204`).
+* Commit `4cb6459` - `feat(stage5a): read-only Finance discovery and health
+  connector`.
+* No remote configured; nothing pushed or merged. The Finance repository
   received no commit or file change.
 
 ### 23.10 Known limitations and next gate

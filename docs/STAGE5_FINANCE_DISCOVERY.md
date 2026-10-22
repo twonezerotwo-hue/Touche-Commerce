@@ -1,7 +1,7 @@
 # Stage 5A — TOUCHE FINANCE discovery and read-only boundary
 
 **Executed:** 2026-10-22
-**Commerce branch:** `stage-4` (Stage 5A changes are uncommitted)
+**Commerce branch:** `stage-5` (commit `4cb6459`, read-only Stage 5A slice)
 **Finance revision inspected:** `8dce8245c013ec74b81cf93927a067a4cc334c78` (`main`)
 **Stop point:** read-only. No invoice, payment or ledger write path exists in
 Commerce or was added to Finance.
