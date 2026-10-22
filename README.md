@@ -1,15 +1,17 @@
 # TOUCHE COMMERCE
 
-Independent, premium international trade management — **Stage 1A: identity,
-sessions and multi-company isolation**.
+Independent, premium international trade management — **Stage 1B: CRM,
+catalogue and a validated deal workspace**.
 
-A Next.js 16 web shell, a FastAPI service and PostgreSQL 17 with real health
-probes, structured logging, a standard error contract, a typed OpenAPI pipeline,
-Argon2id authentication, server-side sessions, four roles and row level security.
+A Next.js 16 web application, a FastAPI service and PostgreSQL 17 with real
+health probes, structured logging, a standard error contract, a typed OpenAPI
+pipeline, Argon2id authentication, server-side sessions, four roles, row level
+security and the first business workflow: counterparties, products, deals with an
+explicit state machine, and a live command center.
 
-> Stage 1A contains **no business features, no AI agents, no CRM, no quotation
-> workflow and no external integrations**. The UI states this explicitly and
-> never displays fabricated KPIs or "connected" labels.
+> Stage 1B contains **no quotations, sales orders, logistics, finance or AI
+> agents**. `WON` is deliberately disabled until orders exist, and every screen
+> states what is real. Nothing is fabricated.
 
 ---
 
@@ -17,13 +19,14 @@ Argon2id authentication, server-side sessions, four roles and row level security
 
 | Area | State |
 | ---- | ----- |
-| Frontend shell + authentication UI (`localhost:3000`) | ✅ verified |
-| API (`127.0.0.1:8000`) incl. auth/companies endpoints | ✅ verified |
-| PostgreSQL 17 + migrations `0001_foundation`, `0002_identity` | ✅ verified |
+| Frontend shell + auth UI + trade screens (`localhost:3000`) | ✅ verified |
+| API (`127.0.0.1:8000`) incl. CRM, catalogue, deals, dashboard | ✅ verified |
+| PostgreSQL 17 + migrations `0001_foundation`, `0002_identity`, `0003_trade` | ✅ verified |
 | `/api/v1/health/live` · `/api/v1/health/ready` | ✅ 200 |
-| Backend tests (unit + live DB incl. RLS matrix) | ✅ 120 passed |
-| Frontend tests / lint / typecheck / build | ✅ 45 passed, clean |
+| Backend tests (unit + live DB incl. RLS matrix) | ✅ 191 passed |
+| Frontend tests / lint / typecheck / build | ✅ 60 passed, clean |
 | Live identity verification (`scripts\verify-identity.ps1`) | ✅ 31 checks passed |
+| Live trade workflow (`scripts\verify-trade.ps1`) | ✅ 39 checks passed |
 | Docker Compose path | ⚠️ not executed — Docker is not installed on this workstation |
 | GitHub Actions run | ⚠️ workflow authored, no remote run performed |
 | Browser automation | ⚠️ unavailable — verified at HTTP/integration level only |
@@ -153,11 +156,21 @@ server render (`force-dynamic`).
 | `POST` | `/api/v1/auth/logout` | Revoke the current session (CSRF required) |
 | `GET` | `/api/v1/companies` | Companies the caller may access, with roles |
 | `POST` | `/api/v1/session/company` | Switch active company and rotate the session token |
+| `GET/POST` | `/api/v1/counterparties` | CRM list (cursor pagination) and create |
+| `GET/PATCH` | `/api/v1/counterparties/{id}` | Read / update (`If-Match`) |
+| `GET/POST` | `/api/v1/products` | Catalogue list and create |
+| `GET/PATCH` | `/api/v1/products/{id}` | Read / update (`If-Match`) |
+| `GET/POST` | `/api/v1/deals` | Deal list and create (lines included) |
+| `GET/PATCH` | `/api/v1/deals/{id}` | Detail with history / header update (`If-Match`) |
+| `POST` | `/api/v1/deals/{id}/transitions` | Validated status change (`Idempotency-Key` required) |
+| `GET` | `/api/v1/dashboard/summary` | KPIs, pipeline and recent activity |
 | `GET` | `/api/v1/openapi.json` | OpenAPI 3.1 document |
 | `GET` | `/docs` | Interactive documentation (disabled in production) |
 
 Every mutating request must carry a trusted `Origin` **and** (once authenticated)
-an `X-CSRF-Token` header. Contracts and error codes: `docs/API_CONTRACTS.md`.
+an `X-CSRF-Token` header. Deal transitions also require an `Idempotency-Key`;
+versioned updates require `If-Match`. Contracts and error codes:
+`docs/API_CONTRACTS.md`.
 
 ---
 
@@ -225,8 +238,24 @@ commit `.env`; never reuse those values in a real environment.
 scripts\verify.ps1                    # backend lint/typecheck/tests + frontend checks + build
 scripts\verify.ps1 -SkipBuild         # faster inner loop
 scripts\verify-identity.ps1 -Email you@company.example   # live auth/session/CSRF/proxy checks
+scripts\verify-trade.ps1              # live 15-step CRM/catalogue/deal workflow
 scripts\db\setup-test-database.ps1    # (re)create the isolated integration database
 backend\.venv\Scripts\python -m pytest -m integration   # live database only
+```
+
+`verify-trade.ps1` needs the passwords of the two local verification accounts in
+the environment (never on the command line):
+
+```powershell
+$env:TOUCHE_VERIFY_TRADER_PASSWORD = '…'
+$env:TOUCHE_VERIFY_ADMIN_PASSWORD  = '…'
+scripts\verify-trade.ps1
+```
+
+Optional, explicitly requested demo data (local/test/ci only):
+
+```powershell
+backend\.venv\Scripts\python -m app.cli seed-demo --company "TOUCHE Trading"
 ```
 
 ```bash
@@ -269,7 +298,7 @@ database. A development database cannot be truncated by a test run.
 
 * `docs/ARCHITECTURE.md` — system structure, data model, tenancy, RLS, sessions.
 * `docs/API_CONTRACTS.md` — envelopes, auth/session contracts, error codes.
-* `docs/DECISIONS.md` — 24 binding ADRs with verification evidence.
+* `docs/DECISIONS.md` — 28 binding ADRs with verification evidence.
 * `docs/ROADMAP.md` — Stage 0 → Stage 5 with exit criteria.
 * `docs/PROGRESS.md` — executed commands, real test results, blockers, next task.
 
@@ -296,6 +325,28 @@ Blocked / unverified: Docker Compose execution, remote GitHub Actions, browser
 automation and POSIX shell execution (environment limitations, not code failures).
 See `docs/PROGRESS.md` §11.
 
-Stage 1B has **not** been started.
+---
+
+## Stage 1B acceptance
+
+| # | Criterion | Result |
+| - | --------- | ------ |
+| 1 | Migration `0003_trade` applies, reverses and re-applies | PASS |
+| 2 | CRM and catalogue CRUD with per-company uniqueness | PASS |
+| 3 | Deal creation writes lines, history and audit atomically | PASS |
+| 4 | Status only changes through the transition endpoint | PASS (422 on `PATCH status`) |
+| 5 | Transition graph enforced (`INVALID_TRANSITION` with allowed targets) | PASS |
+| 6 | `WON` disabled until orders exist | PASS (409 `TRANSITION_DISABLED`) |
+| 7 | `LOST`/`CANCELLED` require a reason | PASS (422 `REASON_REQUIRED`) |
+| 8 | Replays are idempotent; conflicting bodies rejected | PASS (`Idempotent-Replay`, 409) |
+| 9 | Stale writes rejected (`428`/`409` + ETag) | PASS |
+| 10 | Cross-tenant reads and writes blocked (API + RLS + composite FK) | PASS |
+| 11 | Admin/viewer can read but not write trade data | PASS (403) |
+| 12 | Dashboard reflects the database only | PASS (live workflow) |
+| 13 | Frontend renders real API data on every trade page | PASS (build + SSR checks) |
+| 14 | All earlier tests still pass | PASS (backend 191, frontend 60) |
+| 15 | Documentation reports actual results | PASS (`docs/PROGRESS.md` §20) |
+
+Stage 2 has **not** been started.
 
 

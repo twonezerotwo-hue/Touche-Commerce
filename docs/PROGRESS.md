@@ -1,9 +1,9 @@
 # TOUCHE COMMERCE — Progress
 
-**Last updated:** 2026-10-22 (local) / 2026-10-21T22:5x UTC
-**Current stage:** Stage 0 — Foundation
-**Current milestone:** M0.1 — running skeleton verified end-to-end
-**Stage 1A:** NOT_STARTED (must not begin without an explicit instruction)
+**Last updated:** 2026-10-22 (local)
+**Current stage:** Stage 1B — Trade workspace (CRM, catalogue, deals)
+**Current milestone:** M1B.1 — verified end-to-end with a real trader and administrator
+**Stage 1C / Stage 2:** NOT_STARTED (must not begin without an explicit instruction)
 
 Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
 `FAILED`. Nothing is marked `PASSED` without an executed command in this file.
@@ -34,7 +34,8 @@ Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
 | GitHub Actions remote run | BLOCKED | no remote repository configured, no run performed |
 | Cline / DeepSeek model check | BLOCKED | no provider credentials available in this environment |
 | Authentication, sessions, RLS policies, audit | PASSED | Stage 1A — §11–§18 |
-| Business modules / integrations / AI agents | NOT_STARTED | Stage 2+ |
+| CRM, catalogue, deal state machine, dashboard | PASSED | Stage 1B — §20 |
+| Business modules beyond Stage 1B / integrations / AI agents | NOT_STARTED | Stage 2+ |
 
 > This table records the **Stage 0** baseline. Stage 1A results are in
 > §11–§19 below; the Stage 0 numbers were re-verified as a regression during
@@ -713,5 +714,201 @@ audit read APIs for admins, idempotency middleware on the first mutating endpoin
 session/idempotency cleanup command, and password reset/invitation flows.
 
 Do not start Stage 1B automatically.
+
+
+
+---
+
+## 20. Stage 1B — trade workspace (executed 2026-10-22)
+
+### 20.1 Scope delivered
+
+| Part | Delivered |
+| ---- | --------- |
+| 1. Schema | `0003_trade`: `counterparty`, `product`, `deal`, `deal_item`, `deal_transition`; RLS, composite FKs, versions, CHECK constraints, append-only history |
+| 2. State machine | Explicit graph, terminal states with mandatory reasons, `WON` disabled, row-locked transitions, atomic history + audit, `PATCH` status bypass blocked |
+| 3. APIs | Counterparties/products/deals CRUD (header updates), transitions, dashboard; permissions, cursor pagination, `ETag`/`If-Match`, transactional `Idempotency-Key`, request ids, audit |
+| 4/5. Frontend | `/crm`, `/products`, `/deals`, `/deals/new`, `/deals/[id]`, live dashboard, permission-aware affordances, dark premium design |
+| 7. Demo data | `python -m app.cli seed-demo` (local/test/ci only, explicit, labelled, non-destructive) |
+| 8/9. Verification | Backend 191 tests, frontend 60 tests, contract generation, production build, 15-step live workflow (39 checks) |
+| 11. Documentation | This section, ARCHITECTURE §19, API_CONTRACTS §3–5/§7, ADR-024…027, ROADMAP |
+
+### 20.2 Milestones
+
+| Milestone | Status | Evidence |
+| --------- | ------ | -------- |
+| M1B.1 Migration `0003_trade` applies and reverses | PASSED | `alembic upgrade head`, `downgrade -1`, `upgrade head`, `alembic_version = 0003_trade` |
+| M1B.2 RLS + composite FKs enforce tenant isolation | PASSED | `test_trade_api.py::TestTenantIsolation` (4 tests) |
+| M1B.3 State machine validated server-side | PASSED | `test_deal_state.py` (14), `TestTransitions` (8) |
+| M1B.4 Idempotent, replay-safe transitions | PASSED | `TestIdempotency` (4) + live replay step |
+| M1B.5 Optimistic concurrency | PASSED | 428/409/200 `If-Match` matrix in tests and live workflow |
+| M1B.6 Permission model (trader writes, others read) | PASSED | 403 assertions for admin/viewer, live admin 403 |
+| M1B.7 Frontend pages render real API data | PASSED | build + server-render checks (`/`, `/crm`, `/products`, `/deals`, `/deals/new`, `/deals/{id}`) |
+| M1B.8 Audit trail records trade actions | PASSED | `TestAudit` + SQL query of `touche.audit_record` |
+| M1B.9 Demo seeding is guarded | PASSED | `test_cli_seed.py` (9), environment gate |
+| M1B.10 Contract generation deterministic | PASSED | `generate-api-types.ps1 -Check` after the implementation commit |
+| M1B.11 Docker Compose path | BLOCKED | Docker is not installed on this workstation |
+| M1B.12 Remote CI run | BLOCKED | no git remote configured |
+
+### 20.3 Database changes
+
+* New revision `0003_trade` (revises `0002_identity`).
+* Tables and indexes as listed in ARCHITECTURE §6.1; each trade table has four
+  RLS policies driven by `touche.current_company_id()`.
+* `deal_transition` grants only `SELECT, INSERT` to `touche_app` (append-only).
+* `idempotency_record` gained `endpoint` and
+  `UNIQUE (actor_id, company_id, endpoint, key)` (ADR-026).
+* `ck_audit_action` was widened with `counterparty.created`, `counterparty.updated`,
+  `product.created`, `product.updated`, `deal.created`, `deal.updated`,
+  `deal.transitioned`.
+* Executed verification: `upgrade` → `downgrade -1` → `upgrade` succeeded on the
+  isolated test database; the development database was migrated in place without
+  dropping data (2 companies and 3 users preserved).
+
+Live schema evidence (development database):
+
+```
+revision: 0003_trade
+trade tables: counterparty, product, deal, deal_item, deal_transition
+app grants: counterparty:DELETE,INSERT,SELECT,UPDATE
+            product:DELETE,INSERT,SELECT,UPDATE
+            deal:DELETE,INSERT,SELECT,UPDATE
+            deal_item:DELETE,INSERT,SELECT,UPDATE
+            deal_transition:INSERT,SELECT
+```
+
+
+### 20.4 Commands executed and actual results
+
+| # | Command | Result |
+| - | ------- | ------ |
+| 1 | `backend\.venv\Scripts\python.exe -m alembic upgrade head` (test DB) | `0002_identity → 0003_trade` |
+| 2 | `alembic downgrade -1` then `alembic upgrade head` | both succeeded (reversible) |
+| 3 | `alembic upgrade head` (development DB, `.env` loaded) | `alembic_version = 0003_trade` |
+| 4 | `python -m ruff check .` (backend) | `All checks passed!` |
+| 5 | `python -m mypy` (backend, strict) | `Success: no issues found in 73 source files` |
+| 6 | `python -m pytest -q --junitxml=…` (backend) | **tests=191 failures=0 errors=0 skipped=0** |
+| 7 | `python -m app.cli seed-demo` | guard tests 9 passed; executed once with `--force`, creating a clearly labelled demo set |
+| 8 | `scripts\generate-api-types.ps1` | `openapi.json` + `schema.d.ts` regenerated (16 paths) |
+| 9 | `npm run format` / `format:check` | passed |
+| 10 | `npm run lint` | `eslint .` clean |
+| 11 | `npm run typecheck` | `next typegen && tsc --noEmit` clean |
+| 12 | `npm test` | **11 files, 60 tests passed** |
+| 13 | `npm run build` | compiled; routes `/`, `/crm`, `/products`, `/deals`, `/deals/new`, `/deals/[id]` present |
+| 14 | `backend\.venv\Scripts\python.exe scripts\verify_trade_workflow.py` | **39/39 checks passed** (see §20.5) |
+| 15 | `scripts\generate-api-types.ps1 -Check` | passed after the implementation commit (no drift) |
+
+Backend test groups added in Stage 1B (71 tests): `test_deal_state` 14,
+`test_pagination_idempotency` 15, `test_trade_api` 33, `test_cli_seed` 9.
+Frontend tests added (15): `trade/format.test.ts` 6, `trade/client.test.ts` 4,
+`transition-panel.test.tsx` 5.
+
+### 20.5 Live 15-step workflow (development database, real HTTP)
+
+Executed with `scripts\verify-trade.ps1` (wrapper) →
+`backend/scripts/verify_trade_workflow.py`; 39 checks, all passed:
+
+1. trader sign-in, auto-selected company, role `trader`, `trade.write` present;
+2. counterparty created, `ETag "v1"`;
+3. product created;
+4. deal created as `DRAFT`, total `61250.00`, one history row, allowed
+   `["OPEN","CANCELLED"]`;
+5. list search finds it; detail returns `ETag "v1"`;
+6. `PATCH` without `If-Match` → 428; with `"v1"` → v2; stale `"v1"` → 409
+   `VERSION_CONFLICT`;
+7. `PATCH {"status":"WON"}` → 422 `VALIDATION_ERROR`, deal still `DRAFT`;
+8. transition without key → 400 `IDEMPOTENCY_KEY_REQUIRED`;
+9. `DRAFT → OPEN`, two history rows;
+10. `OPEN → NEGOTIATION`;
+11. `→ WON` → 409 `TRANSITION_DISABLED`, deal unchanged;
+12. `→ LOST` without reason → 422 `REASON_REQUIRED`;
+13. `→ LOST` with reason → 200, `closed_at` set, no targets left, reason stored;
+14. replay of the same key → `Idempotent-Replay: true`, identical body, history
+    unchanged; a further transition → 409 `INVALID_TRANSITION`;
+15. foreign administrator: 404 for the deal, absent from its list, 403 on write;
+    dashboard scoped to the trader company and showing `deal.transitioned`.
+
+Frontend: `/deals/{id}` returned 200 and the rendered HTML contained the deal
+reference and the terminal status; `/`, `/crm`, `/products`, `/deals` and
+`/deals/new` also returned 200 with their expected headings.
+
+Database evidence after the runs (development database):
+
+```
+trade rows: counterparty=5 product=5 deal=5 deal_item=5 deal_transition=11
+audit actions: deal.transitioned, deal.updated, deal.created, product.created, counterparty.created
+idempotency_record: 25 completed
+latest deal: T-2610-74633A  LOST  version 5  closed_at set
+```
+
+A later, explicitly requested `seed-demo --force` run added one labelled demo set
+(3 counterparties, 3 products, 3 deals), so the live counts now exceed the numbers
+above; nothing was deleted or overwritten.
+
+
+### 20.6 Issues found and fixed during Stage 1B
+
+| Issue | Resolution |
+| ----- | ---------- |
+| First draft allowed `status` through `PATCH` | Update schemas use `extra="forbid"` and the service refuses closed deals; tested live and in unit tests |
+| Dashboard mixed currencies into one number | Pipeline is grouped per currency; per-status values stay per deal |
+| Idempotency row could outlive a failed request | One transaction for record + change; rollback removes the row |
+| `If-Match` parsing would have accepted an unquoted value silently | `parse_if_match` accepts `"v7"` and `v7` but rejects anything else with 400 |
+| PowerShell 5.1 could not read error bodies reliably for the workflow | Verification moved to dependency-free `backend/scripts/verify_trade_workflow.py`; the `.ps1` is a thin wrapper |
+| Cursor reuse across filters returned a misleading page | Cursors embed a filter fingerprint and are rejected with 422 |
+
+### 20.7 Blockers (unchanged, environmental)
+
+| Item | Status | Reason |
+| ---- | ------ | ------ |
+| Docker / Compose execution | BLOCKED | Docker is not installed; the portable PostgreSQL 17.6 cluster is used |
+| Remote CI (`api-contract`, backend, frontend jobs) | BLOCKED | no git remote configured; workflow exists and was not executed remotely |
+| POSIX shell scripts (`.sh`) | BLOCKED | no POSIX shell on this host; PowerShell paths were used |
+| Browser automation (Playwright) | BLOCKED | not installed; verification uses HTTP + server-rendered HTML |
+| DeepSeek/Cline provider check | BLOCKED | no credentials in this environment |
+
+### 20.8 Deliberate deviations from the earlier Stage 1B plan
+
+The original roadmap described Stage 1B as a "product UI foundation" (settings
+screens, design-system expansion, invitations). The instruction for this stage
+was a full trade workflow, so the following roadmap items remain **not
+implemented** and are recorded in `docs/ROADMAP.md`:
+
+* `company_settings` screens with `If-Match`/`version`;
+* membership and audit read APIs with an admin UI;
+* invitation, password reset and MFA flows;
+* idempotency/session cleanup scheduler;
+* documents interface, dialogs and toasts beyond what the trade screens need.
+
+### 20.9 Local development accounts used for verification
+
+Created with `python -m app.cli` in the **development** database only:
+
+| Account | Role | Company | Purpose |
+| ------- | ---- | ------- | ------- |
+| `stage1b.trader@touche.example` | trader | Meridian Commodities | write workflow |
+| `stage1b.admin@touche.example` | admin | TOUCHE Trading | cross-tenant and read-only checks |
+
+Passwords were supplied through the environment
+(`TOUCHE_VERIFY_TRADER_PASSWORD`, `TOUCHE_VERIFY_ADMIN_PASSWORD`) and are not
+stored in the repository. They are throw-away local credentials.
+
+### 20.10 Git and next task
+
+* Branch `stage-1b`, created from `main` at `16a0ab5`.
+* Implementation commit: **`c510722`**
+  (`feat(stage1b): CRM, catalogue and a validated deal workspace`,
+  57 files changed, 13 714 insertions, 755 deletions).
+* Documentation commit: the commit that contains this section (immediately after
+  `c510722`; amending it changes the documentation hash only).
+* `scripts\generate-api-types.ps1 -Check` was re-run after the implementation
+  commit and reported "generated API types are up to date".
+* Nothing pushed: no remote is configured.
+
+**Next recommended task: Stage 2 — sales orders and the `WON` transition**
+(only on explicit instruction). Prerequisites in place: the deal aggregate, its
+state machine and history, transactional idempotency, and the outbox table.
+
+Do not start Stage 2 automatically.
 
 

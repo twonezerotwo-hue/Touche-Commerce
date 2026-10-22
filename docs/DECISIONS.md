@@ -260,7 +260,7 @@ idempotency conventions are enforced by contract tests in Stage 1B.
 
 ## ADR-012 — Idempotency scoped by company, actor, endpoint and key
 
-**Status:** ACCEPTED (implemented in Stage 1B)
+**Status:** ACCEPTED · IMPLEMENTED (Stage 1B, see ADR-026)
 
 **Decision.** Identity of an idempotent operation is
 `(company_id, actor_id, endpoint, key)`. Records store the request fingerprint,
@@ -586,5 +586,131 @@ that an unauthenticated page redirects to `/login?next=…`.
   the current major/minor line and resolved versions are recorded in
   `docs/PROGRESS.md`.
 
+
+
+
+---
+
+## ADR-024 — Trade schema: composite foreign keys, versions and append-only history
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 1B)
+
+**Decision.** `counterparty`, `product`, `deal`, `deal_item` and
+`deal_transition` are tenant-owned tables in schema `touche`, each carrying
+`company_id` and protected by row level security. Every reference from a child
+row to a parent includes `company_id` in a composite foreign key
+(`deal_item → deal`, `deal_item → product`, `deal → counterparty`,
+`deal_transition → deal`), and every parent exposes a redundant
+`UNIQUE (id, company_id)` key to make that possible. Mutable rows carry
+`version INTEGER NOT NULL DEFAULT 1` with `CHECK (version >= 1)`; the deal
+history is insert-only for the runtime role (`GRANT SELECT, INSERT`, no UPDATE or
+DELETE).
+
+**Reasoning.** Application code can forget a `WHERE company_id = …` clause; a
+composite foreign key cannot. The same mechanism makes a cross-tenant line item
+impossible even if a bug supplies a valid id from another company. Versions are
+required for `If-Match`; an append-only history table is required for a state
+machine that can be audited.
+
+**Consequences.** Ids are globally unique but relationships are still enforced
+per tenant. Correcting a line requires a new deal (or a future amendment
+workflow), not an in-place edit.
+
+**Verification.** `tests/test_trade_api.py::TestTenantIsolation` proves RLS
+filters even for direct SQL, that a missing tenant context returns zero rows, that
+the composite FK rejects a cross-tenant deal at the database level, and that the
+runtime role cannot update history.
+
+---
+
+## ADR-025 — Deal state machine: explicit graph, disabled WON, mandatory reasons
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 1B)
+
+**Decision.** The deal lifecycle is an explicit graph in
+`app/services/deal_state.py`:
+
+```
+DRAFT → OPEN | CANCELLED
+OPEN  → NEGOTIATION | LOST | CANCELLED
+NEGOTIATION → OPEN | LOST | CANCELLED
+WON, LOST, CANCELLED = terminal
+```
+
+`LOST` and `CANCELLED` require a 3–500 character reason. `WON` is not reachable:
+the endpoint returns `409 TRANSITION_DISABLED` until the sales-order module
+exists. Status is never accepted by `PATCH`: the update schema forbids unknown
+fields, so `{"status": "WON"}` is a `422 VALIDATION_ERROR`, and closed deals
+reject header edits with `409 CONFLICT`. A transition locks the deal row
+(`SELECT … FOR UPDATE`), re-reads the status, then writes the deal, the
+`deal_transition` row and the audit row in one transaction.
+
+**Reasoning.** A win that creates no order would be a false business record, and
+a status field editable through `PATCH` would bypass the transition endpoint,
+its history and its reasons. Row locking makes concurrent transitions serialise
+instead of racing.
+
+**Consequences.** The API exposes `allowed_transitions` on every deal, and the UI
+renders exactly those buttons plus a disabled "Won" control with an explanation.
+Re-opening a lost deal requires a new deal.
+
+**Verification.** `tests/test_deal_state.py` exhaustively checks the graph;
+`tests/test_trade_api.py::TestTransitions` proves disabled WON, required reasons,
+terminal protection, stale `If-Match`, and the blocked `PATCH status` bypass.
+
+---
+
+## ADR-026 — Idempotency implemented as one transaction, scoped per endpoint
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 1B) — supersedes the implementation note of ADR-012
+
+**Decision.** `idempotency_record` gains `endpoint` and its uniqueness becomes
+`(actor_id, company_id, endpoint, key)`. A helper opens a single transaction that
+(a) inserts the row `in_flight` with `ON CONFLICT DO NOTHING`, (b) runs the
+business change with the same session, (c) stamps the row `completed` with the
+serialised response, then commits. Concurrent duplicates block on the unique
+index; the loser either replays the committed response or receives
+`409 IDEMPOTENCY_IN_PROGRESS` with `Retry-After: 1`. A failure rolls the row back,
+so a retry simply runs again. Replays answer with `Idempotent-Replay: true`.
+Deal transitions require a key; other writes accept one.
+
+**Reasoning.** Writing the idempotency record *after* the business change loses
+the guarantee on a crash between the two commits; writing it in a separate
+transaction before the change can leave a permanent "in progress" row. One
+transaction removes both failure modes without new infrastructure. Including the
+endpoint means the same key used against another endpoint is a different
+operation rather than a false conflict.
+
+**Consequences.** A replay is byte-identical to the original response (the JSON
+was captured server-side). Expired records are treated as unused and rewritten.
+Purging remains a Stage 2 maintenance job.
+
+**Verification.** `tests/test_trade_api.py::TestIdempotency` covers replay, key
+reuse with a different body, the same key on another endpoint, and the stored
+record; the 15-step workflow replays a transition live.
+
+---
+
+## ADR-027 — Read-only roles see no write affordances; the API is the only authority
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 1B)
+
+**Decision.** Trade reads require `company.view`; writes require `trade.write`
+inside an active company (`require_company_permission`). The UI derives
+affordances from the server-rendered `permissions` list, but the API re-checks
+every request independently. An administrator (who deliberately lacks
+`trade.write`) sees the CRM, catalogue and deals as read-only; a viewer sees the
+same.
+
+**Reasoning.** Hiding a button is not authorization. Deriving the UI from the
+same permission list keeps the two consistent without moving the decision into
+the browser (ADR-018).
+
+**Consequences.** `admin` cannot create or transition deals, by design; granting a
+trader role is required to trade.
+
+**Verification.** `tests/test_trade_api.py::TestCounterparties` asserts 403 for
+admin and viewer writes; the workflow asserts a real administrator gets 403 and
+cannot see another company's deal.
 
 

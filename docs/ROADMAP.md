@@ -81,17 +81,55 @@ untested.
 
 ---
 
-## Stage 1B — Product UI foundation
+## Stage 1B — Trade workspace (CRM, catalogue, deals) ✅ (implemented and verified locally)
 
-**Goal:** authenticated application shell for real work.
+**Goal:** the first real business workflow, end to end, on top of the Stage 1A
+security core.
 
-Work: login/logout/company switcher, permission-aware navigation, session
-context on the server, design-system expansion (forms, tables, dialogs, toasts),
-document storage interface + local backend, generated-type client conventions,
-settings screens, frontend integration tests against a seeded API.
+Delivered:
 
-**Exit criteria:** a signed-in user can move between companies and see only
-permitted navigation; no screen renders data the API did not return.
+1. **Schema** (`0003_trade`): `counterparty`, `product`, `deal`, `deal_item`,
+   `deal_transition`; composite foreign keys that include `company_id`, a
+   `version` column on every mutable row, CHECK constraints for every status and
+   money rule, row level security on all five tables and append-only grants on
+   the deal history.
+2. **Deal state machine**: explicit transition graph
+   (`DRAFT → OPEN → NEGOTIATION`, terminal `LOST`/`CANCELLED` with a mandatory
+   reason). `WON` is deliberately **disabled** (`409 TRANSITION_DISABLED`) until
+   sales orders exist. Impossible edges return `409 INVALID_TRANSITION` with the
+   allowed targets; history and audit rows are written in the same transaction.
+3. **APIs**: `/counterparties`, `/products`, `/deals`, `/deals/{id}`,
+   `/deals/{id}/transitions` and `/dashboard/summary` with active-company
+   scoping, `company.view` / `trade.write` permissions, cursor pagination bound
+   to the filter set, `ETag`/`If-Match` optimistic concurrency, required
+   `Idempotency-Key` on transitions, request-id correlation and audit.
+4. **Frontend**: `/crm`, `/products`, `/deals`, `/deals/new`, `/deals/[id]` and
+   a live command center, all server-rendered from the API through the
+   session-forwarding layer; mutations use the same-origin proxy with CSRF,
+   idempotency keys and `If-Match`. Read-only roles see no write affordances.
+5. **Operations**: `python -m app.cli seed-demo --company "…"` for explicitly
+   requested, clearly labelled demo data (local/test/ci only) and
+   `scripts\verify-trade.ps1` for the 15-step workflow.
+
+**Exit criteria:** met — the executed workflow proves a trader can create CRM,
+catalogue and deal data, that status can only change through the validated
+endpoint, that WON is unreachable, that reasons are mandatory for terminal
+states, that replays are idempotent, that a foreign company sees nothing, and
+that the rendered pages show exactly the API data (`docs/PROGRESS.md` §20).
+
+**Deferred deliberately (recorded so nothing is implied as done):**
+
+| Item | Why | Target |
+| ---- | --- | ------ |
+| `WON` transition and sales orders | Needs the order aggregate; a win without an order is a lie | Stage 2 |
+| Deal line editing after creation | Financial lines should not change silently; replacement needs an amendment workflow | Stage 2 |
+| Quotations, logistics, documents | Separate modules with their own state machines | Stage 2–3 |
+| Membership/audit admin UI and `company_settings` screens | Still CLI/API-only; no partial screens are exposed | Stage 2 |
+| Invitations, password reset, MFA | Identity extension, not trade functionality | Stage 2 |
+| Idempotency/session cleanup scheduler | Records are bounded by TTL but nothing purges them yet | Stage 2 |
+
+**Guardrail (kept):** no endpoint is marked done while its authorization path is
+untested; no screen renders data the API did not return.
 
 ---
 

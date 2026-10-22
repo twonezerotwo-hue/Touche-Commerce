@@ -1,8 +1,8 @@
 # TOUCHE COMMERCE — Architecture
 
-**Status:** Stage 0 (foundation) and Stage 1A (identity, sessions, tenancy,
-audit) implemented and verified locally.
-**Audience:** engineers and reviewers working on Stage 1B and later.
+**Status:** Stages 0, 1A (identity, sessions, tenancy, audit) and 1B (CRM,
+catalogue, deals) implemented and verified locally.
+**Audience:** engineers and reviewers working on Stage 2 and later.
 **Companion documents:** `docs/DECISIONS.md` (binding ADRs), `docs/API_CONTRACTS.md`,
 `docs/ROADMAP.md`, `docs/PROGRESS.md`.
 
@@ -14,12 +14,14 @@ TOUCHE COMMERCE is an independent, premium international trade management
 application. It will eventually integrate with E-YAY, Touche Finance, Gmail,
 WhatsApp Business and TOUCHE ONE.
 
-Stage 0 delivers **infrastructure only**: a running web shell, a running API, a
+Stage 0 delivered **infrastructure only**: a running web shell, a running API, a
 migrated PostgreSQL database, health probes, the error/logging/correlation
 foundation, the contract-generation pipeline and the documentation that binds
-later stages. It contains **no business features, no AI agents, no CRM, no
-quotation workflow and no external integration**. Nothing in the UI claims a
-capability that is not implemented.
+later stages. Stage 1A added identity, server-side sessions, multi-company
+membership, RLS and the audit trail. Stage 1B adds the first business workflow:
+counterparties, products, deals with a validated state machine, and a dashboard.
+Quotations, orders, logistics, finance and AI remain out of scope and are not
+rendered as if they existed.
 
 ---
 
@@ -63,16 +65,18 @@ demonstrated need.
 ```
 touche-commerce/
 ├── frontend/                 Next.js App Router shell + generated API types
-│   ├── src/app/              routes (only "/" exists in Stage 0)
-│   ├── src/components/       shell, system-status, ui primitives (shadcn/ui style)
-│   ├── src/lib/api/          typed client + generated schema.d.ts
+│   ├── src/app/              routes: /, /crm, /products, /deals, /deals/new, /deals/[id]
+│   ├── src/components/       shell, system-status, trade forms/tables, ui primitives
+│   ├── src/lib/api/          typed client, server reader, generated schema.d.ts
+│   ├── src/lib/trade/        trade DTO aliases, formatting helpers, browser client
 │   └── openapi/openapi.json  exported from FastAPI (committed, drift-checked)
 ├── backend/                  FastAPI service
 │   ├── app/core/             configuration, logging, errors, middleware, context
-│   ├── app/db/               engine/session, tenant context, ORM models
-│   ├── app/api/v1/           versioned routers, schemas (source of TS types)
-│   ├── alembic/              migration environment + versions
-│   ├── scripts/              export_openapi.py
+│   ├── app/db/               engine/session, tenant context, ORM models (incl. trade)
+│   ├── app/api/v1/           versioned routers, schemas (source of TS types), etag helpers
+│   ├── app/services/         auth, audit, crm, catalog, trade, deal_state, idempotency
+│   ├── alembic/              migration environment + versions (0001–0003)
+│   ├── scripts/              export_openapi.py, verify_trade_workflow.py
 │   └── tests/                unit + live-database integration tests
 ├── infra/                    docker-compose.yml, Postgres init hooks, local runtime
 ├── scripts/                  setup / migrate / dev / verify (PowerShell + bash)
@@ -106,13 +110,14 @@ Rules:
 
 Implemented: `identity` (`app/services/auth.py`, `admin.py`), `audit`
 (`app/services/audit.py`), `security` (`app/security/*`), `tenancy`
-(`app/db/tenant.py`, RLS policies).
+(`app/db/tenant.py`, RLS policies), `crm` (`app/services/crm.py`), `catalog`
+(`app/services/catalog.py`) and `trade` (`app/services/trade.py`,
+`deal_state.py`, `idempotency.py`).
 
-Planned (not implemented, no partial screens): `trade` (deals, sales orders),
-`crm`, `quoting` (RFQ, quotes), `catalog` (products), `logistics`, `finance`,
-`documents`, `integrations` (outbox relay), `ai` (assistants restricted to
-authorized tools). Each becomes a package under `app/services` with its own
-router under `app/api/v1/routes/`.
+Planned (not implemented, no partial screens): `quoting` (RFQ, quotes), `orders`,
+`logistics`, `finance`, `documents`, `settings`, `integrations` (outbox relay),
+`ai` (assistants restricted to authorized tools). Each becomes a package under
+`app/services` with its own router under `app/api/v1/routes/`.
 
 ---
 
@@ -213,9 +218,14 @@ as a client-side timeout.
 | `auth_session` | Server-side session; hashed token, CSRF token, expiry, revocation, IP/UA | `company_id` (nullable) | no (token lookup precedes context) |
 | `login_attempt` | Rate-limit counters and forensics | — | no (no API exposure) |
 | `audit_record` | Append-only audit trail | `company_id` (nullable) | yes (tenant reads, insert-only) |
-| `idempotency_record` | Durable replay contract (middleware in 1B/2) | `company_id` | yes |
+| `idempotency_record` | Durable replay records (implemented in 1B) | `company_id` | yes |
 | `company_settings` | Per-company settings container | `company_id` | yes |
 | `company_setting_entry` | Key/value children with a composite FK | `company_id` | yes |
+| `counterparty` | Customers/suppliers: name, type, country, contact, version | `company_id` | yes |
+| `product` | Catalogue: SKU, unit, currency, unit price, version | `company_id` | yes |
+| `deal` | Deal header: reference, status, counterparty, currency, version | `company_id` | yes |
+| `deal_item` | Deal lines; composite FKs to `deal` and `product` | `company_id` | yes |
+| `deal_transition` | Append-only status history (no UPDATE/DELETE grant) | `company_id` | yes |
 | `outbox_event` | Transactional outbox for later integrations | `company_id` (nullable) | no (Stage 2 relay) |
 
 Naming rationale (`app_user`, `auth_session`) is recorded in ADR-019. The scope of
@@ -433,21 +443,26 @@ class DocumentStorage(Protocol):
 
 ---
 
-## 12. Idempotency, concurrency and pagination
+## 12. Idempotency, concurrency and pagination (implemented in Stage 1B)
 
 * `Idempotency-Key` is scoped by `(company_id, actor_id, endpoint, key)`, TTL
-  24 h, stored in PostgreSQL with the request fingerprint and the original
-  response.
-* Concurrent duplicates are serialised with a unique constraint: the first
-  request inserts an `in_flight` record, duplicates receive `409` with
-  `IDEMPOTENCY_IN_PROGRESS` and `Retry-After: 1`. A reused key with a different
-  fingerprint returns `409 IDEMPOTENCY_CONFLICT`. Completed keys replay the
-  stored response (`Idempotent-Replay: true`).
+  24 h, stored in `touche.idempotency_record` with the request fingerprint and the
+  original response (ADR-012, ADR-026).
+* The idempotency row and the business change commit in **one** transaction. A
+  unique constraint serialises concurrent duplicates: the loser replays the
+  committed response or receives `409 IDEMPOTENCY_IN_PROGRESS` with
+  `Retry-After: 1`. A reused key with a different fingerprint returns
+  `409 IDEMPOTENCY_CONFLICT`. Replays return the stored body with
+  `Idempotent-Replay: true`.
+* Deal transitions require a key; other writes accept one. A failed request rolls
+  the record back, so a retry is safe.
 * Optimistic concurrency uses a monotonically increasing `version` and an
   `ETag: "v{version}"`. Mutations require `If-Match` (`428
-  PRECONDITION_REQUIRED` when absent, `409 VERSION_CONFLICT` when stale).
-* Pagination: `limit` default 25, maximum 100, cursors rather than page numbers
-  so results stay stable while rows mutate.
+  PRECONDITION_REQUIRED` when absent, `409 VERSION_CONFLICT` when stale, with the
+  current ETag in the response). Transitions additionally lock the row.
+* Pagination: `limit` default 25, maximum 100, opaque cursors bound to the filter
+  set (a cursor from another filter combination is `422`), stable order
+  `created_at DESC, id DESC`.
 
 ---
 
@@ -467,16 +482,26 @@ class DocumentStorage(Protocol):
   they become available — no dead links, no fake screens, no fabricated KPIs.
 * Presentation helpers (`src/lib/status.ts`) are pure and unit tested.
 
-### 13.1 Routes (Stage 1A)
+### 13.1 Routes (Stage 1B)
 
 | Route | Group | Access | Purpose |
 | ----- | ----- | ------ | ------- |
 | `/login` | `(auth)` | public | Sign in; redirects an authenticated visitor onward |
 | `/select-company` | `(auth)` | session | Choose the active company (multi-membership accounts) |
-| `/` | `(app)` | session + company | Command Center: identity, company, permissions, probes |
+| `/` | `(app)` | session + company | Command Center: KPIs, pipeline, recent deals, audit activity, probe strip |
+| `/crm` | `(app)` | session + company | Counterparty list, filter, create (trader only) |
+| `/products` | `(app)` | session + company | Catalogue list, filter, create (trader only) |
+| `/deals` | `(app)` | session + company | Deal list with status filters; read-only for non-traders |
+| `/deals/new` | `(app)` | session + company + `trade.write` | Create a deal with one or more lines |
+| `/deals/[id]` | `(app)` | session + company | Lines, history, transition controls, header edit (`If-Match`) |
 | `/account` | `(app)` | session + company | Profile, memberships, permissions, session policy |
 | `/status` | root | public | Read-only infrastructure status (no session data) |
 | `/api/v1/[...path]` | root | — | Same-origin proxy to FastAPI |
+
+Pages are server components that call the API with the incoming cookie via
+`src/lib/api/server.ts`; a failure is rendered as an explicit error with the
+request id, never as an empty state. Mutations run in client components against
+the same-origin proxy with CSRF, `Idempotency-Key` and `If-Match`.
 
 `(app)/layout.tsx` loads the session on the server, applies `resolveRoute()`
 (pure, unit tested) and redirects anonymous visitors to
@@ -676,5 +701,90 @@ memberships in Stage 1A. It:
 
 
 
+
+
+
+---
+
+## 19. Trade workspace (Stage 1B)
+
+### 19.1 Model
+
+```
+company 1 ── * counterparty
+        1 ── * product
+        1 ── * deal ── * deal_item ── 1 product
+                    └─ * deal_transition (append-only)
+```
+
+Each child references its parent by `(id, company_id)`, so a line item cannot be
+attached to another company's deal even if a bug supplies the wrong pair of ids
+(ADR-024). `deal.reference` is unique per company; `product.sku` is unique per
+company and stored upper case; `counterparty.name` is unique per company.
+
+### 19.2 State machine
+
+`app/services/deal_state.py` holds the graph as data; `app/services/trade.py`
+enforces it inside the transaction that locks the deal row:
+
+| From | Allowed targets |
+| ---- | --------------- |
+| `DRAFT` | `OPEN`, `CANCELLED` |
+| `OPEN` | `NEGOTIATION`, `LOST`, `CANCELLED` |
+| `NEGOTIATION` | `OPEN`, `LOST`, `CANCELLED` |
+| `WON`, `LOST`, `CANCELLED` | terminal |
+
+* `WON` is not an edge: the endpoint returns `409 TRANSITION_DISABLED`
+  (ADR-025). `ALREADY_WON` is retained defensively.
+* `LOST`/`CANCELLED` require a 3–500 character reason (`422 REASON_REQUIRED`).
+* An impossible edge returns `409 INVALID_TRANSITION` with `details.allowed`.
+* `PATCH` forbids unknown fields, so `status` cannot bypass the endpoint; closed
+  deals reject header edits.
+* Every accepted transition writes the deal update, the `deal_transition` row and
+  the audit row in one transaction; concurrent attempts serialise on
+  `SELECT … FOR UPDATE`.
+
+### 19.3 API surface
+
+All endpoints are namespaced under `/api/v1`, require an active company, and
+check `company.view` (reads) or `trade.write` (writes) server-side:
+
+| Method | Path | Notes |
+| ------ | ---- | ----- |
+| `GET` | `/counterparties`, `/products`, `/deals` | cursor pagination, filters, stable sort |
+| `POST` | `/counterparties`, `/products`, `/deals` | optional `Idempotency-Key` |
+| `GET` | `/counterparties/{id}`, `/products/{id}`, `/deals/{id}` | detail + `ETag` |
+| `PATCH` | same ids | `If-Match` required; header fields only |
+| `POST` | `/deals/{id}/transitions` | **required** `Idempotency-Key`, optional `If-Match` |
+| `GET` | `/dashboard/summary` | KPIs, per-currency pipeline, recent deals and audit |
+
+Money and quantities are `Decimal` end to end and serialise as strings, so no
+binary floating point ever touches a price. `allowed_transitions` is returned on
+every deal so the UI renders exactly the permitted controls.
+
+### 19.4 Frontend
+
+Server components read through `src/lib/api/server.ts` (cookie-forwarding,
+`no-store`), and client components mutate through `src/lib/trade/client.ts`
+(CSRF, idempotency key, `If-Match`). `DealStatusBadge`, `DealForm`,
+`TransitionPanel` and `DealEditForm` contain no business rules of their own:
+they render the API's `allowed_transitions` and surface the API's error codes
+(including a refresh affordance for `VERSION_CONFLICT`).
+
+### 19.5 Demo data
+
+`python -m app.cli seed-demo --company "…"` inserts a clearly labelled demo set
+(three counterparties, three products, three deals: draft, open and cancelled).
+It refuses to run outside `local`/`test`/`ci`, refuses to touch a company that
+already has trade data unless `--force` is given (which adds a suffixed set
+rather than deleting anything), and never runs from application code.
+
+### 19.6 Verification
+
+`scripts\verify-trade.ps1` → `backend/scripts/verify_trade_workflow.py` runs the
+15-step workflow (sign-in, master data, deal creation, concurrency, blocked
+status bypass, transitions, disabled WON, mandatory reason, replay, cross-tenant
+isolation, dashboard) and then checks that the rendered deal page contains the
+deal reference. Results are recorded in `docs/PROGRESS.md` §20.
 
 

@@ -1,7 +1,8 @@
 # TOUCHE COMMERCE — API contracts
 
-**Version:** v1 · Stage 1A **implemented** for health, authentication, sessions and
-company selection; later sections remain the binding design for Stage 1B+.
+**Version:** v1 · Stage 1B **implemented** for health, authentication, sessions,
+company selection, counterparties, products, deals, transitions and the dashboard.
+Later sections remain the binding design for Stage 2+.
 **Source of truth:** `backend/app/api/v1/schemas/*` → `/api/v1/openapi.json` →
 `frontend/src/lib/api/schema.d.ts`.
 
@@ -18,8 +19,8 @@ company selection; later sections remain the binding design for Stage 1B+.
 | CSRF | `X-CSRF-Token` header required on every authenticated non-GET request |
 | Origin validation | Every non-GET request must carry a trusted `Origin` header, including `/auth/login` |
 | Request correlation | `X-Request-ID` header, echoed on every response |
-| Idempotency | `Idempotency-Key` header on mutating requests (Stage 1B) |
-| Concurrency | `ETag` response header + `If-Match` request header (Stage 1B) |
+| Idempotency | `Idempotency-Key` header on mutating requests (required for deal transitions) |
+| Concurrency | `ETag` response header + `If-Match` request header on versioned resources |
 | CORS | Local origins only (`http://localhost:3000`, `http://127.0.0.1:3000`) |
 | Caching | Session-bearing responses are `Cache-Control: no-store`; status pages are `force-dynamic` |
 
@@ -75,11 +76,15 @@ Every non-2xx response has this shape (and only this shape):
 | `FORBIDDEN` | 403 | Authenticated but not permitted, or no active membership |
 | `NOT_FOUND` | 404 | Unknown route or resource |
 | `METHOD_NOT_ALLOWED` | 405 | Wrong HTTP method |
-| `CONFLICT` | 409 | Generic state conflict |
-| `VERSION_CONFLICT` | 409 | Stale `If-Match` version |
+| `CONFLICT` | 409 | Generic state conflict (duplicate name/SKU, closed deal) |
+| `VERSION_CONFLICT` | 409 | Stale `If-Match` version; response carries the current `ETag` |
 | `IDEMPOTENCY_CONFLICT` | 409 | Reused key with a different payload |
 | `IDEMPOTENCY_IN_PROGRESS` | 409 | Duplicate in-flight request; honour `Retry-After` |
+| `IDEMPOTENCY_KEY_REQUIRED` | 400 | The endpoint requires an `Idempotency-Key` header |
 | `ALREADY_WON` | 409 | Deal already WON; no second order is created |
+| `INVALID_TRANSITION` | 409 | The state machine has no such edge; `details.allowed` lists targets |
+| `TRANSITION_DISABLED` | 409 | The edge exists in the domain but is not implemented (WON until orders) |
+| `REASON_REQUIRED` | 422 | LOST/CANCELLED without a 3–500 character reason; `details` lists the field |
 | `PRECONDITION_REQUIRED` | 428 | `If-Match` is required for this mutation |
 | `PAYLOAD_TOO_LARGE` | 413 | Body exceeds the configured limit |
 | `RATE_LIMITED` | 429 | Login or request rate limit exceeded |
@@ -225,7 +230,7 @@ Not versioned; used for discovery only.
 
 ---
 
-## 3. Pagination (Stage 1B)
+## 3. Pagination (implemented in Stage 1B)
 
 List endpoints accept `limit` (default **25**, max **100**) and an opaque
 `cursor`. Offset/page-number pagination is not used because trade data mutates
@@ -250,7 +255,7 @@ GET /api/v1/trade-deals?limit=25&cursor=eyJpZCI6...
 
 ---
 
-## 4. Idempotency (Stage 1B)
+## 4. Idempotency (implemented in Stage 1B)
 
 Mutating endpoints accept `Idempotency-Key` (client-generated, 8–128 chars).
 
@@ -269,12 +274,12 @@ by application locks.
 
 ---
 
-## 5. Optimistic concurrency (Stage 1B)
+## 5. Optimistic concurrency (implemented in Stage 1B)
 
 Versioned resources return `ETag: "v{version}"` and a `version` field.
 
 ```http
-PATCH /api/v1/trade-deals/{id}
+PATCH /api/v1/deals/{id}
 If-Match: "v7"
 Content-Type: application/json
 
@@ -478,14 +483,155 @@ Stage 1B admin UI exists.
 
 
 
-## 7. Trade deal → sales order (Stage 2 design)
+## 7. Trade workspace (implemented in Stage 1B)
 
-* `POST /api/v1/trade-deals/{id}/transitions` with `{"to": "WON"}` requires an
-  `Idempotency-Key`.
-* The transition to `WON` and creation of exactly one sales order commit in one
-  transaction. The `WON` transition is **disabled** until the orders module
-  exists (`409 CONFLICT`, code `TRANSITION_DISABLED`) — no half-built feature is
-  exposed.
+All trade endpoints require an authenticated session with an **active company**.
+Reads require `company.view`; writes require `trade.write` (traders only — an
+administrator is deliberately read-only here, ADR-003/ADR-027). Every response is
+`Cache-Control: no-store`.
+
+### 7.1 Counterparties
+
+| Method | Path | Notes |
+| ------ | ---- | ----- |
+| `GET` | `/counterparties?search=&status=&type=&limit=&cursor=` | `{items, next_cursor, has_more}` |
+| `POST` | `/counterparties` | `201`; optional `Idempotency-Key`; duplicate name → `409 CONFLICT` |
+| `GET` | `/counterparties/{id}` | `200` + `ETag` |
+| `PATCH` | `/counterparties/{id}` | `If-Match` required; unknown fields → `422` |
+
+```json
+{
+  "id": "…", "company_id": "…", "name": "Acme Metals",
+  "type": "buyer", "country": "GB", "contact_name": "Jane Doe",
+  "email": "jane@acme.example", "phone": null, "notes": null,
+  "status": "active", "version": 1,
+  "created_at": "2026-10-22T09:00:00Z", "updated_at": "2026-10-22T09:00:00Z"
+}
+```
+
+`type` ∈ `buyer | supplier | both`; `status` ∈ `active | archived`; names are
+unique per company and trimmed; `country` is ISO-3166 alpha-2 and `email` is
+lower-cased.
+
+### 7.2 Products
+
+| Method | Path | Notes |
+| ------ | ---- | ----- |
+| `GET` | `/products?search=&status=&limit=&cursor=` | search matches SKU or name |
+| `POST` | `/products` | `sku` is stored upper case; duplicate → `409 CONFLICT` |
+| `GET` | `/products/{id}` | `200` + `ETag` |
+| `PATCH` | `/products/{id}` | `If-Match` required |
+
+```json
+{
+  "id": "…", "company_id": "…", "sku": "ALU-A7", "name": "Aluminium ingot A7",
+  "unit": "mt", "currency": "USD", "unit_price": "2450.0000",
+  "status": "active", "version": 1,
+  "created_at": "…", "updated_at": "…"
+}
+```
+
+`unit` ∈ `kg | mt | lb | unit | l | m3`; `unit_price` is a non-negative decimal
+(18,4) serialised as a string.
+
+### 7.3 Deals
+
+| Method | Path | Notes |
+| ------ | ---- | ----- |
+| `GET` | `/deals?search=&status=&counterparty_id=&limit=&cursor=` | list projection, no lines/history |
+| `POST` | `/deals` | deal + lines + initial `DRAFT` history + audit in one transaction |
+| `GET` | `/deals/{id}` | lines, history, `allowed_transitions`, `ETag` |
+| `PATCH` | `/deals/{id}` | header fields only; `If-Match` required; closed deal → `409 CONFLICT` |
+| `POST` | `/deals/{id}/transitions` | **`Idempotency-Key` required**; optional `If-Match` |
+
+Create request:
+
+```json
+{
+  "title": "50 MT aluminium ingots",
+  "counterparty_id": "…",
+  "currency": "USD",
+  "expected_close_date": "2026-11-30",
+  "notes": "FOB Rotterdam",
+  "reference": null,
+  "items": [
+    { "product_id": "…", "quantity": "50.000", "unit_price": "2450.0000" }
+  ]
+}
+```
+
+Rules: 1–20 lines, each product at most once, `quantity > 0`, `unit_price >= 0`,
+counterparty and products must belong to the active company (`400 BAD_REQUEST`
+otherwise, with no hint about other tenants). `reference` is generated
+(`T-YYMM-XXXXXX`) when omitted and must be 3–32 upper-case characters when
+provided.
+
+Detail response (abridged):
+
+```json
+{
+  "id": "…", "reference": "T-2610-6B44D0", "title": "…", "status": "DRAFT",
+  "counterparty_id": "…", "counterparty_name": "Acme Metals", "currency": "USD",
+  "total_value": "122500.00", "version": 1,
+  "items": [{ "id": "…", "product_id": "…", "sku": "ALU-A7", "name": "…",
+              "unit": "mt", "quantity": "50.000", "unit_price": "2450.0000",
+              "line_total": "122500.00" }],
+  "transitions": [{ "from_status": null, "to_status": "DRAFT", "reason": null,
+                    "version_after": 1, "occurred_at": "…" }],
+  "allowed_transitions": ["OPEN", "CANCELLED"],
+  "closed_at": null, "created_at": "…", "updated_at": "…"
+}
+```
+
+`PATCH` accepts `title`, `counterparty_id`, `currency`, `expected_close_date`,
+`notes`. Sending `status` is a `422 VALIDATION_ERROR` (ADR-025). Lines are
+immutable after creation.
+
+### 7.4 Transitions
+
+```http
+POST /api/v1/deals/{id}/transitions
+Origin: http://localhost:3000
+X-CSRF-Token: …
+Idempotency-Key: 4f1c… (required)
+If-Match: "v3"              (optional, adds optimistic concurrency)
+Content-Type: application/json
+
+{ "to": "LOST", "reason": "Buyer withdrew the enquiry." }
+```
+
+| Situation | Response |
+| --------- | -------- |
+| Key missing/invalid | `400 IDEMPOTENCY_KEY_REQUIRED` / `400 BAD_REQUEST` |
+| Unknown deal | `404 NOT_FOUND` |
+| Target `WON` | `409 TRANSITION_DISABLED` |
+| Deal already `WON` | `409 ALREADY_WON` |
+| Edge not in the graph | `409 INVALID_TRANSITION` + `details.allowed` |
+| `LOST`/`CANCELLED` without a valid reason | `422 REASON_REQUIRED` |
+| Stale `If-Match` | `409 VERSION_CONFLICT` + current `ETag` |
+| Same key, same body, already applied | `200` replay + `Idempotent-Replay: true` |
+| Same key, different body | `409 IDEMPOTENCY_CONFLICT` |
+
+The response is the full deal (§7.3) with the new `ETag`, history and
+`allowed_transitions`.
+
+### 7.5 Dashboard
+
+`GET /dashboard/summary` returns `company_id`, `generated_at`, `deals_total`,
+`status_counts` (every status, count and value), `pipeline` (per currency, open
+statuses only), `counterparties_total/active`, `products_total/active`,
+`recent_deals` (5) and `recent_activity` (8 audit rows). All values are computed
+in one database transaction for the active company.
+
+---
+
+## 7A. Trade deal → sales order (Stage 2 design)
+
+* `POST /api/v1/deals/{id}/transitions` with `{"to": "WON"}` requires an
+  `Idempotency-Key` (the same requirement already enforced for every transition).
+* The transition to `WON` and creation of exactly one sales order will commit in
+  one transaction. Until the orders module exists the transition stays
+  **disabled** (`409 TRANSITION_DISABLED`) — no half-built feature is exposed.
 * Replaying the same key returns the original response; a different key after
   `WON` returns `409 ALREADY_WON`.
 * Deal and order state machines are independent; the order has its own
@@ -506,12 +652,24 @@ Stage 1B admin UI exists.
 | `POST` | `/api/v1/auth/logout` | 1A | Implemented |
 | `GET` | `/api/v1/companies` | 1A | Implemented |
 | `POST` | `/api/v1/session/company` | 1A | Implemented |
-| `GET` | `/api/v1/audit-records` | 1B | Reserved |
-| `GET/POST/DELETE` | `/api/v1/companies/{id}/memberships` | 1B | Reserved |
-| `GET/POST/PATCH` | `/api/v1/trade-deals` | 2 | Reserved |
-| `POST` | `/api/v1/trade-deals/{id}/transitions` | 2 | Reserved |
+| `GET` | `/api/v1/counterparties` | 1B | Implemented |
+| `POST` | `/api/v1/counterparties` | 1B | Implemented |
+| `GET` | `/api/v1/counterparties/{id}` | 1B | Implemented |
+| `PATCH` | `/api/v1/counterparties/{id}` | 1B | Implemented |
+| `GET` | `/api/v1/products` | 1B | Implemented |
+| `POST` | `/api/v1/products` | 1B | Implemented |
+| `GET` | `/api/v1/products/{id}` | 1B | Implemented |
+| `PATCH` | `/api/v1/products/{id}` | 1B | Implemented |
+| `GET` | `/api/v1/deals` | 1B | Implemented |
+| `POST` | `/api/v1/deals` | 1B | Implemented |
+| `GET` | `/api/v1/deals/{id}` | 1B | Implemented |
+| `PATCH` | `/api/v1/deals/{id}` | 1B | Implemented |
+| `POST` | `/api/v1/deals/{id}/transitions` | 1B | Implemented |
+| `GET` | `/api/v1/dashboard/summary` | 1B | Implemented |
+| `GET` | `/api/v1/audit-records` | 2 | Reserved |
+| `GET/POST/DELETE` | `/api/v1/companies/{id}/memberships` | 2 | Reserved |
 | `GET/POST/PATCH` | `/api/v1/sales-orders` | 2 | Reserved |
-| `GET/POST` | `/api/v1/documents` | 1B | Reserved |
+| `GET/POST` | `/api/v1/documents` | 2 | Reserved |
 
 Reserved endpoints do not exist in the running service; requesting them returns
 `404 NOT_FOUND`. They are listed so the frontend and future integrations share a
