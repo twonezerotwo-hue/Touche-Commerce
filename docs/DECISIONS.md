@@ -1111,3 +1111,55 @@ reconciliation and recovery.
 `test_finance_api.py` (permission/RLS/audit/405), isolated HTTP acceptance with
 unchanged Finance database and workbook hashes.
 
+---
+
+## ADR-043 — Reconciliation is evidence, review and append-only history
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 5D)
+
+**Decision.** Commerce reconciliation stores a reproducible snapshot of Commerce
+commercial facts and Finance observations, explicit operator evidence links,
+deterministic discrepancies and append-only human reviews. A Finance source id
+is the only transaction-level matching key. Exact amount and currency checks are
+required. `MATCHED_EVIDENCE` is reachable automatically from an explicit link;
+`VERIFIED` is reachable only through an authorised review with no open blocking
+discrepancy. A verified run is immutable.
+
+**Reasoning.** Free-text counterparties, company-wide balances and approximate
+amounts cannot prove an order-level relationship. Automatically promoting a
+match would create a second financial truth. A human decision with identity,
+timestamp and notes is auditable and reversible only by a new run.
+
+**Consequences.** Missing or unsupported evidence leaves a run `UNMATCHED` or
+`INCOMPLETE`; it is never called reconciled. Company summary/account balances
+are non-matchable. A mismatch stays `POTENTIAL_MATCH` until the underlying facts
+change in a new run. No accounting entry is created.
+
+**Verification.** `test_reconciliation_calculations.py` (Decimal/currency/
+unavailable classifications), `test_reconciliation_api.py` (evidence, duplicate,
+amount mismatch, review refusal, verification, audit), isolated HTTP acceptance.
+
+---
+
+## ADR-044 — Financial review uses a separate capability and immutable evidence
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 5D)
+
+**Decision.** Add `finance.reconcile` as a capability granted to `approver` only;
+`admin` does not inherit it. Run creation/evidence linking requires `trade.write`.
+Reviewers cannot review a run they created. Evidence/source/review records have no
+runtime `DELETE`; evidence exposes only reviewer verification columns for update.
+Discrepancy resolution requires `finance.reconcile` and a note.
+
+**Reasoning.** Operational preparation and financial approval are different
+duties. An admin who can manage people/settings must not automatically approve
+money. Append-only evidence prevents silent rewriting of the basis for a
+verification.
+
+**Consequences.** A trader can prepare runs and links but cannot verify them. An
+approver can approve a sales quote, approve a purchase order and review
+reconciliation. A new financial role requires a new ADR/matrix change.
+
+**Verification.** Permission assertion and API negative tests; runtime grant and
+RLS tests; `has_table_privilege(...,'DELETE') = false` on all five tables.
+

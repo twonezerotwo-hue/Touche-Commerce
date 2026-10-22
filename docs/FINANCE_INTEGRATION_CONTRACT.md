@@ -214,3 +214,17 @@ Both were unchanged before and after Stage 5C work.
   security review.
 * Live Finance connection: the acceptance test used an isolated Finance runtime,
   not the live Finance application.
+
+---
+
+## 9. Stage 5D extension — evidence reconciliation
+
+Stage 5D uses the same six Finance reads and adds **no Finance write method**.
+Commerce stores reconciliation runs, Finance source references, explicit evidence
+links, deterministic discrepancies and append-only review decisions in its own
+database. Only transaction-level aging source ids can be linked; company summary
+and account balances are never attributed to an order.
+
+The full domain, state model, API, UI, migration and acceptance evidence are in
+`docs/STAGE5D_RECONCILIATION.md`. Stage 5D verification remains
+`ISOLATED_HTTP_VERIFIED`; the live Finance application was not started.

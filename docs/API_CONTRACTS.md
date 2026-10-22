@@ -1061,7 +1061,60 @@ data endpoints return the normalized error envelope when data cannot be served.
 ### 10.4 Audit and write prohibition
 
 A successful `finance.read` audit row records actor, company, Finance company,
-endpoint, currency/date context and request id. Only GET is implemented; no
-invoice, payment, journal or reconciliation write endpoint exists in Commerce
-and the connector has no Finance write call.
+endpoint, currency/date context and request id. The Stage 5C connector has no
+Finance write call. Stage 5D adds Commerce reconciliation writes (runs, evidence,
+reviews) but still no Finance or accounting write.
+
+---
+
+## 11. Stage 5D — financial reconciliation
+
+### 11.1 Authorization
+
+| Operation | Permission |
+| --------- | ---------- |
+| read runs, order view, discrepancies, evidence | `company.view` |
+| create run, link evidence | `trade.write` |
+| CONFIRM / DISPUTE / REQUEST_CHANGES, resolve discrepancy | `finance.reconcile` |
+
+`finance.reconcile` is a distinct capability granted to `approver`; `admin` does
+not inherit it. The run creator cannot review their own run. All mutations
+require CSRF and `Idempotency-Key`; run/evidence/review/resolution changes also
+require `If-Match`.
+
+### 11.2 Endpoints
+
+| Method | Path | Notes |
+| ------ | ---- | ----- |
+| `GET` | `/api/v1/finance/reconciliation?currency=&order_id=&status=` | no cross-currency total |
+| `POST` | `/api/v1/finance/reconciliation/runs` | `sales_order_id`, explicit `currency`, optional `as_of` |
+| `GET` | `/api/v1/finance/reconciliation/runs/{id}` | ETag = run version |
+| `GET` | `/api/v1/finance/evidence-links?run_id=` | explicit links |
+| `POST` | `/api/v1/finance/evidence-links` | server reads amount from Finance snapshot |
+| `GET` | `/api/v1/finance/discrepancies?run_id=&code=&severity=&status=&currency=` | queue |
+| `GET` | `/api/v1/finance/discrepancies/{id}` | ETag = discrepancy version |
+| `POST` | `/api/v1/finance/discrepancies/{id}/resolve` | resolution note required |
+| `POST` | `/api/v1/finance/reviews` | `CONFIRM`, `DISPUTE`, `REQUEST_CHANGES` |
+| `GET` | `/api/v1/finance/orders/{id}` | order finance projection |
+
+Responses are `Cache-Control: no-store` and `read_only=true` /
+`accounting_writes_enabled=false`. Amounts are decimal strings.
+
+### 11.3 State and errors
+
+Run states: `INCOMPLETE`, `UNMATCHED`, `POTENTIAL_MATCH`, `MATCHED_EVIDENCE`,
+`VERIFIED`, `DISPUTED`. Only an authorised review can enter `VERIFIED`. An
+unlinked run cannot be verified.
+
+| Code | HTTP | Meaning |
+| ---- | ---- | ------- |
+| `RECONCILIATION_CURRENCY_MISMATCH` | 409 | run/source/order currencies differ |
+| `RECONCILIATION_EVIDENCE_INVALID` | 409 | unsupported source or mismatched entity |
+| `RECONCILIATION_EVIDENCE_DUPLICATE` | 409 | Finance source id already linked |
+| `RECONCILIATION_SOURCE_NOT_MATCHABLE` | 409 | summary/account used as order evidence |
+| `RECONCILIATION_NOT_VERIFIABLE` | 409 | missing evidence/blocking discrepancy/wrong state |
+| `RECONCILIATION_STATE_INVALID` | 409 | action invalid in the current state |
+
+No endpoint writes a journal, invoice, payment or Finance record. Full domain
+and acceptance evidence: `docs/STAGE5D_RECONCILIATION.md`.
 

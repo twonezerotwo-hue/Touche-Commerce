@@ -1170,3 +1170,85 @@ views, and confirms cross-tenant refusal and unchanged Finance hashes. Result:
 `ISOLATED_HTTP_VERIFIED`. The live Finance application was never started and
 the live database/workbook hashes remained unchanged.
 
+---
+
+## 24. Stage 5D — evidence-based financial reconciliation
+
+### 24.1 Separation of facts
+
+Commerce commercial execution and Finance accounting remain separate:
+
+```text
+accepted sales order ─┐
+committed purchase ───┼─ Commerce facts (DOCUMENTED / COMMITTED)
+estimated landed ─────┤
+recorded costs ───────┘
+                        explicit evidence link (operator decision)
+Finance aging source id ┘─ Finance observation (FINANCE_OBSERVED)
+                        ↓
+                  human review
+                        ↓
+                 VERIFIED evidence — not an accounting entry
+```
+
+No company-wide Finance balance is attributed to an order and no transaction is
+matched by a counterparty name. Only Finance's exposed aging source ids are
+eligible for evidence links.
+
+### 24.2 Persistence and state
+
+Migration `0009_reconciliation` creates `finance_reconciliation_run`,
+`finance_source_reference`, `finance_reconciliation_evidence`,
+`finance_discrepancy` and `finance_reconciliation_review`. All are tenant-owned,
+RLS-protected, composite-FK linked and have no runtime `DELETE` grant. Evidence
+is append-only except the reviewer verification columns.
+
+States are `INCOMPLETE`, `UNMATCHED`, `POTENTIAL_MATCH`, `MATCHED_EVIDENCE`,
+`VERIFIED`, `DISPUTED`. New runs never start above `UNMATCHED`. Exact evidence on
+a complete run reaches `MATCHED_EVIDENCE`; `VERIFIED` requires an authorised
+`finance.reconcile` reviewer who is not the creator, no open blocking
+discrepancy, and a sales-order evidence link. A mismatch stays
+`POTENTIAL_MATCH`. A verified run is immutable; later source data needs a new
+run.
+
+### 24.3 Calculations and currencies
+
+The pure engine (`reconciliation_calculations.py`) keeps accepted value,
+commitments, estimate, recorded costs and margin separate. `None` means
+unavailable, never zero. `TRY`/`TL` is a label alias; no amount conversion or
+cross-currency aggregation exists. Mixed currencies create a blocking
+`CURRENCY_MISMATCH`. Document-supported margin and actual profit are deliberately
+`UNAVAILABLE`.
+
+Discrepancies are deterministic (`MISSING_EVIDENCE`,
+`MISSING_FINANCE_REFERENCE`, `AMOUNT_MISMATCH`, `CURRENCY_MISMATCH`,
+`DUPLICATE_REFERENCE`, `INCOMPLETE_COSTS`, `UNMATCHED_FINANCE_ITEM`,
+`SOURCE_STALE`, `COMPANY_MAPPING_INVALID`, `MANUAL_REVIEW_REQUIRED`). A missing
+order-level Finance reference is described as an unavailable capability, not
+proof that an invoice is missing.
+
+### 24.4 API and UI
+
+Ten versioned endpoints under `/api/v1/finance` cover runs, evidence, reviews,
+discrepancies and order finance. Reads need `company.view`, operational creation
+needs `trade.write`, and review/resolution need the separate
+`finance.reconcile`. CSRF, `Idempotency-Key`, `If-Match`, ETag, audit and
+`no-store` apply. No route writes to Finance.
+
+The premium UI adds `/finance/reconciliation`,
+`/finance/reconciliation/[id]`, `/finance/discrepancies` and
+`/finance/orders/[id]`. Unavailable metrics are labelled “Not available”;
+invoice, payment, recognized revenue and actual profit are never fabricated.
+
+### 24.5 Verification
+
+Backend `379 passed`; frontend `102 passed / 18 files`; ruff, mypy, ESLint,
+Prettier, typecheck and `next build` pass. The extended isolated harness builds a
+real accepted order through the Stage 3/4 HTTP APIs, snapshots Finance, links
+`F-USD-AR-1` for exactly `250.00`, refuses an unauthorized review, verifies with
+an approver, proves an unlinked run cannot verify, renders all four screens,
+rejects cross-tenant access and leaves the Finance hashes unchanged. Level:
+`ISOLATED_HTTP_VERIFIED`; live Finance was not started.
+
+See `docs/STAGE5D_RECONCILIATION.md` for the complete model and limitations.
+

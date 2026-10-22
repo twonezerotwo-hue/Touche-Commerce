@@ -1548,3 +1548,118 @@ Finance mapping must be configured first.
 * The documentation commit containing this section.
 * No merge, push, deployment or Finance repository change was performed.
 
+---
+
+## 25. Stage 5D — evidence-based financial reconciliation
+
+### 25.1 Scope and boundary
+
+Stage 5D adds a Commerce-owned reconciliation evidence layer only. Finance remains
+the source of accounting truth. No Finance write, journal, invoice, payment or
+settlement was introduced.
+
+**Branch:** `stage-5d`, from verified Stage 5C HEAD `3e35ef1`.
+**Migration:** `0009_reconciliation`.
+**Finance revision verified:** `feat/finance-integration-v1` at `107c30e`.
+
+### 25.2 Delivered
+
+* Five tenant-scoped tables: run, Finance source reference, evidence link,
+  discrepancy and append-only review. RLS, composite FKs, no runtime DELETE,
+  evidence update limited to reviewer verification columns.
+* Decimal analysis of accepted value, commitments, estimated landed cost,
+  recorded operational costs, variance and commitment-based margin. Mixed
+  currencies are never added; `TRY`/`TL` is an alias only.
+* Deterministic discrepancies and explicit unavailable states. No actual profit
+  or document-supported margin is fabricated.
+* `finance.reconcile` permission granted to approver only; admin never inherits
+  it; creator cannot self-review.
+* Ten API endpoints with CSRF, idempotency, If-Match/ETag, audit, idempotent
+  replay and `no-store`.
+* Premium `/finance/reconciliation`, `/finance/reconciliation/[id]`,
+  `/finance/discrepancies` and `/finance/orders/[id]` screens with real backend
+  APIs and generated OpenAPI types.
+* Extended isolated HTTP verifier that creates a real accepted order via Stage
+  3/4 APIs.
+
+### 25.3 Automated results
+
+| Command | Result |
+| ------- | ------ |
+| `pytest` (backend) | **379 passed**, 0 failed, 0 skipped |
+| new pure calculation tests | **12 passed** |
+| new reconciliation API tests | **12 passed** |
+| `ruff check app tests` | passed |
+| `mypy app` | passed |
+| `npm test -- --run` | **102 passed / 18 files** |
+| `npm run lint` | passed |
+| `npm run typecheck` | passed |
+| `npm run format:check` | passed |
+| `npm run build` | passed; all four new routes present |
+| OpenAPI regeneration | passed after commit; no drift |
+| Alembic migration | `0009` applied; new tables have no model drift |
+
+The inherited `alembic check` still reports the pre-existing unrelated drift
+(`public.alembic_version`, comments on three Stage 1 tenant tables).
+
+### 25.4 Isolated HTTP acceptance
+
+`backend/scripts/verify_finance_http.py` was extended to seed a synthetic USD
+receivable `F-USD-AR-1` for `250.00`, create a complete Commerce order through
+Stage 3/4 HTTP endpoints, and exercise reconciliation through real Commerce and
+Next.js HTTP with synthetic Finance on `127.0.0.1:8877`.
+
+```text
+verification                 ISOLATED_HTTP_VERIFIED
+order_total                  250.00
+finance_source               F-USD-AR-1
+finance_source_amount        250.00
+run_status                   VERIFIED
+evidence_status              VERIFIED
+review_decision              CONFIRM
+unauthorized_review          FORBIDDEN
+unlinked_run_cannot_verify   true
+frontend_routes              reconciliation, reconciliation_run,
+                             discrepancies, order_finance
+cross_tenant_isolated        true
+write_route_rejected         405
+credentials_in_responses     false
+finance_db_unchanged        true
+finance_workbook_unchanged  true
+```
+
+The live Finance application was **not** started. Live DB/workbook hashes remain:
+
+```text
+C:\ai-excel\veri\finans.db
+C9BA0EB7EC82F1DE50105F1E0019CA695B48843319B7E1D2184296632EF52BE1
+
+C:\Users\twone\OneDrive\Desktop\Touche\Touche Holding - AI Ready Finans Yönetim Sistemi.xlsx
+E03740DA624522EA9AC4869D3ADDDFB008C96DC7D2A78759CE760D810B0FA51E
+```
+
+### 25.5 Honest limitations
+
+* Verification is isolated, not live.
+* Finance has no structured invoice/payment/counterparty/project/report source;
+  document-supported margin and actual profit stay unavailable.
+* One Finance company per Commerce company.
+* Remote/TLS/mTLS, Windows ACL proof and HSM/KMS remain unverified.
+* No production mapping or live Finance startup was performed.
+* No automatic accounting entry exists in Commerce.
+* Migration downgrade after Stage 5D audit rows exist requires explicit audit
+  cleanup, consistent with the append-only audit policy.
+
+### 25.6 Git
+
+* Branch `stage-5d`, created from the verified Stage 5C HEAD `3e35ef1`.
+* `0e9a1af` — `feat(stage5d): add evidence reconciliation backend`
+  (migration, models, pure calculations, service, API, tests, extended isolated
+  verifier, generated OpenAPI/types).
+* `0ce2658` — `feat(stage5d): add premium reconciliation workspace`
+  (overview/run/discrepancy/order screens, components, client, navigation and
+  frontend tests).
+* The documentation commit containing this section.
+* Nothing was pushed, merged or deployed; the Finance repository was not
+  modified.
+

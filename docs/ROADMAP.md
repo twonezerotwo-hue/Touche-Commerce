@@ -268,14 +268,33 @@ cross-tenant refusal and unchanged Finance hashes. See
 writes, draft commercial events, AI Trade Director, Gmail/WhatsApp automation and
 E-YAY integration. Finance remains the financial source of truth.
 
-### Stage 5D — financial reconciliation (next safe milestone)
+### Stage 5D — evidence-based financial reconciliation ✅ (implemented 2026-10-22)
 
-Reconcile accepted Commerce orders, purchase orders, shipments and logistics
-costs against Finance ledger facts with **read-only** evidence:
-deterministic matching keys, variance reports, exception queue, human approval
-and an append-only reconciliation record. No automatic journal, invoice or
-payment writes. It may begin only after the Stage 5C mapping is configured for a
-real Commerce company and Finance's read-only contract remains green.
+**Delivered:** migration `0009_reconciliation` with tenant-scoped runs, Finance
+source references, explicit evidence links, deterministic discrepancies and
+append-only reviews; Decimal analysis of accepted value, purchase commitments,
+estimated landed cost, recorded operational costs, variance and
+commitment-based margin; `finance.reconcile` reviewer permission; ten versioned
+reconciliation/evidence/review/order-finance endpoints; and premium
+`/finance/reconciliation`, `/finance/discrepancies` and
+`/finance/orders/[id]` screens.
+
+**Verification:** backend `379 passed`, frontend `102 passed` across 18 files,
+isolated HTTP `ISOLATED_HTTP_VERIFIED` with a real accepted Stage 3/4 order,
+exact USD evidence `F-USD-AR-1`, unauthorized-review refusal, reviewer
+verification, unlinked-run refusal, cross-tenant isolation and unchanged Finance
+hashes. See `docs/STAGE5D_RECONCILIATION.md`.
+
+**Explicitly not implemented:** Finance writes, invoices, payments, bank
+transfers, automatic journals, AI Trade Director, Gmail/WhatsApp automation and
+E-YAY integration.
+
+### Stage 5E — next safe milestone (not started)
+
+Any further work must remain read-only unless separately authorised. A live
+Finance read verification requires an approved startup plan that accepts or
+isolates Finance's startup-recovery writes. Remote deployment needs a TLS reverse
+proxy, Windows ACL review and key distribution (new ADR).
 
 ---
 

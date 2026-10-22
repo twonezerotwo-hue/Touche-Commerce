@@ -26,7 +26,7 @@ a private trade-document register.
 | API (`127.0.0.1:8000`) incl. CRM, catalogue, deals, dashboard | ✅ verified |
 | Sourcing API + screens (RFQs, supplier quotes, pricing, sales quotes, FX) | ✅ verified at API/integration level |
 | Execution API + screens (orders, purchase orders, shipments, documents) | ✅ verified at API/integration/SSR level |
-| PostgreSQL 17 + migrations `0001_foundation` … `0007_purchase_order_dispatch` | ✅ verified |
+| PostgreSQL 17 + migrations `0001_foundation` … `0009_reconciliation` | ✅ verified |
 | `/api/v1/health/live` · `/api/v1/health/ready` | ✅ 200 |
 | Backend tests (unit + live DB incl. RLS matrix) | ✅ 317 passed |
 | Frontend tests / lint / typecheck / build | ✅ 88 passed, clean |
@@ -503,4 +503,45 @@ started. Full evidence and limitations are in
 **Not implemented:** invoices, payments, bank transfers, ledger/journal writes,
 automatic reconciliation, AI Trade Director, Gmail/WhatsApp automation and
 E-YAY integration.
+
+---
+
+## Stage 5D acceptance — evidence-based financial reconciliation
+
+**Commerce migration:** `0009_reconciliation`.
+
+Stage 5D keeps Finance read-only and records **evidence**, not accounting entries.
+It snapshots one accepted order against Finance's supported per-currency summary
+and aging surface, stores stable Finance source ids, requires explicit operator
+links, produces deterministic discrepancies and permits `VERIFIED` only through a
+separate `finance.reconcile` reviewer.
+
+New screens:
+
+```text
+GET /finance/reconciliation
+GET /finance/reconciliation/[id]
+GET /finance/discrepancies
+GET /finance/orders/[id]
+```
+
+New API surface:
+
+```text
+GET/POST /api/v1/finance/reconciliation[/runs]
+GET/POST /api/v1/finance/evidence-links
+GET/POST /api/v1/finance/discrepancies[/{id}/resolve]
+POST     /api/v1/finance/reviews
+GET      /api/v1/finance/orders/{id}
+```
+
+**Verification:** backend `379 passed`; frontend `102 passed` across 18 files;
+`ISOLATED_HTTP_VERIFIED` with a real accepted order, exact USD evidence,
+unauthorized-review refusal, reviewer verification, unlinked-run refusal,
+cross-tenant isolation, all four screens and unchanged Finance hashes. See
+`docs/STAGE5D_RECONCILIATION.md`.
+
+**Not implemented:** Finance writes, invoices, payments, bank transfers,
+journals, actual-profit calculation, document-supported margin, AI Trade
+Director, Gmail/WhatsApp automation and E-YAY integration.
 
