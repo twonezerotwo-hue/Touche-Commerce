@@ -1,9 +1,9 @@
 # TOUCHE COMMERCE — Progress
 
 **Last updated:** 2026-10-22 (local)
-**Current stage:** Stage 1B — Trade workspace (CRM, catalogue, deals)
-**Current milestone:** M1B.1 — verified end-to-end with a real trader and administrator
-**Stage 1C / Stage 2:** NOT_STARTED (must not begin without an explicit instruction)
+**Current stage:** Stage 4 — Sales orders, procurement, logistics and trade documents (implemented and verified locally)
+**Current milestone:** 4F — stabilisation passed (284 backend tests, 88 frontend tests, 45/45 live checks)
+**Stage 5:** NOT_STARTED (must not begin without an explicit instruction)
 
 Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
 `FAILED`. Nothing is marked `PASSED` without an executed command in this file.
@@ -35,7 +35,9 @@ Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
 | Cline / DeepSeek model check | BLOCKED | no provider credentials available in this environment |
 | Authentication, sessions, RLS policies, audit | PASSED | Stage 1A — §11–§18 |
 | CRM, catalogue, deal state machine, dashboard | PASSED | Stage 1B — §20 |
-| Business modules beyond Stage 1B / integrations / AI agents | NOT_STARTED | Stage 2+ |
+| Sourcing, landed cost, FX snapshots, sales quotes | PASSED | Stage 3 — §21 |
+| Sales orders, procurement, shipments, trade documents | PASSED | Stage 4 — §22 |
+| Accounting, payments, external integrations, AI assistants | NOT_STARTED | Stage 5+ (explicitly excluded from Stage 4) |
 
 > This table records the **Stage 0** baseline. Stage 1A results are in
 > §11–§19 below; the Stage 0 numbers were re-verified as a regression during
@@ -1051,3 +1053,212 @@ map, `DECISIONS.md` ADR-028..031, `ROADMAP.md` Stage 3 status.
 * `scripts\verify-sourcing.ps1` needs three pre-created local accounts (trader,
   approver, outsider) and their passwords in the process environment. It drives
   HTTP and server-side rendering; it is not a browser automation suite.
+
+---
+
+## 22. Stage 4 - sales orders, procurement, logistics and trade documents (executed 2026-10-22)
+
+### 22.1 Scope delivered
+
+| Part | Delivered |
+| ---- | --------- |
+| 4A Sales orders | `customer_acceptance_evidence`, `sales_order`, `sales_order_item`, `sales_order_transition`, `order_amendment`; atomic conversion service; idempotent replay; immutable accepted-terms snapshot; cancellation/amendment history |
+| 4B Procurement | `purchase_order` (+ items, transitions); optional for brokerage; approval separated from operational transitions; `RECORDED_SENT` and `SUPPLIER_CONFIRMED` evidence gates |
+| 4C Logistics | `shipment` (+ items, events, references, costs); partial allocation with decimal quantities; over-allocation refusal; evidence-gated milestones; derived fulfilment; cost provenance |
+| 4D Documents | `trade_document`; private local storage adapter; streaming upload limits; SHA-256; versioning; archive-not-delete; two-layer authorisation; DRAFT invoice/packing-list previews |
+| 4E Frontend | `/orders`, `/orders/[id]`, `/purchase-orders`, `/purchase-orders/[id]`, `/shipments`, `/shipments/new`, `/shipments/[id]`, `/documents`; deal conversion action; dashboard operational metrics; execution navigation |
+
+### 22.2 Milestones
+
+| Milestone | Status | Evidence |
+| --------- | ------ | -------- |
+| 4A Conversion gate, atomic WON, idempotency | PASSED | `tests/test_operations_api.py` (`TestOrderConversionGate`, `TestOrderConversion`), live checks 6-16 |
+| 4A Order lifecycle and snapshot | PASSED | cancellation/amendment tests, snapshot test after quote revision and catalogue change |
+| 4B Procurement and evidence | PASSED | `TestProcurement`, live checks 17-22 |
+| 4C Partial shipments and fulfilment | PASSED | `TestShipments` (4 tests), live checks 23-31 |
+| 4D Documents and previews | PASSED | `TestDocuments` (4 tests), live checks 32-42 |
+| 4E Frontend and dashboard | PASSED | 17 new vitest tests, `next build`, 8 SSR pages in the live run |
+| 4F Stabilisation | PASSED | 284 backend tests, 88 frontend tests, ruff/mypy/eslint/prettier/tsc clean, drift check clean |
+
+### 22.3 Database changes
+
+* `0005_orders` (revises `0004_sourcing`) adds **14** tables:
+  `customer_acceptance_evidence`, `sales_order`, `sales_order_item`,
+  `sales_order_transition`, `order_amendment`, `purchase_order`,
+  `purchase_order_item`, `purchase_order_transition`, `shipment`,
+  `shipment_item`, `shipment_event`, `shipment_reference`, `shipment_cost`,
+  `trade_document`.
+  Every child row uses a composite `(id, company_id)` foreign key; every table
+  has RLS enabled; history tables (`*_transition`, `order_amendment`,
+  `customer_acceptance_evidence`, `shipment_event`) are append-only for the
+  runtime role. The audit-action CHECK is widened; no existing table or row is
+  otherwise altered.
+* `0006_shipment_dispatch` drops `ck_shipment_dispatch_order`. The original
+  rule required `actual_dispatch_at >= planned_dispatch_at`, which rejects a
+  legitimate early dispatch (and surfaced as HTTP 500). Arrival and delivery
+  ordering constraints remain.
+* `0007_purchase_order_dispatch` replaces `ck_purchase_order_dispatched_at`.
+  The original rule tied `dispatched_at IS NOT NULL` exactly to
+  `status = 'RECORDED_SENT'`, so the next legitimate transition
+  (`SUPPLIER_CONFIRMED`) failed. The corrected rule only forbids a dispatch
+  time before the order was sent.
+* Applied in place to the development database: `0005_orders` ->
+  `0006_shipment_dispatch` -> `0007_purchase_order_dispatch`; current head is
+  `0007_purchase_order_dispatch`. No table or row was dropped and no database
+  was reset.
+* `alembic check` still reports only the documented pre-existing drift:
+  `remove_table alembic_version` plus three missing table comments on
+  `company_setting_entry`, `company_settings` and `idempotency_record` (all
+  Stage 1 tables). **No Stage 4 drift is reported.**
+
+### 22.4 API endpoints (all under `/api/v1`)
+
+| Area | Endpoints |
+| ---- | --------- |
+| Conversion and acceptance | `POST /deals/{id}/customer-acceptance`, `GET /deals/{id}/customer-acceptance`, `POST /deals/{id}/sales-order` (Idempotency-Key required) |
+| Sales orders | `GET /sales-orders`, `GET /sales-orders/{id}`, `GET /sales-orders/{id}/fulfilment`, `POST /sales-orders/{id}/transitions`, `POST /sales-orders/{id}/amendments` |
+| Procurement | `GET /purchase-orders`, `POST /purchase-orders`, `GET /purchase-orders/{id}`, `POST /purchase-orders/{id}/transitions` |
+| Shipments | `GET /shipments`, `POST /shipments`, `GET /shipments/{id}`, `POST /shipments/{id}/transitions`, `POST /shipments/{id}/events`, `POST /shipments/{id}/costs`, `POST /shipments/{id}/references` |
+| Documents | `GET /documents`, `POST /documents` (multipart), `GET /documents/{id}`, `GET /documents/{id}/download`, `GET /documents/{id}/history`, `POST /documents/{id}/archive`, `POST /documents/{id}/verification`, `GET /sales-orders/{id}/documents/preview` |
+| Operations | `GET /operations/summary` |
+
+Total documented operations: **62 OpenAPI paths** (was 39 at Stage 3).
+
+### 22.5 Frontend
+
+New pages: `/orders`, `/orders/[id]`, `/purchase-orders`,
+`/purchase-orders/[id]`, `/shipments`, `/shipments/new`, `/shipments/[id]`,
+`/documents`. Modified: the Command Center (operational counters), the deal
+detail page (customer-acceptance + conversion panel) and the navigation
+(Execution group; Logistics moved out of the roadmap).
+
+New components live in `frontend/src/components/operations/`: status badge,
+order conversion, order actions, purchase-order actions, shipment planning,
+shipment milestones, extra shipment records, document upload, document actions.
+All browser mutations use the same conventions as Stage 3: same-origin proxy,
+CSRF header, a new `Idempotency-Key` per action and `If-Match` for updates.
+
+### 22.6 Verification and exact counts
+
+| Gate | Result |
+| ---- | ------ |
+| `pytest` (backend, live PostgreSQL) | **284 passed** (236 Stage 0-3 + 19 state-machine unit + 29 Stage 4 integration) |
+| `ruff check app tests` | clean |
+| `mypy app` | clean (85 source files) |
+| `mypy app tests` | 98 pre-existing test-only errors remain (`test_sourcing_api.py` 88, `test_pricing_engine.py` 10); no new errors in Stage 4 tests |
+| `alembic current` / `alembic upgrade head` | `0007_purchase_order_dispatch` |
+| `alembic check` | only the documented pre-existing drift; no Stage 4 drift |
+| `vitest` | **88 passed** in 16 files (71 Stage 1-3 + 17 Stage 4) |
+| `eslint .` | clean |
+| `prettier --check .` | clean |
+| `tsc --noEmit` | clean |
+| `next build` | passed; 30 routes including the 8 new pages |
+| `generate-api-types.ps1 -Check` | "generated API types are up to date" (62 paths) |
+
+### 22.7 Live end-to-end verification
+
+`scripts\verify-operations.ps1` -> `backend/scripts/verify_operations_workflow.py`
+drove the running API (uvicorn, real PostgreSQL) and the running Next.js server
+with three isolated development accounts:
+
+* `stage4.trader@touche.example` (trader) and `stage4.approver@touche.example`
+  (approver) in **Stage 4 Trading**;
+* `stage4.outsider@touche.example` (viewer) in **Stage 4 Outsider**.
+
+Passwords were generated per run, passed through the process environment and
+never written to this repository.
+
+Result: **45/45 checks passed**, covering all 26 acceptance steps:
+permissions; deal/quote approval through the real Stage 3 flow; conversion
+refusal without acceptance; `TRANSITION_DISABLED` for a direct WON; acceptance
+with evidence; atomic order + WON; frozen snapshot; idempotent replay; a
+different key refused with `ALREADY_WON`; purchase-order draft, approval
+segregation, dispatch evidence and supplier confirmation; a 40-of-100 partial
+shipment that does **not** fulfil the order; over-allocation refusal; evidence
+gates at dispatch/arrival/delivery; logistics cost provenance; a second
+shipment that completes fulfilment; private document upload, checksum,
+authorised download, cross-tenant 404, foreign-link 404; DRAFT invoice and
+packing-list previews; real operational counters; no invoice/payment endpoint;
+and SSR rendering of all eight new pages with real data.
+
+This is an HTTP + server-render verification. **No browser automation was
+executed**, so no claim is made about interactive browser behaviour beyond the
+component tests.
+
+### 22.8 Issues found and fixed during Stage 4
+
+| Issue | Resolution |
+| ----- | ---------- |
+| `ck_shipment_dispatch_order` rejected an early dispatch with HTTP 500 | Migration `0006_shipment_dispatch` removes the plan-vs-actual ordering rule; arrival/delivery ordering stay |
+| `ck_purchase_order_dispatched_at` made `SUPPLIER_CONFIRMED` impossible after a recorded send | Migration `0007_purchase_order_dispatch`; only a dispatch *before* sending is forbidden |
+| Purchase-order approval was unreachable: the route required `trade.write`, which approvers do not hold | The route now requires `finance.approve` for `APPROVED` and `trade.write` for every other transition; the service still refuses self-approval |
+| Document download returned 404 because the service queried under RLS without a tenant context | `download`, `archive` and `set_verification` now call `apply_company_context` |
+| Invoice/packing-list preview returned 404 because the seller join is protected by a membership policy | `preview` also binds the actor (`apply_actor_context`), with the actor id supplied by the route |
+| `python-multipart` was not installed, so the multipart route could not start | Added to `backend/pyproject.toml` and installed in the local virtualenv |
+| A test fixture used the ACL-restricted pytest temp directory and failed at setup | The Stage 4 tests create their storage under the ignored `backend/var` tree instead |
+| The live verifier initially assumed a fresh order register | It now scopes the "no order yet" check to the deal under test |
+
+### 22.9 Files changed
+
+New backend: `app/db/models/orders.py`,
+`alembic/versions/20261022_0005_orders.py`,
+`alembic/versions/20261022_0006_shipment_dispatch.py`,
+`alembic/versions/20261022_0007_purchase_order_dispatch.py`,
+`app/services/{order_state,sales_orders,procurement,shipments,documents,operations}.py`,
+`app/api/v1/schemas/operations.py`, `app/api/v1/presenters_operations.py`,
+`app/api/v1/routes/{orders,purchase_orders,shipments,documents}.py`,
+`tests/{test_operations_api,test_operations_state}.py`,
+`scripts/verify_operations_workflow.py`.
+
+Modified backend: `app/api/v1/router.py`, `app/core/{config,errors}.py`,
+`app/db/models/{__init__,audit}.py`, `pyproject.toml`.
+
+New frontend: `src/lib/operations/{types,format,client}.ts` and
+`format.test.ts`, `src/components/operations/*` (8 components + 2 tests),
+`src/app/(app)/{orders,orders/[id],purchase-orders,purchase-orders/[id],
+shipments,shipments/new,shipments/[id],documents}/page.tsx`.
+
+Modified frontend: `src/app/(app)/page.tsx`,
+`src/app/(app)/deals/[id]/page.tsx`, `src/lib/navigation.ts`,
+`openapi/openapi.json`, `src/lib/api/schema.d.ts`.
+
+Tooling and docs: `scripts/verify-operations.ps1`, `.gitignore`, this section,
+`ARCHITECTURE.md` 21, `API_CONTRACTS.md` 7C, `DECISIONS.md` ADR-032..037,
+`ROADMAP.md`, `README.md`.
+
+### 22.10 Git
+
+* Branch `stage-4`, created from the verified `stage-3` HEAD (`1007571`).
+* `4ef39cd` - `feat(stage4): sales orders, procurement, shipments and trade documents`
+* `070b332` - `feat(stage4): execution workspace for orders, procurement, shipments and documents`
+* Documentation commit: the commit containing this section.
+* No remote is configured; nothing was pushed, merged or reset.
+
+### 22.11 Known limitations and outstanding controls
+
+* **No malware scanning.** Uploads are type-checked, size-limited, hashed and
+  stored privately, but a virus/AI content scanner is a remaining control.
+* **No external carrier integration.** Tracking provenance is `MANUAL` or
+  `DOCUMENT_EVIDENCE` only; `VERIFIED_EXTERNAL` is refused. No live container
+  map or carrier feed exists, and none is displayed.
+* **No accounting.** Closing an order is an administrative milestone; no
+  revenue, invoice, payment or ledger entry is posted anywhere. `/invoices` and
+  `/payments` do not exist.
+* **No automatic messaging.** Recording a purchase-order dispatch is evidence
+  that a human sent it elsewhere; TOUCHE sends no email or WhatsApp.
+* **Local document storage only.** The adapter is private and
+  traversal-resistant but single-node; object storage and signed URLs would be
+  a deployment change (ADR-037).
+* **Cancellation does not unwind shipments.** Cancelling an order is recorded
+  with a reason and leaves the accepted snapshot and WON history intact; it does
+  not automatically cancel live shipments or reverse allocations.
+* **Partial amendments are conservative.** A line quantity cannot be reduced
+  below what shipments already allocate.
+* **Frontend verification is component + SSR level.** No browser automation
+  suite runs in this repository yet.
+* **Pre-existing test typing debt.** `mypy app` is clean; `mypy app tests`
+  still reports 98 errors confined to the Stage 3 test modules.
+
+
+
+

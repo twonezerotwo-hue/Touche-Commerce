@@ -169,23 +169,62 @@ workflow, segregation of duties and immutable revisions.
 **Exit criteria:** quote → order traceability with immutable revisions; every
 state change audited; list endpoints paginated and permission-filtered.
 
-Traceability now holds from RFQ through supplier quote and pricing scenario to the
-sales quote; the sales *order* is the next stage, so a won deal still cannot claim
-an order that does not exist.
+Traceability now holds end to end: RFQ → supplier quote → pricing scenario →
+sales quote revision → customer acceptance → sales order → purchase order →
+shipment → delivery evidence → trade documents.
 
-**Remaining for this stage:** shipments/milestones, price lists, document
-generation, contact-level CRM.
+**Remaining from the original Stage 3 list that Stage 4 absorbed:** shipments
+and milestones, trade document storage/versions, and honest draft previews —
+delivered in Stage 4 (§22 of PROGRESS.md). Contact-level CRM and price lists
+remain deferred.
 
 
 ---
 
-## Stage 4 — Finance and integrations
+## Stage 4 — Sales orders, procurement, logistics and documents ✅ (implemented and verified locally)
+
+**Status: delivered 2026-10-22.** Evidence is in PROGRESS.md §22.
+
+**Goal:** turn an approved quote and a documented customer acceptance into real
+order execution.
+
+**Delivered:**
+
+* **4A** customer acceptance evidence; the only `WON` path is a single atomic
+  conversion transaction that creates the order and its frozen lines; idempotent
+  replay; `ALREADY_WON`; one initial order per deal enforced in the database;
+  cancellation and amendments preserve the accepted snapshot.
+* **4B** supplier purchase orders that are optional for brokerage, approved with
+  `finance.approve` by a second person, and never treated as sent without a
+  recorded channel, timestamp and external reference; supplier confirmation
+  carries its own evidence.
+* **4C** multiple shipments per order, partial allocation with decimal
+  quantities, over-allocation refusal, evidence-gated dispatch/arrival/delivery,
+  timeline events, references, logistics costs with explicit provenance and
+  fulfilment derived from delivered quantities.
+* **4D** private document storage with server-generated keys, SHA-256, streaming
+  size limits, version history, archive-not-delete, two-layer authorisation, and
+  DRAFT-labelled invoice/packing-list previews.
+* **4E** the eight execution screens, the deal conversion panel, real dashboard
+  counters, execution navigation and OpenAPI-generated types.
+
+**Explicitly out of scope and not implemented:** accounting entries, invoices as
+postings, payments, Touche Finance synchronisation, e-YAY, automated
+email/WhatsApp sending and live carrier tracking.
+
+**Exit criteria:** met — see PROGRESS.md §22.6 (284 backend tests, 88 frontend
+tests, production build) and §22.7 (45/45 live checks). The flow never invents
+a dispatch, arrival or delivery; every one requires recorded evidence.
+
+---
+
+## Stage 5 — Finance and integrations
 
 **Goal:** money movements and the first external systems.
 
-Work: invoices, payments, approvals (`finance.approve`), FX snapshots,
-reconciliation; E-YAY and Touche Finance adapters driven by the outbox; webhook
-receivers with signature verification and idempotent processing.
+Work: invoices, payments, approvals (`finance.approve`), reconciliation; E-YAY
+and Touche Finance adapters driven by the outbox; webhook receivers with
+signature verification and idempotent processing.
 
 **Exit criteria:** no financial posting without the approval permission; every
 conversion stores rate/date/source; duplicate webhooks do not duplicate entries;
@@ -193,7 +232,7 @@ failed deliveries recover from the outbox.
 
 ---
 
-## Stage 5 — AI Office and messaging
+## Stage 6 — AI Office and messaging
 
 **Goal:** assistants that operate strictly inside the rules.
 

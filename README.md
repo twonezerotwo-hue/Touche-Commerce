@@ -1,17 +1,20 @@
 # TOUCHE COMMERCE
 
-Independent, premium international trade management — **Stage 1B: CRM,
-catalogue and a validated deal workspace**.
+Independent, premium international trade management — **Stage 4: sales orders,
+procurement, logistics and trade documents**.
 
 A Next.js 16 web application, a FastAPI service and PostgreSQL 17 with real
 health probes, structured logging, a standard error contract, a typed OpenAPI
 pipeline, Argon2id authentication, server-side sessions, four roles, row level
-security and the first business workflow: counterparties, products, deals with an
-explicit state machine, and a live command center.
+security and the complete quotation-to-delivery chain: deals, RFQs, supplier
+quotes, landed-cost pricing, sales quotes, documented customer acceptance,
+sales orders, supplier purchase orders, partial shipments, delivery evidence and
+a private trade-document register.
 
-> Stage 1B contains **no quotations, sales orders, logistics, finance or AI
-> agents**. `WON` is deliberately disabled until orders exist, and every screen
-> states what is real. Nothing is fabricated.
+> Stage 4 contains **no accounting, payments, external integrations or AI
+> agents**. `WON` happens only when an order is created, dispatch and delivery
+> require recorded evidence, and drafts are labelled DRAFT. Nothing is
+> fabricated.
 
 ---
 
@@ -22,16 +25,18 @@ explicit state machine, and a live command center.
 | Frontend shell + auth UI + trade screens (`localhost:3000`) | ✅ verified |
 | API (`127.0.0.1:8000`) incl. CRM, catalogue, deals, dashboard | ✅ verified |
 | Sourcing API + screens (RFQs, supplier quotes, pricing, sales quotes, FX) | ✅ verified at API/integration level |
-| PostgreSQL 17 + migrations `0001_foundation`, `0002_identity`, `0003_trade`, `0004_sourcing` | ✅ verified |
+| Execution API + screens (orders, purchase orders, shipments, documents) | ✅ verified at API/integration/SSR level |
+| PostgreSQL 17 + migrations `0001_foundation` … `0007_purchase_order_dispatch` | ✅ verified |
 | `/api/v1/health/live` · `/api/v1/health/ready` | ✅ 200 |
-| Backend tests (unit + live DB incl. RLS matrix) | ✅ 236 passed |
-| Frontend tests / lint / typecheck / build | ✅ 71 passed, clean |
+| Backend tests (unit + live DB incl. RLS matrix) | ✅ 284 passed |
+| Frontend tests / lint / typecheck / build | ✅ 88 passed, clean |
 | Live identity verification (`scripts\verify-identity.ps1`) | ✅ 31 checks passed |
 | Live trade workflow (`scripts\verify-trade.ps1`) | ✅ 39 checks passed |
 | Live sourcing workflow (`scripts\verify-sourcing.ps1`) | ✅ 53 checks passed |
+| Live operations workflow (`scripts\verify-operations.ps1`) | ✅ 45 checks passed |
 | Docker Compose path | ⚠️ not executed — Docker is not installed on this workstation |
 | GitHub Actions run | ⚠️ workflow authored, no remote run performed |
-| Browser automation | ⚠️ unavailable — verified at HTTP/integration level only |
+| Browser automation | ⚠️ unavailable — verified at HTTP/integration/SSR level only |
 
 Details, commands and raw results: **`docs/PROGRESS.md`**.
 
@@ -241,6 +246,8 @@ scripts\verify.ps1                    # backend lint/typecheck/tests + frontend 
 scripts\verify.ps1 -SkipBuild         # faster inner loop
 scripts\verify-identity.ps1 -Email you@company.example   # live auth/session/CSRF/proxy checks
 scripts\verify-trade.ps1              # live 15-step CRM/catalogue/deal workflow
+scripts\verify-sourcing.ps1           # live RFQ → quote → pricing → sales-quote workflow
+scripts\verify-operations.ps1         # live acceptance → order → PO → shipment → document workflow
 scripts\db\setup-test-database.ps1    # (re)create the isolated integration database
 backend\.venv\Scripts\python -m pytest -m integration   # live database only
 ```
@@ -252,6 +259,16 @@ the environment (never on the command line):
 $env:TOUCHE_VERIFY_TRADER_PASSWORD = '…'
 $env:TOUCHE_VERIFY_ADMIN_PASSWORD  = '…'
 scripts\verify-trade.ps1
+```
+
+`verify-operations.ps1` needs three accounts (trader + approver in one company,
+viewer in another) and their passwords in the environment:
+
+```powershell
+$env:TOUCHE_VERIFY_STAGE4_TRADER_PASSWORD   = '…'
+$env:TOUCHE_VERIFY_STAGE4_APPROVER_PASSWORD = '…'
+$env:TOUCHE_VERIFY_STAGE4_OUTSIDER_PASSWORD = '…'
+scripts\verify-operations.ps1
 ```
 
 Optional, explicitly requested demo data (local/test/ci only):
@@ -300,8 +317,8 @@ database. A development database cannot be truncated by a test run.
 
 * `docs/ARCHITECTURE.md` — system structure, data model, tenancy, RLS, sessions.
 * `docs/API_CONTRACTS.md` — envelopes, auth/session contracts, error codes.
-* `docs/DECISIONS.md` — 28 binding ADRs with verification evidence.
-* `docs/ROADMAP.md` — Stage 0 → Stage 5 with exit criteria.
+* `docs/DECISIONS.md` — 37 binding ADRs with verification evidence.
+* `docs/ROADMAP.md` — Stage 0 → Stage 6 with exit criteria.
 * `docs/PROGRESS.md` — executed commands, real test results, blockers, next task.
 
 ---
@@ -349,7 +366,9 @@ See `docs/PROGRESS.md` §11.
 | 14 | All earlier tests still pass | PASS (backend 191, frontend 60) |
 | 15 | Documentation reports actual results | PASS (`docs/PROGRESS.md` §20) |
 
-Stage 2 has **not** been started.
+Stage 2 (dashboard expansion) and Stage 3 (sourcing, pricing and sales quotes)
+are delivered. The sales *order* was deliberately deferred to Stage 4, so a won
+deal could not claim an order that did not exist.
 
 
 ## Stage 3 acceptance
@@ -375,7 +394,35 @@ Stage 2 has **not** been started.
 | 17 | All earlier tests still pass | PASS (backend 236, frontend 71) |
 | 18 | Documentation reports actual results | PASS (`docs/PROGRESS.md` §21) |
 
-Stage 3 is **partially** delivered: sourcing, pricing and sales quotes are in place;
-shipments, price lists and document generation remain. Stage 4 has **not** started.
+Stage 3 delivered sourcing, pricing and sales quotes. The logistics, shipment and
+document parts of its original list were delivered in Stage 4, together with the
+sales-order aggregate.
+
+---
+
+## Stage 4 acceptance
+
+| # | Criterion | Result |
+| - | --------- | ------ |
+| 1 | Approved quote + documented customer acceptance produce a real order | PASS (acceptance gate + conversion) |
+| 2 | `WON` and order creation are atomic | PASS (one transaction; live check 11-12) |
+| 3 | Duplicate orders are prevented | PASS (unique index, replay, `ALREADY_WON`, concurrency test) |
+| 4 | Accepted commercial terms are preserved | PASS (`accepted_terms` snapshot after quote revision/catalogue change) |
+| 5 | Supplier purchase orders work | PASS (draft → approved → sent → confirmed, with evidence) |
+| 6 | Shipments and partial quantities work | PASS (40/100 delivered, over-allocation refused) |
+| 7 | Delivery events are traceable | PASS (timeline, actor, timestamps, evidence) |
+| 8 | Trade document upload/download is secure | PASS (checksum, size/type limits, tenant + entity authorization) |
+| 9 | Draft invoice/packing-list previews are honest | PASS (`is_draft`, legal notice, no issued claims) |
+| 10 | Tenant isolation remains intact | PASS (RLS + composite FKs + cross-tenant 404s) |
+| 11 | Frontend uses real backend APIs | PASS (8 SSR pages rendered in the live run) |
+| 12 | All previous regressions pass | PASS (284 backend, 88 frontend) |
+| 13 | New tests pass | PASS (48 backend, 17 frontend) |
+| 14 | Production build passes | PASS (`next build`) |
+| 15 | Documentation is current | PASS (`docs/PROGRESS.md` §22) |
+| 16 | No accounting entries are fabricated | PASS (no invoice/payment endpoints or postings) |
+
+Not implemented, by design: accounting ledger and postings, payments, Touche
+Finance synchronisation, e-YAY, automated email/WhatsApp sending, AI agents and
+live carrier tracking. Stage 5 has **not** started.
 
 

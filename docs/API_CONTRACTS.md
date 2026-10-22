@@ -741,7 +741,113 @@ so the approval pair in the database always matches the status.
 
 ---
 
+## 7C. Stage 4 — orders, procurement, logistics and documents
+
+All paths are under `/api/v1`. Reads require `company.view`; mutations require
+`trade.write`; approving a purchase order requires `finance.approve`, and the
+approver must not be the creator. Every mutation is CSRF-protected, takes an
+`Idempotency-Key`, and updates take `If-Match: "v{n}"`.
+
+### 7C.1 Customer acceptance and conversion
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `POST` | `/deals/{deal_id}/customer-acceptance` | Record channel, timestamp, accepted-by name, evidence reference (and optional document id) for the deal's approved revision |
+| `GET` | `/deals/{deal_id}/customer-acceptance` | Acceptance history for the deal |
+| `POST` | `/deals/{deal_id}/sales-order` | **The only WON path.** Requires `sales_quote_id` and either `acceptance_evidence_id` or an inline `customer_acceptance`; `fulfilment_model` is `PURCHASE_RESALE` (default) or `BROKERAGE` |
+
+`POST /deals/{id}/sales-order` requires an `Idempotency-Key`. A replay returns the
+original `201` with `Idempotent-Replay: true`. A payload change under the same key
+is `409 IDEMPOTENCY_CONFLICT`; a new key after the deal is WON is
+`409 ALREADY_WON`. The quote must belong to the deal, be `APPROVED`, and be
+addressed to the deal's counterparty; acceptance must reference that exact
+revision and must not predate the approval.
+
+### 7C.2 Sales orders
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `GET` | `/sales-orders` | Filters: `status`, `customer_id`, `deal_id`, `currency`, `search`, `limit`, `cursor` |
+| `GET` | `/sales-orders/{id}` | Frozen items, `accepted_terms`, transitions, amendments, `allowed_transitions` |
+| `GET` | `/sales-orders/{id}/fulfilment` | Ordered/allocated/delivered/remaining per line plus `completion_ratio` and `fully_delivered` |
+| `POST` | `/sales-orders/{id}/transitions` | `IN_FULFILLMENT`, `FULFILLED` (refused), `CLOSED`, `CANCELLED` (reason required) |
+| `POST` | `/sales-orders/{id}/amendments` | Reasoned change to terms/quantities; the accepted snapshot is never rewritten; a quantity cannot fall below allocated |
+
+### 7C.3 Purchase orders
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `GET` | `/purchase-orders` | Filters: `status`, `sales_order_id`, `supplier_id`, `search` |
+| `POST` | `/purchase-orders` | Draft for a sales order; refused with `PROCUREMENT_NOT_APPLICABLE` for brokerage |
+| `GET` | `/purchase-orders/{id}` | Items, transitions, dispatch and confirmation evidence |
+| `POST` | `/purchase-orders/{id}/transitions` | `APPROVED` (finance.approve + second person), `RECORDED_SENT` (channel + timestamp + reference), `SUPPLIER_CONFIRMED` (supplier reference), `IN_FULFILLMENT`, `RECEIVED`, `CANCELLED` (reason) |
+
+### 7C.4 Shipments
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `GET` | `/shipments` | Filters: `status`, `sales_order_id`, `search`, `limit`, `cursor` |
+| `POST` | `/shipments` | Plan a full or partial shipment; `transport_mode` is SEA/AIR/ROAD/RAIL/MULTIMODAL; quantities are decimal |
+| `GET` | `/shipments/{id}` | Items with delivered quantity, events, references, costs, `is_delayed`, `allowed_transitions` |
+| `POST` | `/shipments/{id}/transitions` | Booked/dispatched/in-transit/arrived/delivered/cancelled with the evidence rules below |
+| `POST` | `/shipments/{id}/events` | `IN_TRANSIT` or `DELAY_RECORDED` movement note (recorded manually or from a document) |
+| `POST` | `/shipments/{id}/costs` | Cost type + `ESTIMATED`/`QUOTED`/`INCURRED`/`DOCUMENTED` + amount/currency/reference |
+| `POST` | `/shipments/{id}/references` | Booking, container, B/L, AWB, CMR or tracking reference with `MANUAL`/`DOCUMENT_EVIDENCE` provenance |
+
+Evidence rules: `DISPATCHED` requires a tracking/booking reference, `ARRIVED`
+requires the actual arrival timestamp, `DELIVERED` requires a delivery evidence
+reference, and `CANCELLED` requires a reason. An ETA is never an arrival.
+`tracking_source` accepts only `MANUAL` or `DOCUMENT_EVIDENCE`;
+`VERIFIED_EXTERNAL` is refused because no carrier integration exists.
+
+### 7C.5 Documents
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `GET` | `/documents` | Filters: `document_type`, `linked_entity_type`, `linked_entity_id`, `status`, `search`; returns the configured `max_upload_bytes` |
+| `POST` | `/documents` | Multipart upload: `document_type`, `linked_entity_type`, `linked_entity_id`, `title`, `file`, optional `supersedes_document_id`, `is_draft` |
+| `GET` | `/documents/{id}` | Metadata (no storage path exposed) |
+| `GET` | `/documents/{id}/download` | Streams the verified bytes with `Content-Disposition: attachment` and `X-Document-SHA256` |
+| `GET` | `/documents/{id}/history` | Every version of the same entity + document type |
+| `POST` | `/documents/{id}/archive` | Controlled archival (no silent delete) |
+| `POST` | `/documents/{id}/verification` | `VERIFIED` or `REJECTED` with an optional note |
+| `GET` | `/sales-orders/{id}/documents/preview` | `kind=commercial_invoice|packing_list`, optional `shipment_id`; always `is_draft: true` |
+
+Uploads are size-limited while streaming (413 `PAYLOAD_TOO_LARGE`), reject
+non-allow-listed types (400 `UNSUPPORTED_CONTENT_TYPE`), verify magic prefixes,
+sanitise filenames and require the linked entity to exist in the active company
+(404 otherwise). A corrupted stored file returns 409
+`DOCUMENT_CHECKSUM_MISMATCH`.
+
+### 7C.6 Operations
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `GET` | `/operations/summary` | Real counts: orders by status, order value by currency, open purchase orders, active/delayed/delivered shipments, active documents, delivered shipments without delivery-confirmation evidence |
+
+### 7C.7 Error behaviour specific to this stage
+
+| Situation | Response |
+| --------- | -------- |
+| Conversion without any acceptance payload | `422 VALIDATION_ERROR` (schema requires one source) |
+| Acceptance id from another deal/company, or unknown | `404 NOT_FOUND` / `400 BAD_REQUEST` (`ACCEPTANCE_NOT_FOUND`) |
+| Acceptance predates approval, or references a different revision | `400 BAD_REQUEST` / `409 CONFLICT` with the reason |
+| Deal already WON, or has an order | `409 ALREADY_WON` |
+| Direct `WON` through the deal transition endpoint | `409 TRANSITION_DISABLED` |
+| Order/PO/shipment transition with a stale `If-Match` | `409 VERSION_CONFLICT` with the current `ETag` |
+| Cancellation without a reason | `422 REASON_REQUIRED` |
+| `FULFILLED` requested directly | `409 INVALID_TRANSITION` |
+| Purchase-order approval by a trader or the creator | `403 FORBIDDEN` |
+| `RECORDED_SENT` without channel/reference | `400 BAD_REQUEST` with per-field details |
+| Shipment above the unallocated quantity, or unit mismatch | `400 BAD_REQUEST` with ordered/allocated/remaining |
+| Brokerage order procurement | `409 CONFLICT` (`PROCUREMENT_NOT_APPLICABLE`) |
+| Upload too large / wrong type / bad link | `413` / `400` / `404` |
+| Cross-tenant document access | `404 NOT_FOUND` |
+| Archived document download | `409 CONFLICT` (`DOCUMENT_ARCHIVED`) |
+
 ## 8. Endpoint map
+
+
 
 | Method | Path | Stage | Status |
 | ------ | ---- | ----- | ------ |
@@ -798,8 +904,34 @@ so the approval pair in the database always matches the status.
 | `GET` | `/api/v1/sales-quotes/{id}/revisions/{revision}` | 3 | Implemented |
 | `GET` | `/api/v1/audit-records` | 2 | Reserved |
 | `GET/POST/DELETE` | `/api/v1/companies/{id}/memberships` | 2 | Reserved |
-| `GET/POST/PATCH` | `/api/v1/sales-orders` | 2 | Reserved |
-| `GET/POST` | `/api/v1/documents` | 2 | Reserved |
+| `POST` | `/api/v1/deals/{id}/customer-acceptance` | 4 | Implemented |
+| `GET` | `/api/v1/deals/{id}/customer-acceptance` | 4 | Implemented |
+| `POST` | `/api/v1/deals/{id}/sales-order` | 4 | Implemented |
+| `GET` | `/api/v1/sales-orders` | 4 | Implemented |
+| `GET` | `/api/v1/sales-orders/{id}` | 4 | Implemented |
+| `GET` | `/api/v1/sales-orders/{id}/fulfilment` | 4 | Implemented |
+| `POST` | `/api/v1/sales-orders/{id}/transitions` | 4 | Implemented |
+| `POST` | `/api/v1/sales-orders/{id}/amendments` | 4 | Implemented |
+| `GET` | `/api/v1/purchase-orders` | 4 | Implemented |
+| `POST` | `/api/v1/purchase-orders` | 4 | Implemented |
+| `GET` | `/api/v1/purchase-orders/{id}` | 4 | Implemented |
+| `POST` | `/api/v1/purchase-orders/{id}/transitions` | 4 | Implemented |
+| `GET` | `/api/v1/shipments` | 4 | Implemented |
+| `POST` | `/api/v1/shipments` | 4 | Implemented |
+| `GET` | `/api/v1/shipments/{id}` | 4 | Implemented |
+| `POST` | `/api/v1/shipments/{id}/transitions` | 4 | Implemented |
+| `POST` | `/api/v1/shipments/{id}/events` | 4 | Implemented |
+| `POST` | `/api/v1/shipments/{id}/costs` | 4 | Implemented |
+| `POST` | `/api/v1/shipments/{id}/references` | 4 | Implemented |
+| `GET` | `/api/v1/documents` | 4 | Implemented |
+| `POST` | `/api/v1/documents` | 4 | Implemented |
+| `GET` | `/api/v1/documents/{id}` | 4 | Implemented |
+| `GET` | `/api/v1/documents/{id}/download` | 4 | Implemented |
+| `GET` | `/api/v1/documents/{id}/history` | 4 | Implemented |
+| `POST` | `/api/v1/documents/{id}/archive` | 4 | Implemented |
+| `POST` | `/api/v1/documents/{id}/verification` | 4 | Implemented |
+| `GET` | `/api/v1/sales-orders/{id}/documents/preview` | 4 | Implemented |
+| `GET` | `/api/v1/operations/summary` | 4 | Implemented |
 
 Reserved endpoints do not exist in the running service; requesting them returns
 `404 NOT_FOUND`. They are listed so the frontend and future integrations share a

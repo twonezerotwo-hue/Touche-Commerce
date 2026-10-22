@@ -819,3 +819,157 @@ UI hides actions the session cannot perform, and the API rejects them anyway.
 **Verification.** `tests/test_sourcing_api.py::TestSalesQuotes` covers the
 ESTIMATED submission block, trader 403 on approve, approver success, self-approval
 refusal, rejection reason, terminal states and revision superseding.
+
+---
+
+## ADR-032 - WON only through the atomic order-conversion service
+
+**Status:** ACCEPTED / IMPLEMENTED (Stage 4)
+
+**Decision.** `WON` is not an edge in the deal state machine. The only path is
+`POST /deals/{id}/sales-order`, which locks the deal, verifies the approved quote
+revision and the customer acceptance evidence, creates the order and its lines,
+writes the transition and audit rows, and sets `WON` in one transaction. A
+database unique index enforces at most one initial order per deal. Direct
+transitions to `WON` return `409 TRANSITION_DISABLED`; a second conversion key
+returns `409 ALREADY_WON`.
+
+**Reasoning.** A won deal without an order is a claim with no operational
+consequence, and two orders for one deal are a commercial defect no UI can
+repair. Making the state change a side effect of the order insert means the two
+facts can never disagree, even under concurrent requests.
+
+**Consequences.** The conversion requires an `Idempotency-Key`; retries replay
+the stored response. Clients must create the acceptance evidence first (or inline
+it). The generic deal transition endpoint can never produce a false win.
+
+**Verification.** `tests/test_operations_api.py::TestOrderConversionGate`,
+`TestOrderConversion` (replay, payload conflict, `ALREADY_WON`, concurrency,
+direct-WON refusal) and live checks 6-16.
+
+---
+
+## ADR-033 - Accepted commercial terms are an immutable snapshot
+
+**Status:** ACCEPTED / IMPLEMENTED (Stage 4)
+
+**Decision.** The order copies product, description, quantity, unit, unit price,
+line totals, currency, Incoterm, delivery place and payment terms at conversion,
+into `sales_order_item` plus one `accepted_terms` JSONB document (quote id,
+revision, approval, acceptance channel/timestamp/reference and the lines).
+Reconstructing an order never reads the catalogue or the quote.
+
+**Reasoning.** Catalogue prices and quote revisions are mutable by design. An
+order that silently followed them would change what the customer agreed to. The
+snapshot is the commercial fact; later amendments are appended, never written
+over it.
+
+**Consequences.** `PATCH` on a product or a new quote revision has no effect on
+an existing order. Amendments record from/to values and leave the snapshot
+intact; cancellation preserves it.
+
+**Verification.**
+`tests/test_operations_api.py::TestOrderConversion::test_terms_stay_frozen_after_quote_revision_and_catalogue_change`
+and
+`TestOrderLifecycle::test_amendment_is_recorded_without_rewriting_the_accepted_terms`.
+
+---
+
+## ADR-034 - Procurement is optional, evidence-based and never auto-sent
+
+**Status:** ACCEPTED / IMPLEMENTED (Stage 4)
+
+**Decision.** A purchase order is created explicitly against a sales order and is
+refused for `BROKERAGE` deals where TOUCHE is not the buyer. Approval requires
+`finance.approve` and a different person from the creator. `RECORDED_SENT`
+requires a channel, a timestamp and an external reference; `SUPPLIER_CONFIRMED`
+requires the supplier's confirmation reference. The platform sends nothing.
+
+**Reasoning.** Domestic resale and brokerage have different cost structures; a
+mandatory purchase order would fabricate a relationship that does not exist. A
+"sent" status without evidence is indistinguishable from a draft, and automated
+sending would make the platform the author of a communication it cannot verify.
+
+**Consequences.** Purchase orders are a separate, optional workflow. The UI asks
+for the evidence fields; the API refuses the transition without them. The
+approval route is split from operational transitions so an approver does not need
+`trade.write`.
+
+**Verification.** `tests/test_operations_api.py::TestProcurement` (approval
+segregation, missing dispatch evidence, supplier confirmation, tenant isolation)
+and `tests/test_operations_state.py::TestPurchaseOrderStateMachine`; live checks
+17-22.
+
+## ADR-035 - Fulfilment is derived from delivered shipments
+
+**Status:** ACCEPTED / IMPLEMENTED (Stage 4)
+
+**Decision.** Shipments allocate decimal quantities against order lines. A
+shipment cannot exceed the unallocated quantity and must use the order line unit.
+Cancelled shipments release their allocation. Order status is promoted by the
+shipment service: partial delivery → `IN_FULFILLMENT`, every line delivered →
+`FULFILLED`. `FULFILLED` has no manual transition.
+
+**Reasoning.** Operators type statuses optimistically; quantities and evidence
+are harder to fake. Deriving fulfilment from delivery records makes "delivered"
+mean something specific and keeps partial shipments honest (40 of 100 tonnes does
+not complete the order).
+
+**Consequences.** Multiple shipments per order are normal. A shortage is visible
+as `remaining` rather than hidden. Closing an order remains a separate
+administrative step and does not imply payment.
+
+**Verification.** `tests/test_operations_api.py::TestShipments` (partial delivery,
+over-allocation, cancellation release, invalid transitions, delivery evidence),
+`tests/test_operations_state.py::TestAllocation`, live checks 23-31.
+
+---
+
+## ADR-036 - Logistics costs keep their provenance stage
+
+**Status:** ACCEPTED / IMPLEMENTED (Stage 4)
+
+**Decision.** Each logistics cost row is `ESTIMATED`, `QUOTED`, `INCURRED` or
+`DOCUMENTED`, with its own amount, currency and reference. Recording an incurred
+invoice adds a row and never edits an estimate or the Stage 3 pricing scenario.
+
+**Reasoning.** Estimated and confirmed costs answer different questions
+("what did we plan?" vs "what did we owe?"). Overwriting one with the other
+destroys the comparison and quietly changes margin analysis.
+
+**Consequences.** The UI shows the stages separately; reconciliation is a Stage 5
+concern. The shipment detail page presents the rows without pretending they are
+accounting entries.
+
+**Verification.**
+`tests/test_operations_api.py::TestShipments::test_cost_provenance_references_and_documented_delay`
+and live check 31.
+
+---
+
+## ADR-037 - Private document storage with two-layer authorisation and DRAFT previews
+
+**Status:** ACCEPTED / IMPLEMENTED (Stage 4)
+
+**Decision.** Files are stored on local disk outside every served directory,
+under server-generated keys, with streaming size limits, magic-prefix checks,
+SHA-256 verification before download, and versioning that archives rather than
+deletes. Authorisation requires the active company *and* an existing linked entity
+in that company. Generated invoice/packing-list previews are always labelled
+DRAFT with an explicit legal notice and are never stored as issued documents.
+
+**Reasoning.** Bills of lading and certificates are legally significant. Letting
+a client choose a path or trusting a MIME header invites traversal, type spoofing
+and cross-tenant reads; generating "certificates" or "customs declarations" would
+be fabricating documents the platform has no authority to issue.
+
+**Consequences.** Only real external documents may be uploaded for carrier or
+customs paperwork. Malware scanning remains an outstanding control. Object
+storage/signed URLs would be a deployment change behind the same adapter
+interface.
+
+**Verification.** `tests/test_operations_api.py::TestDocuments` (checksum,
+versions, archive, MIME/size limits, traversal-safe storage keys, corruption,
+cross-tenant 404, draft previews) and live checks 32-42.
+
+

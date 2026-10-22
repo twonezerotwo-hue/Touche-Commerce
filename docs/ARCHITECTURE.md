@@ -831,9 +831,9 @@ stored calculation, so an approved price cannot drift.
 
 | Document | States | Notes |
 | -------- | ------ | ----- |
-| RFQ | `DRAFT � PREPARED � SENT � RESPONDED � CLOSED`, `CANCELLED` | Preparing snapshots; sending needs channel + evidence + timestamp |
-| Supplier quote | `RECEIVED � WITHDRAWN` | A revision is a new row that supersedes the old one |
-| Sales quote | `DRAFT � PENDING_APPROVAL � APPROVED / REJECTED`, `WITHDRAWN` | Submit needs `VERIFIED_INPUTS`; approve needs `finance.approve` and a second person |
+| RFQ | `DRAFT � PREPARED � SENT � RESPONDED � CLOSED`, `CANCELLED` | Preparing snapshots; sending needs channel + evidence + timestamp |
+| Supplier quote | `RECEIVED � WITHDRAWN` | A revision is a new row that supersedes the old one |
+| Sales quote | `DRAFT � PENDING_APPROVAL � APPROVED / REJECTED`, `WITHDRAWN` | Submit needs `VERIFIED_INPUTS`; approve needs `finance.approve` and a second person |
 
 Every transition writes an audit row in the same transaction; mutable headers carry
 `version` for `ETag`/`If-Match`; every mutation is replay-safe through
@@ -858,3 +858,165 @@ of duties, revision superseding, RLS isolation and audit rows. Frontend: a unit
 test file for sourcing formatting and a component test for the RFQ action panel
 (evidence gate, ETag, replay/conflict messaging). Contract artefacts are
 regenerated from OpenAPI.
+
+---
+
+## 21. Stage 4 — the execution chain
+
+Stage 4 turns a commercial agreement into operational evidence. It adds one
+chain of tenant-scoped aggregates and three pure state machines, and it keeps
+four boundaries visible in the code:
+
+1. **A win is not a status edit.** `WON` exists only as the outcome of the order
+   conversion transaction (ADR-032).
+2. **An order is not a live view of the quote.** Commercial facts are copied into
+   the order and its JSONB snapshot (ADR-033).
+3. **A plan is not an event.** Dispatch, arrival and delivery each need their own
+   recorded evidence; procurement is optional and never auto-sent (ADR-034).
+4. **A delivery is the only fulfilment fact.** Order status is derived from
+   delivered shipment quantities, not typed by a user (ADR-035).
+
+### 21.1 Data model (`0005_orders`)
+
+| Group | Tables | Notes |
+| ----- | ------ | ----- |
+| Acceptance | `customer_acceptance_evidence` | Append-only; channel, timestamp, evidence reference, quote revision |
+| Orders | `sales_order`, `sales_order_item`, `sales_order_transition`, `order_amendment` | Frozen lines, one `accepted_terms` JSONB snapshot, append-only history |
+| Procurement | `purchase_order`, `purchase_order_item`, `purchase_order_transition` | Dispatch evidence columns; transition history |
+| Logistics | `shipment`, `shipment_item`, `shipment_event`, `shipment_reference`, `shipment_cost` | Partial allocations, milestone events, provenance, staged costs |
+| Documents | `trade_document` | Metadata + server key + SHA-256 + version + verification status |
+
+Every child row carries `company_id` and references its parent with a composite
+`(parent_id, company_id)` foreign key, so a cross-tenant link is impossible even
+before RLS is considered. RLS is enabled on all 14 tables. History tables
+(`*_transition`, `order_amendment`, `customer_acceptance_evidence`,
+`shipment_event`) grant `SELECT, INSERT` only to the runtime role. CHECK
+constraints encode the commercial invariants: ISO currencies, Incoterms 2020,
+allowed units and modes, positive quantities, `version >= 1`, a delivered
+shipment has evidence, a cancelled row explains itself, and fulfilment/status
+pairs cannot contradict each other.
+
+Two constraints were corrected after the integration suite proved them wrong
+(`0006_shipment_dispatch`, `0007_purchase_order_dispatch`): an actual dispatch may
+precede the *planned* date, and a recorded dispatch timestamp must survive later
+procurement statuses.
+
+### 21.2 The conversion transaction (`SalesOrderService.convert`)
+
+```
+BEGIN
+  SELECT deal ... FOR UPDATE                    -- serialises concurrent attempts
+  verify status in (OPEN, NEGOTIATION)
+  SELECT quote ... FOR UPDATE
+  verify quote.deal_id = deal.id, status = APPROVED, customer = deal counterparty
+  verify/snapshot acceptance evidence for the exact quote revision
+  INSERT sales_order (+ items, + accepted_terms JSONB, + first transition)
+      unique (deal_id) where initial → DB-level "one initial order"
+  UPDATE deal → WON (+ deal_transition)
+  INSERT audit rows (order created, deal won, acceptance recorded)
+COMMIT
+```
+
+Every refusal happens before the first write. The order number generator is
+server-side; `expected_total` (when supplied) must match the accepted revision;
+the idempotency row, order, transition, deal update and audit rows share one
+transaction. A retry with the same key returns the stored response; a different
+key on a won deal returns `409 ALREADY_WON`; the unique index is the final guard
+even if two transactions race.
+
+### 21.3 State machines (`app/services/order_state.py`)
+
+| Aggregate | Edges (terminal states have none) |
+| --------- | --------------------------------- |
+| Sales order | `CONFIRMED → IN_FULFILLMENT → FULFILLED → CLOSED`; `CANCELLED` from confirmed/in-fulfilment |
+| Purchase order | `DRAFT → APPROVED → RECORDED_SENT → SUPPLIER_CONFIRMED → IN_FULFILLMENT → RECEIVED`; `CANCELLED` from any non-terminal |
+| Shipment | `PLANNED → BOOKED → DISPATCHED → IN_TRANSIT → ARRIVED → DELIVERED`; `CANCELLED` from any non-terminal |
+
+`FULFILLED` has no manual edge: `validate_sales_order_transition` refuses it and
+only the shipment service may promote an order after delivery. Evidence rules
+live beside the graphs, are pure, and are tested without a database:
+`RECORDED_SENT` requires channel + timestamp + reference, `SUPPLIER_CONFIRMED`
+requires a supplier reference, `DISPATCHED` requires a tracking/booking
+reference, `ARRIVED` requires an actual arrival timestamp, `DELIVERED` requires a
+delivery-evidence reference, and every cancellation requires a written reason.
+
+### 21.4 Allocation and derived fulfilment
+
+`shipment_item` rows allocate decimal quantities against a `sales_order_item`.
+
+* Units must match the order line exactly; the API schema refuses an extra
+  `unit` field on a shipment line, and the service re-validates unit equality.
+* `validate_allocation` refuses non-positive quantities and any allocation above
+  `ordered − already_allocated`, using `Decimal` arithmetic throughout.
+* Cancelled shipments do not count towards `allocated` or `delivered`, so a
+  cancellation releases the quantity for replanning.
+* `GET /sales-orders/{id}/fulfilment` returns per line `ordered`, `allocated`,
+  `delivered`, `remaining` and a `completion_ratio`.
+* `fully_delivered` (every line delivered) promotes the order to `FULFILLED`;
+  partial delivery moves it to `IN_FULFILLMENT`. A 5-tonne delivery against a
+  20-tonne line can therefore never mark the order delivered.
+* An ETA never sets `delivered_at`; `is_delayed` is computed only from a
+  documented ETA that has passed on a shipment that is neither delivered nor
+  cancelled.
+
+### 21.5 Logistics costs
+
+`shipment_cost` keeps one row per fact, each with an explicit stage:
+`ESTIMATED`, `QUOTED`, `INCURRED` or `DOCUMENTED`, plus a reference. Recording an
+incurred freight invoice adds a row; it never rewrites the Stage 3 pricing
+assumption or an earlier estimate. Comparing the two is a read-side concern and
+full reconciliation is deliberately left to Stage 5.
+
+### 21.6 Document storage and authorisation
+
+`app/services/documents.py` owns the only filesystem access.
+
+* The client never supplies a path. The storage key is
+  `{company_id}/{document_id}/v{version}-{sha256[:16]}{suffix}`, generated on the
+  server, validated against a strict regex, and resolved with
+  `Path.is_relative_to(root)` to defeat traversal.
+* Uploads are streamed in chunks with a hard byte ceiling; the SHA-256 is
+  computed twice (while spooling for the idempotency fingerprint, and again while
+  writing to storage) and verified before every download. A mismatch is a 409,
+  not a silent read.
+* MIME types come from an allow-list with magic-prefix checks; filenames are
+  sanitised and re-sanitised for `Content-Disposition`; storage lives under the
+  ignored `backend/var/documents` tree, outside every served directory.
+* Authorisation is layered: RLS scopes the row to the active company, and
+  `_assert_entity` proves the linked entity exists in that company. Uploads may
+  only link to `DEAL`, `SALES_ORDER`, `PURCHASE_ORDER`, `SHIPMENT` or
+  `CUSTOMER_ACCEPTANCE`.
+* A new upload for the same entity + type becomes the next version and archives
+  the previous one. Deletion is archival; the version history stays readable.
+* Draft previews are generated from the accepted order snapshot and always carry
+  `is_draft: true`, a `DRAFT-…` number and a legal notice that they are not
+  issued invoices, customs declarations, certificates or carrier documents.
+  The preview query also binds the actor because the seller row is protected by a
+  membership policy.
+
+Malware scanning is **not** implemented and is documented as a remaining
+control (PROGRESS.md §22.11).
+
+### 21.7 Frontend
+
+The eight execution pages are server components reading through
+`src/lib/api/server.ts`; mutations use `src/lib/operations/client.ts` with the
+same CSRF/idempotency/`If-Match` conventions as Stage 3. The conversion panel
+lives on the deal page and shows the acceptance warning before offering the
+action. Order, purchase-order and shipment panels render `allowed_transitions`
+from the API instead of re-deriving the rules, and explain `VERSION_CONFLICT`,
+`ALREADY_WON`, `IDEMPOTENCY_CONFLICT`, `REASON_REQUIRED` and evidence failures.
+Draft previews and tracking provenance are labelled in the UI exactly as the API
+describes them (`MANUAL` / `DOCUMENT_EVIDENCE`); there is no live map or carrier
+feed.
+
+### 21.8 Verification
+
+29 API integration tests, 19 pure state-machine tests and 17 frontend tests
+cover the boundaries above, including concurrent conversion, immutable
+snapshots, over-allocation, cancellation effects, document corruption,
+cross-tenant access and permission separation. The live workflow
+(`45/45` checks) adds evidence from the running API and SSR. See PROGRESS.md
+§22.6–22.7 for exact counts and the issues found.
+
+
