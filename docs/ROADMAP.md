@@ -218,17 +218,49 @@ a dispatch, arrival or delivery; every one requires recorded evidence.
 
 ---
 
-## Stage 5 — Finance and integrations
+## Stage 5 — Finance integration (read-only first) 🟡
 
-**Goal:** money movements and the first external systems.
+**Goal:** connect Commerce's commercial execution to TOUCHE FINANCE without
+creating a second accounting engine. Finance remains the financial source of
+truth; Commerce remains the commercial operational source of truth (ADR-038).
 
-Work: invoices, payments, approvals (`finance.approve`), reconciliation; E-YAY
-and Touche Finance adapters driven by the outbox; webhook receivers with
-signature verification and idempotent processing.
+### Stage 5A — discovery and read-only boundary ✅ (implemented 2026-10-22)
 
-**Exit criteria:** no financial posting without the approval permission; every
-conversion stores rate/date/source; duplicate webhooks do not duplicate entries;
-failed deliveries recover from the outbox.
+**Delivered:**
+
+* Read-only inspection of the live Finance tree (`C:\ai-excel`, `main`,
+  `8dce8245`), SQLite ledger and Excel workbook, with unchanged hashes.
+* Concrete Commerce → Finance mapping and exact missing-interface list
+  (`docs/STAGE5_FINANCE_DISCOVERY.md`).
+* Loopback-only, disabled-by-default `GET /api/health` probe.
+* `GET /api/v1/integrations/finance/status` with
+  `scope="health_only"` and `accounting_writes_enabled=false`.
+* `scripts/verify-finance-readonly.ps1` executable evidence; no Finance process
+  was started and no DB/workbook byte changed.
+* ADR-038/039/040.
+
+**Explicitly blocked:** business-data reads, invoices, payments, ledger postings,
+outbox delivery to Finance. Finance has no service-authenticated integration
+endpoint; one must be implemented in Finance first.
+
+### Stage 5B — Finance read-only data contract (blocked on Finance)
+
+Finance implements `GET /api/integration/v1/{health,companies,counterparties,projects,receivables,payables,trial-balance,reports/...}`
+with HMAC service authentication. Commerce then adds read-only snapshots and
+reconciliation views. No writes.
+
+### Stage 5C — draft-only commercial events (blocked on 5B)
+
+Finance implements idempotent `POST /api/integration/v1/commercial-events` that
+creates drafts only; approval/posting stays in Finance. Commerce adds outbox
+producers for accepted orders, approved POs, delivered shipments and incurred
+logistics costs. No automatic posting, payment or messaging.
+
+**Exit criteria for 5C:** a replayed event never duplicates a draft; Commerce
+never holds a Finance session; every draft is traceable to a source aggregate
+and evidence hash; Finance approval remains human; failed deliveries recover
+from the outbox without inventing success.
+
 
 ---
 

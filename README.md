@@ -28,8 +28,9 @@ a private trade-document register.
 | Execution API + screens (orders, purchase orders, shipments, documents) | ✅ verified at API/integration/SSR level |
 | PostgreSQL 17 + migrations `0001_foundation` … `0007_purchase_order_dispatch` | ✅ verified |
 | `/api/v1/health/live` · `/api/v1/health/ready` | ✅ 200 |
-| Backend tests (unit + live DB incl. RLS matrix) | ✅ 284 passed |
+| Backend tests (unit + live DB incl. RLS matrix) | ✅ 317 passed |
 | Frontend tests / lint / typecheck / build | ✅ 88 passed, clean |
+| Finance read-only connector (`/api/v1/integrations/finance/status`) | ✅ health-only; read-only probe PASS |
 | Live identity verification (`scripts\verify-identity.ps1`) | ✅ 31 checks passed |
 | Live trade workflow (`scripts\verify-trade.ps1`) | ✅ 39 checks passed |
 | Live sourcing workflow (`scripts\verify-sourcing.ps1`) | ✅ 53 checks passed |
@@ -225,6 +226,9 @@ the `TOUCHE_` prefix; secrets are wrapped and never logged.
 | `TOUCHE_IDEMPOTENCY_TTL_HOURS` | Idempotency retention (24) |
 | `TOUCHE_PAGINATION_DEFAULT_LIMIT` / `..._MAX_LIMIT` | 25 / 100 |
 | `TOUCHE_TEST_DATABASE_NAME` | Isolated database used by the integration suite |
+| `TOUCHE_FINANCE_INTEGRATION_ENABLED` | `true` enables the loopback-only Finance health probe (default `false`; no network I/O while disabled) |
+| `TOUCHE_FINANCE_INTEGRATION_BASE_URL` | Literal loopback origin, default `http://127.0.0.1:8765`; DNS, HTTPS, credentials, paths, queries and fragments are rejected |
+| `TOUCHE_FINANCE_INTEGRATION_TIMEOUT_SECONDS` | Probe budget, 0.1–10 s (default 2) |
 | `NEXT_PUBLIC_API_BASE_URL` | API origin used by server components |
 | `API_INTERNAL_BASE_URL` | Optional internal proxy target (defaults to the public base URL) |
 | `NEXT_PUBLIC_API_TIMEOUT_MS` | Client/SSR request budget (10 s) |
@@ -248,6 +252,8 @@ scripts\verify-identity.ps1 -Email you@company.example   # live auth/session/CSR
 scripts\verify-trade.ps1              # live 15-step CRM/catalogue/deal workflow
 scripts\verify-sourcing.ps1           # live RFQ → quote → pricing → sales-quote workflow
 scripts\verify-operations.ps1         # live acceptance → order → PO → shipment → document workflow
+scripts\verify-finance-readonly.ps1   # read-only Finance DB/workbook hashes + health probe (never starts Finance)
+
 scripts\db\setup-test-database.ps1    # (re)create the isolated integration database
 backend\.venv\Scripts\python -m pytest -m integration   # live database only
 ```
@@ -423,6 +429,35 @@ sales-order aggregate.
 
 Not implemented, by design: accounting ledger and postings, payments, Touche
 Finance synchronisation, e-YAY, automated email/WhatsApp sending, AI agents and
-live carrier tracking. Stage 5 has **not** started.
+live carrier tracking.
 
+---
+
+## Stage 5A acceptance
+
+| # | Criterion | Result |
+| - | --------- | ------ |
+| 1 | Real Finance worktree and revision identified | PASS (`C:\ai-excel`, `main`, `8dce8245`; remote HEAD identical) |
+| 2 | Finance API, auth, models, engine, Excel and SQLite inspected read-only | PASS (`docs/STAGE5_FINANCE_DISCOVERY.md`) |
+| 3 | Commerce → Finance mapping is concrete | PASS (companies, counterparties, orders, POs, shipments, costs, documents, reports) |
+| 4 | Missing interfaces are named, not invented | PASS (§8.1–§8.3 proposals; no fake client) |
+| 5 | No second accounting engine in Commerce | PASS (no ledger/invoice/payment tables or endpoints) |
+| 6 | Read-only integration verified before any write proposal | PASS (DB/workbook hashes unchanged; Finance not started) |
+| 7 | Connector cannot impersonate Finance's local `OWNER` session | PASS (no cookie/bearer/Tailscale header; health only) |
+| 8 | Connector is safe by default | PASS (disabled; loopback-only; 8 KiB cap; no redirects) |
+| 9 | Status endpoint requires a Commerce session | PASS (`401` without a session) |
+| 10 | Status cannot claim an accounting capability | PASS (`scope=health_only`, `accounting_writes_enabled=false`) |
+| 11 | Finance remains financial source of truth | PASS (ADR-038; no postings) |
+| 12 | Documentation and contracts current | PASS (`PROGRESS.md` §23, ADR-038/039/040, OpenAPI regenerated) |
+
+Not implemented, by design: Finance business-data reads, invoices, payments,
+ledger postings, outbox delivery to Finance, counterparty auto-matching and
+reconciliation writes. Stage 5B is blocked until Finance exposes the
+HMAC-authenticated read-only `/api/integration/v1` contract.
+
+Reproduce the read-only proof:
+
+```powershell
+scripts\verify-finance-readonly.ps1
+```
 

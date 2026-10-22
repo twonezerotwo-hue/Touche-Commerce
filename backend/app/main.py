@@ -117,6 +117,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "name": "dashboard",
                 "description": "Aggregates for the command center, scoped to the active company.",
             },
+            {
+                "name": "integrations",
+                "description": (
+                    "Read-only external-system status. Stage 5A exposes Finance "
+                    "health only; Commerce has no accounting write endpoint."
+                ),
+            },
         ],
     )
 

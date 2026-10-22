@@ -11,6 +11,7 @@ from app.api.v1.routes import (
     documents,
     fx_rates,
     health,
+    integrations,
     orders,
     pricing_scenarios,
     products,
@@ -23,6 +24,7 @@ from app.api.v1.routes import (
 
 api_router = APIRouter()
 api_router.include_router(health.router)
+api_router.include_router(integrations.router)
 api_router.include_router(auth.router)
 api_router.include_router(companies.router)
 api_router.include_router(counterparties.router)

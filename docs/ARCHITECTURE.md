@@ -1020,3 +1020,73 @@ cross-tenant access and permission separation. The live workflow
 §22.6–22.7 for exact counts and the issues found.
 
 
+
+---
+
+## 22. Stage 5A — the TOUCHE FINANCE boundary (read-only)
+
+```
+COMMERCE (commercial operational source of truth)
+  sales order / purchase order / shipment / shipment_cost / trade document
+        |
+        |  Stage 5A: GET /api/health only (no auth, no business data, no write)
+        v
+  app/integrations/finance  ->  FinanceHealthClient  ->  127.0.0.1:8765
+        |
+        |  Stage 5B/5C: proposed /api/integration/v1 (HMAC, not implemented)
+        v
+FINANCE (financial source of truth)
+  faaliyet / hesap / fis / fis_satiri / cari / AR-AP aging / reports
+```
+
+### 22.1 Source-of-truth split
+
+| Fact | Owner | Commerce stores | Finance stores |
+| ---- | ----- | --------------- | -------------- |
+| Customer acceptance, order terms, allocations, dispatch/delivery evidence | Commerce | Yes | No |
+| Chart of accounts, journal, receivables/payables, payments, reconciliation | Finance | No | Yes |
+| Invoice as a legal posting | Finance | Only a `DRAFT` preview / uploaded document metadata | Yes |
+| Shipment cost estimate / incurred amount | Commerce (provenance) | Yes, staged | Only if Finance approves an expense/payable |
+
+Commerce must never infer a Finance balance from its own operational data, and
+Finance must never treat a Commerce operational state as a posting.
+
+### 22.2 Verified Finance interface
+
+Finance is a local stdlib HTTP server with a same-origin UI API. Only
+`GET /api/health` is unauthenticated; it is read-only. All business endpoints
+require a loopback/Tailscale session, and loopback requests become `OWNER`.
+There is no API key, HMAC contract, webhook receiver or remote-write endpoint.
+`docs/STAGE5_FINANCE_DISCOVERY.md` records the exact inventory and the missing
+interfaces.
+
+### 22.3 Stage 5A connector rules
+
+* Disabled by default; a disabled integration performs no network I/O.
+* Base URL must be a literal loopback `http://` origin. No DNS, HTTPS,
+  credentials, path, query or fragment.
+* The request carries only `Accept: application/json` and a dedicated
+  `User-Agent`; no cookie, bearer token or Tailscale identity header.
+* Response is capped at 8 KiB; redirects are not followed; a non-200, invalid
+  JSON, unknown `durum` or non-boolean `yerel` is `incompatible`.
+* States: `disabled`, `healthy`, `degraded`, `unreachable`, `incompatible`.
+* `GET /api/v1/integrations/finance/status` requires a Commerce session and
+  always reports `scope="health_only"` and `accounting_writes_enabled=false`.
+
+### 22.4 Why no direct SQLite adapter
+
+The live ledger schema is readable (`fisler`, `fis_satirlari`, `hesaplar`,
+`faaliyetler`), but it is an internal persistence contract, not a supported
+integration interface. Coupling Commerce to it would bypass Finance's
+authorisation, audit, recovery and schema evolution. The offline probe
+(`scripts/finance_readonly_probe.py`) uses `mode=ro` only to prove discovery and
+non-modification; it is not imported by the running API.
+
+### 22.5 Future contract
+
+Stage 5B/5C require Finance to implement the HMAC-authenticated
+`/api/integration/v1` read endpoints and a draft-only event endpoint
+(ADR-040). Commerce will then add read-only snapshots and outbox producers.
+Until that interface exists and is verified, Commerce must not fake it, poll a
+session endpoint, or write an outbox event that nobody can consume.
+

@@ -462,6 +462,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/integrations/finance/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read-only TOUCHE FINANCE link status
+         * @description Probes the locally configured Finance `GET /api/health` endpoint and reports whether Commerce can reach it. It never calls a business endpoint, never sends Finance a session or identity header, and never creates an invoice, payment or ledger entry.
+         */
+        get: operations["finance_link_status_api_v1_integrations_finance_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/operations/summary": {
         parameters: {
             query?: never;
@@ -2012,6 +2032,67 @@ export interface components {
          */
         ErrorEnvelope: {
             error: components["schemas"]["ErrorDetail"];
+        };
+        /**
+         * FinanceLinkState
+         * @description Outcome of one read-only Finance health probe.
+         * @enum {string}
+         */
+        FinanceLinkState: "disabled" | "healthy" | "degraded" | "unreachable" | "incompatible";
+        /**
+         * FinanceLinkStatusResponse
+         * @description One read-only observation of the local Finance link.
+         *
+         *     The two literal fields are part of the contract, not documentation: a client
+         *     can assert that Stage 5A never claims an accounting capability.
+         * @example {
+         *       "accounting_writes_enabled": false,
+         *       "checked_at": "2026-10-22T09:30:00+00:00",
+         *       "detail": "Finance reports a consistent ledger.",
+         *       "finance_status": "ok",
+         *       "latency_ms": 4.12,
+         *       "scope": "health_only",
+         *       "state": "healthy"
+         *     }
+         */
+        FinanceLinkStatusResponse: {
+            /**
+             * Accounting Writes Enabled
+             * @description Always false: Commerce never posts invoices, payments or ledger entries.
+             * @default false
+             * @constant
+             */
+            accounting_writes_enabled: false;
+            /**
+             * Checked At
+             * Format: date-time
+             * @description Server-side UTC timestamp of the probe.
+             */
+            checked_at: string;
+            /**
+             * Detail
+             * @description Credential-free diagnostic text.
+             */
+            detail: string;
+            /**
+             * Finance Status
+             * @description Raw Finance health value ('ok' or 'degraded') when one was returned.
+             */
+            finance_status?: string | null;
+            /**
+             * Latency Ms
+             * @description Probe duration in milliseconds.
+             */
+            latency_ms: number;
+            /**
+             * Scope
+             * @description Stage 5A is restricted to the public Finance health endpoint.
+             * @default health_only
+             * @constant
+             */
+            scope: "health_only";
+            /** @description Observed link state. */
+            state: components["schemas"]["FinanceLinkState"];
         };
         /** FulfilmentLineResponse */
         FulfilmentLineResponse: {
@@ -6057,6 +6138,35 @@ export interface operations {
             };
             /** @description A required dependency is unavailable. */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    finance_link_status_api_v1_integrations_finance_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The probe completed (including unreachable states). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinanceLinkStatusResponse"];
+                };
+            };
+            /** @description No authenticated Commerce session. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

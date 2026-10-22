@@ -1262,3 +1262,148 @@ Tooling and docs: `scripts/verify-operations.ps1`, `.gitignore`, this section,
 
 
 
+
+---
+
+## 23. Stage 5A - Finance discovery and read-only connector (executed 2026-10-22)
+
+### 23.1 Scope delivered
+
+Stage 5A connects Commerce to the **verified** TOUCHE FINANCE boundary without
+creating a second accounting engine. Finance remains the financial source of
+truth; Commerce remains the commercial operational source of truth.
+
+Delivered:
+
+* read-only discovery of the live Finance tree, SQLite ledger and Excel workbook;
+* a concrete Commerce → Finance mapping and an exact missing-interface list;
+* a disabled-by-default, loopback-only Finance health connector;
+* `GET /api/v1/integrations/finance/status`, which always reports
+  `scope="health_only"` and `accounting_writes_enabled=false`;
+* a read-only verification script that hashes the DB/workbook before and after
+  and never starts Finance;
+* ADR-038 (Finance source of truth), ADR-039 (read-only-first loopback), ADR-040
+  (proposed authenticated Finance contract).
+
+Explicitly **not** delivered, because Finance has no supported interface for it:
+business-data reads, invoices, payments, ledger postings, outbox delivery to
+Finance, counterparty auto-matching and reconciliation writes.
+
+### 23.2 Milestones
+
+| Milestone | Result |
+| --------- | ------ |
+| 5A.1 Verify the real Finance worktree and revision | `C:\ai-excel`, `main`, `8dce8245`; remote HEAD identical |
+| 5A.2 Inspect API, auth, models, engine, Excel and persistence | completed read-only (see `docs/STAGE5_FINANCE_DISCOVERY.md`) |
+| 5A.3 Build the mapping and missing-interface specification | completed, including proposed HMAC contract and additive tables |
+| 5A.4 Implement the safe connector slice | health client + status endpoint + config + tests |
+| 5A.5 Prove read-only behaviour | probe PASS; DB/workbook hashes unchanged; Finance not started |
+
+### 23.3 What the discovery proved
+
+* Finance is a Python 3.12 stdlib HTTP server on `127.0.0.1:8765`, with a
+  vanilla-JS UI, SQLite ledger and one Excel master/backup pair.
+* Only `/api/health`, `/api/demo/status`, `/api/session` and
+  `/api/session/pair` are unauthenticated; every business endpoint requires a
+  loopback/Tailscale session.
+* A loopback request is treated as `OWNER`; there is no API key, HMAC contract,
+  webhook receiver or remote-write endpoint.
+* The live ledger has 31 tables, 3 activities, 22 accounts, 24 journal headers,
+  48 journal lines and **0 structured counterparties**. Counterparties are
+  free-text `fisler.cari`.
+* Invoices are not a structured table; a posted document is a `fisler` header
+  plus lines. AR/AP aging is derived by `kurumsal_finans.cari_yaslandirma`.
+* `/api/health` calls `recovery_health()`, which explicitly never initialises the
+  schema or writes. Finance was still not started because startup recovery can
+  legitimately write.
+
+### 23.4 Database changes
+
+None. Stage 5A does not add a Commerce table, migration or Finance table.
+Commerce's existing `outbox_event` table remains unused until a Finance ingestion
+contract exists.
+
+### 23.5 Commands executed and actual results
+
+```text
+backend> .venv\Scripts\python -m pytest -q
+317 tests passed (284 Stage 4 + 33 Stage 5A); no failures.
+
+backend> .venv\Scripts\python -m ruff check app tests
+All checks passed.
+
+backend> .venv\Scripts\python -m mypy app
+Success: no issues found in 92 source files.
+
+backend> .venv\Scripts\python -m mypy app tests
+98 pre-existing errors, all in Stage 3 test modules (unchanged).
+
+scripts> generate-api-types.ps1
+OpenAPI + schema.d.ts regenerated; no drift.
+
+scripts> verify-finance-readonly.ps1
+PASSED: True (DB and workbook hashes unchanged; Finance not listening).
+```
+
+
+### 23.6 Read-only verification (exact)
+
+```text
+Finance worktree : C:\ai-excel [main] 8dce8245c013ec74b81cf93927a067a4cc334c78
+Remote HEAD      : 8dce8245c013ec74b81cf93927a067a4cc334c78
+Dirty files      : 1 (untracked .claude/ only)
+DB SHA-256       : C9BA0EB7EC82F1DE50105F1E0019CA695B48843319B7E1D2184296632EF52BE1
+DB unchanged     : True
+WB SHA-256       : E03740DA624522EA9AC4869D3ADDDFB008C96DC7D2A78759CE760D810B0FA51E
+WB unchanged     : True
+Schema ok        : True
+Health           : skipped (Finance not listening; not started)
+PASSED           : True
+```
+
+### 23.7 Issues found
+
+* **Finance has no service-to-service interface.** The local session is a
+  network-position grant, not a scoped service credential. The connector
+  therefore stops at `/api/health`; ADR-040 defines what must be built in Finance
+  before business data can move.
+* **No structured counterparties.** `karsi_taraflar` is empty and Commerce has no
+  tax/VKN field. Automatic name matching would be unsafe; a manual mapping
+  registry is required.
+* **No invoice line entity in Finance.** `hakedisler` stores header totals only.
+  A draft-only event contract must not pretend a ledger line is an invoice line.
+* **The original Stage 5 roadmap assumed invoices/payments in Commerce.** That
+  conflicts with the source-of-truth constraint and is superseded by ADR-038.
+
+### 23.8 Files changed
+
+Backend: `app/core/config.py`, `app/main.py`, `app/api/v1/router.py`,
+`app/api/v1/routes/integrations.py`, `app/api/v1/schemas/integrations.py`,
+`app/integrations/__init__.py`, `app/integrations/finance/{__init__,client,contracts,service}.py`,
+`tests/test_finance_integration.py`.
+
+Scripts: `scripts/finance_readonly_probe.py`, `scripts/verify-finance-readonly.ps1`.
+
+Contracts: `frontend/openapi/openapi.json`, `frontend/src/lib/api/schema.d.ts`.
+
+Docs: `docs/STAGE5_FINANCE_DISCOVERY.md`, `docs/PROGRESS.md`,
+`docs/ARCHITECTURE.md`, `docs/API_CONTRACTS.md`, `docs/DECISIONS.md`,
+`docs/ROADMAP.md`, `README.md`, `.env.example`.
+
+### 23.9 Git
+
+* Branch: `stage-4` (no remote configured; nothing pushed).
+* Stage 5A changes are uncommitted at the time of writing. The Finance repository
+  received no commit or file change.
+
+### 23.10 Known limitations and next gate
+
+* The connector reports only health; no Finance balance is shown.
+* The probe is an offline verification tool, not a runtime data source.
+* Finance's actual `/api/health` response was not observed live because starting
+  Finance could write during recovery. The contract was verified statically and
+  the client is tested against a local stub.
+* Stage 5B is blocked until Finance implements and verifies the authenticated
+  read-only `/api/integration/v1` contract in `docs/STAGE5_FINANCE_DISCOVERY.md`
+  §8.1. Stage 5C additionally requires §8.2/§8.3 and remains draft-only.
+

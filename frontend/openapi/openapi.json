@@ -1934,6 +1934,87 @@
         "title": "ErrorEnvelope",
         "type": "object"
       },
+      "FinanceLinkState": {
+        "description": "Outcome of one read-only Finance health probe.",
+        "enum": [
+          "disabled",
+          "healthy",
+          "degraded",
+          "unreachable",
+          "incompatible"
+        ],
+        "title": "FinanceLinkState",
+        "type": "string"
+      },
+      "FinanceLinkStatusResponse": {
+        "description": "One read-only observation of the local Finance link.\n\nThe two literal fields are part of the contract, not documentation: a client\ncan assert that Stage 5A never claims an accounting capability.",
+        "example": {
+          "accounting_writes_enabled": false,
+          "checked_at": "2026-10-22T09:30:00+00:00",
+          "detail": "Finance reports a consistent ledger.",
+          "finance_status": "ok",
+          "latency_ms": 4.12,
+          "scope": "health_only",
+          "state": "healthy"
+        },
+        "properties": {
+          "accounting_writes_enabled": {
+            "const": false,
+            "default": false,
+            "description": "Always false: Commerce never posts invoices, payments or ledger entries.",
+            "title": "Accounting Writes Enabled",
+            "type": "boolean"
+          },
+          "checked_at": {
+            "description": "Server-side UTC timestamp of the probe.",
+            "format": "date-time",
+            "title": "Checked At",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Credential-free diagnostic text.",
+            "title": "Detail",
+            "type": "string"
+          },
+          "finance_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Raw Finance health value ('ok' or 'degraded') when one was returned.",
+            "title": "Finance Status"
+          },
+          "latency_ms": {
+            "description": "Probe duration in milliseconds.",
+            "minimum": 0.0,
+            "title": "Latency Ms",
+            "type": "number"
+          },
+          "scope": {
+            "const": "health_only",
+            "default": "health_only",
+            "description": "Stage 5A is restricted to the public Finance health endpoint.",
+            "title": "Scope",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/FinanceLinkState",
+            "description": "Observed link state."
+          }
+        },
+        "required": [
+          "state",
+          "latency_ms",
+          "detail",
+          "checked_at"
+        ],
+        "title": "FinanceLinkStatusResponse",
+        "type": "object"
+      },
       "FulfilmentLineResponse": {
         "properties": {
           "allocated": {
@@ -10990,6 +11071,38 @@
         ]
       }
     },
+    "/api/v1/integrations/finance/status": {
+      "get": {
+        "description": "Probes the locally configured Finance `GET /api/health` endpoint and reports whether Commerce can reach it. It never calls a business endpoint, never sends Finance a session or identity header, and never creates an invoice, payment or ledger entry.",
+        "operationId": "finance_link_status_api_v1_integrations_finance_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanceLinkStatusResponse"
+                }
+              }
+            },
+            "description": "The probe completed (including unreachable states)."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "No authenticated Commerce session."
+          }
+        },
+        "summary": "Read-only TOUCHE FINANCE link status",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
     "/api/v1/operations/summary": {
       "get": {
         "description": "Counts and currency totals for orders, procurement, shipments and documents. 'Delayed' means a documented ETA that has passed on a live shipment; 'missing evidence' means a delivered shipment with no active delivery-confirmation document. No synthetic values.",
@@ -14897,6 +15010,10 @@
     {
       "description": "Aggregates for the command center, scoped to the active company.",
       "name": "dashboard"
+    },
+    {
+      "description": "Read-only external-system status. Stage 5A exposes Finance health only; Commerce has no accounting write endpoint.",
+      "name": "integrations"
     }
   ]
 }

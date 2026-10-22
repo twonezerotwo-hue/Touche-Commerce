@@ -11,6 +11,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -115,6 +116,14 @@ class Settings(BaseSettings):
     idempotency_ttl_hours: int = Field(default=24, ge=1)
     pagination_default_limit: int = Field(default=25, ge=1)
     pagination_max_limit: int = Field(default=100, ge=1)
+
+    # --- Finance integration (Stage 5A, read-only) --------------------------
+    # Disabled by default: no probe, no network I/O, no accounting write path.
+    # The URL is restricted to a literal loopback address because Finance has no
+    # service-to-service credential yet (ADR-039).
+    finance_integration_enabled: bool = False
+    finance_integration_base_url: str = "http://127.0.0.1:8765"
+    finance_integration_timeout_seconds: float = Field(default=2.0, ge=0.1, le=10.0)
 
     # --- Derived helpers ---------------------------------------------------
     @property
@@ -227,6 +236,35 @@ class Settings(BaseSettings):
         if not value or any(character in value for character in " ;,=\"\\"):
             raise ValueError("session_cookie_name must be a valid cookie name")
         return value
+
+    @field_validator("finance_integration_base_url")
+    @classmethod
+    def _validate_finance_base_url(cls, value: str) -> str:
+        """Keep the Stage 5A connector on a literal loopback endpoint.
+
+        Finance's health endpoint is unauthenticated, but its business endpoints
+        trust a local session.  Allowing a remote URL here would invite a future
+        adapter to reuse that shortcut; a dedicated service credential is a
+        prerequisite for anything beyond loopback (ADR-039).
+        """
+
+        candidate = value.strip()
+        parsed = urlsplit(candidate)
+        if parsed.scheme != "http":
+            raise ValueError("finance_integration_base_url must use http on a loopback address")
+        if parsed.username is not None or parsed.password is not None:
+            raise ValueError("finance_integration_base_url must not contain credentials")
+        if parsed.hostname not in {"127.0.0.1", "::1"}:
+            raise ValueError("finance_integration_base_url must point at 127.0.0.1 or ::1")
+        if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
+            raise ValueError(
+                "finance_integration_base_url must not contain a path, query or fragment"
+            )
+        try:
+            _ = parsed.port
+        except ValueError as exc:
+            raise ValueError("finance_integration_base_url contains an invalid port") from exc
+        return candidate.rstrip("/")
 
     @model_validator(mode="after")
     def _validate_policies(self) -> Settings:

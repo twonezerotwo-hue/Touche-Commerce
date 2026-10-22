@@ -845,6 +845,52 @@ sanitise filenames and require the linked entity to exist in the active company
 | Cross-tenant document access | `404 NOT_FOUND` |
 | Archived document download | `409 CONFLICT` (`DOCUMENT_ARCHIVED`) |
 
+## 7D. Stage 5A — Finance integration status (implemented, read-only)
+
+TOUCHE FINANCE is the financial source of truth. Commerce has **no** invoice,
+payment, ledger or journal endpoint. Stage 5A exposes one operator status
+read that probes Finance's public health endpoint only.
+
+| Method | Path | Auth | Purpose |
+| ------ | ---- | ---- | ------- |
+| `GET` | `/integrations/finance/status` | Any authenticated Commerce session | One read-only `GET /api/health` probe of the configured loopback Finance URL |
+
+The probe is disabled by default (`TOUCHE_FINANCE_INTEGRATION_ENABLED=false`) and
+performs no network I/O while disabled. The base URL is restricted to
+`http://127.0.0.1[:port]` or `http://[::1][:port]`; DNS names, HTTPS,
+credentials, paths, queries and fragments are rejected at start-up. The request
+sends no cookie, bearer token or Tailscale identity header and follows no
+redirects. The response body is capped at 8 KiB, and the endpoint must identify
+itself as `Server: ToucheFinans/...` with an `application/json` content type;
+anything else is reported as `incompatible`, not `healthy`.
+
+Response (`200`):
+
+```json
+{
+  "state": "healthy",
+  "finance_status": "ok",
+  "latency_ms": 4.12,
+  "detail": "Finance reports a consistent ledger.",
+  "checked_at": "2026-10-22T09:30:00+00:00",
+  "scope": "health_only",
+  "accounting_writes_enabled": false
+}
+```
+
+`state` is one of `disabled`, `healthy`, `degraded`, `unreachable` or
+`incompatible`. A Finance outage does **not** make Commerce unready: this
+endpoint still returns `200` with `unreachable`, because Commerce is healthy and
+Finance is an optional external system. A request without a Commerce session is
+`401 UNAUTHORIZED`.
+
+`scope` is always `health_only` and `accounting_writes_enabled` is always
+`false` in Stage 5A. The proposed Finance-side read/write contracts are
+specified in `docs/STAGE5_FINANCE_DISCOVERY.md` §8 and are **not** callable yet.
+
+---
+
+
 ## 8. Endpoint map
 
 
@@ -932,6 +978,7 @@ sanitise filenames and require the linked entity to exist in the active company
 | `POST` | `/api/v1/documents/{id}/verification` | 4 | Implemented |
 | `GET` | `/api/v1/sales-orders/{id}/documents/preview` | 4 | Implemented |
 | `GET` | `/api/v1/operations/summary` | 4 | Implemented |
+| `GET` | `/api/v1/integrations/finance/status` | 5A | Implemented (health only, no accounting writes) |
 
 Reserved endpoints do not exist in the running service; requesting them returns
 `404 NOT_FOUND`. They are listed so the frontend and future integrations share a

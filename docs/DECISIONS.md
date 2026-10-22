@@ -973,3 +973,87 @@ versions, archive, MIME/size limits, traversal-safe storage keys, corruption,
 cross-tenant 404, draft previews) and live checks 32-42.
 
 
+
+---
+
+## ADR-038 - TOUCHE FINANCE remains the only financial source of truth
+
+**Status:** ACCEPTED / IMPLEMENTED as a boundary (Stage 5A)
+
+**Decision.** Commerce owns commercial operational facts (deals, quotes, sales
+orders, purchase orders, shipments, documents). Finance owns the chart of
+accounts, journal, invoices as postings, receivables, payables, payments,
+reconciliation and financial reports. Commerce never creates a ledger entry,
+invoice posting or payment, and it does not build a second accounting engine.
+
+**Reasoning.** Stage 4 deliberately stopped at "no accounting". Running two
+ledgers would make every balance ambiguous and every reconciliation a guess.
+Finance already has double-entry mapping, FIFO aging, recovery journal and
+audit evidence; duplicating any of it in Commerce would be strictly worse.
+
+**Consequences.** The original Stage 5 roadmap line "invoices and payments in
+Commerce" is superseded. Stage 5 becomes an integration programme: read Finance
+first, then send draft commercial events only after Finance exposes a supported
+ingest. Commerce's `CLOSED` remains an administrative state, not payment.
+
+**Verification.** No `/invoices`, `/payments`, ledger or journal table exists in
+Commerce; Stage 4 tests remain green. The new endpoint reports
+`accounting_writes_enabled: false`.
+
+---
+
+## ADR-039 - Read-only-first Finance connector on literal loopback
+
+**Status:** ACCEPTED / IMPLEMENTED (Stage 5A)
+
+**Decision.** The first Commerce→Finance connector may call only Finance's
+public `GET /api/health`. It is disabled by default, accepts only
+`http://127.0.0.1[:port]` or `http://[::1][:port]`, sends no cookie, bearer token
+or Tailscale identity header, requires Finance's `Server: ToucheFinans/...`
+identity and a JSON content type, caps the response at 8 KiB, does not follow
+redirects, and reports failures as data rather than crashing Commerce.
+
+**Reasoning.** Finance has no service credential. Its business endpoints treat a
+loopback request as `OWNER`, so reusing that path would grant a connector
+membership, approval and recovery powers it must never have. A health-only
+probe is the largest capability that is both verified and safe today.
+
+**Consequences.** Commerce can show whether Finance is reachable and consistent,
+but cannot display Finance balances yet. Remote/Tailscale access, business reads
+and writes require ADR-040's authenticated interface. Enabling the connector
+outside a loopback host is rejected at configuration time.
+
+**Verification.** `tests/test_finance_integration.py` (33 tests: URL rejection,
+healthy/degraded/incompatible/unreachable/timeout, Finance identity headers, no
+auth headers, disabled default, authenticated endpoint, OpenAPI wiring);
+`scripts/verify-finance-readonly.ps1` PASS with unchanged DB/workbook hashes.
+
+---
+
+## ADR-040 - Proposed Finance integration contract (draft-only, not implemented)
+
+**Status:** PROPOSED - NOT IMPLEMENTED (blocked on Finance work)
+
+**Decision.** If Finance integration proceeds, it must use a dedicated,
+versioned `/api/integration/v1` surface with HMAC-SHA256 service authentication,
+timestamp/nonce replay protection, idempotency keys and an audit record per call.
+Read endpoints are added first. Any commercial-event write creates **drafts
+only**; Finance's existing human approval/password flow remains the only path to
+a posting. A mapping table links Commerce source ids to Finance entities; names
+are never used as keys.
+
+**Reasoning.** The current session model authenticates a *network position* or a
+Tailscale person, not a service. It cannot scope a connector to read-only or
+attribute its actions distinctly. Unsigned JSON over loopback would be
+indistinguishable from the local owner. Draft-only ingestion preserves Finance's
+approval and recovery guarantees.
+
+**Consequences.** No endpoint in this ADR may be called by Commerce yet; no fake
+client or outbox producer is added. Finance must implement and verify §8.1 of
+`docs/STAGE5_FINANCE_DISCOVERY.md` before Stage 5B. The exact proposed storage is
+additive (`entegrasyon_anahtarlari`, `entegrasyon_istek_kayitlari`,
+`entegrasyon_eslesmeleri`, `entegrasyon_olaylari`).
+
+**Verification.** None yet, by design. The proposal is reviewed against the live
+Finance source at `8dce8245`; no Finance file, database or workbook was changed.
+
