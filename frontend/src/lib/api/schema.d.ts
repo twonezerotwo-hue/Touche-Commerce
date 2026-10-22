@@ -228,6 +228,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/fx-rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List recorded FX snapshots
+         * @description Cursor-paginated, newest recording first. Filter by the currency pair. No endpoint returns a 'current' rate: pricing always refers to a stored snapshot so a landed cost stays reproducible.
+         */
+        get: operations["list_fx_rates_api_v1_fx_rates_get"];
+        put?: never;
+        /**
+         * Record an FX snapshot
+         * @description Stores one sourced observation. The pair and effective time are unique per company, so recording the same observation twice is a 409 instead of a duplicate rate that could be picked arbitrarily.
+         */
+        post: operations["create_fx_rate_api_v1_fx_rates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fx-rates/{fx_rate_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one FX snapshot */
+        get: operations["get_fx_rate_api_v1_fx_rates__fx_rate_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health/live": {
         parameters: {
             query?: never;
@@ -261,6 +302,51 @@ export interface paths {
          */
         get: operations["health_ready_api_v1_health_ready_get"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing-scenarios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List pricing scenarios
+         * @description Cursor-paginated, newest first. The summary carries landed total, sales total and gross margin so a comparison table needs no extra call.
+         */
+        get: operations["list_pricing_scenarios_api_v1_pricing_scenarios_get"];
+        put?: never;
+        /**
+         * Price a supplier quote (landed cost + selling price)
+         * @description Converts the quote into the target currency using an explicit FX snapshot, allocates every cost component (ORDER pro-rata by purchase value, LINE to its product) and derives selling prices from exactly one of margin or markup. The inputs and the rounded results are stored together.
+         */
+        post: operations["create_pricing_scenario_api_v1_pricing_scenarios_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing-scenarios/{scenario_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one scenario with inputs, results and components */
+        get: operations["get_pricing_scenario_api_v1_pricing_scenarios__scenario_id__get"];
+        /**
+         * Recalculate a scenario with new inputs (If-Match required)
+         * @description Replaces the cost components and reruns the engine for the same supplier quote. A scenario is bound to its quote: repointing it is a 400, not a silent rewrite of history.
+         */
+        put: operations["recalculate_pricing_scenario_api_v1_pricing_scenarios__scenario_id__put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -307,6 +393,269 @@ export interface paths {
         patch: operations["update_product_api_v1_products__product_id__patch"];
         trace?: never;
     };
+    "/api/v1/rfqs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List supplier RFQs
+         * @description Cursor-paginated, newest first. Each row carries its line and quote counts so a comparison table never has to fan out per row.
+         */
+        get: operations["list_rfqs_api_v1_rfqs_get"];
+        put?: never;
+        /**
+         * Create one RFQ per supplier
+         * @description Every supplier receives its own RFQ with the same lines, created in one transaction. A buyer counterparty is rejected: an RFQ is addressed to a supplier. References are generated per RFQ.
+         */
+        post: operations["create_rfq_api_v1_rfqs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rfqs/{rfq_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one RFQ with lines, quotes and prepared revisions */
+        get: operations["get_rfq_api_v1_rfqs__rfq_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update an RFQ (If-Match required)
+         * @description Draft and prepared RFQs are editable. Editing a prepared RFQ returns it to DRAFT and opens the next revision, so the prepared snapshot stays intact. Status is not writable here: use the transitions endpoint.
+         */
+        patch: operations["update_rfq_api_v1_rfqs__rfq_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/rfqs/{rfq_id}/quotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a supplier's quote against a sent RFQ
+         * @description The quote inherits its supplier, deal and line descriptions from the RFQ. Only a SENT (or re-quoted RESPONDED) RFQ accepts a quote, and only one received quote may be active at a time: later prices are revisions.
+         */
+        post: operations["record_supplier_quote_api_v1_rfqs__rfq_id__quotes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rfqs/{rfq_id}/revisions/{revision}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a prepared RFQ snapshot
+         * @description Prepared snapshots are append-only; this returns the stored JSON as written.
+         */
+        get: operations["get_rfq_revision_api_v1_rfqs__rfq_id__revisions__revision__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rfqs/{rfq_id}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move an RFQ through its lifecycle
+         * @description Requires Idempotency-Key. PREPARED writes an immutable revision snapshot; SENT requires channel and evidence; CANCELLED requires a reason.
+         */
+        post: operations["transition_rfq_api_v1_rfqs__rfq_id__transitions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales-quotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List sales quotes
+         * @description Cursor-paginated, newest first. Each row includes the scenario status so a reviewer can see whether the underlying inputs were verified.
+         */
+        get: operations["list_sales_quotes_api_v1_sales_quotes_get"];
+        put?: never;
+        /**
+         * Draft a sales quote from a pricing scenario
+         * @description Prices are copied from the scenario's stored results, so the quote matches the calculation that was reviewed. A supplier counterparty cannot be a customer. The new quote starts in DRAFT.
+         */
+        post: operations["create_sales_quote_api_v1_sales_quotes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales-quotes/{sales_quote_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one sales quote with lines, revisions and allowed actions */
+        get: operations["get_sales_quote_api_v1_sales_quotes__sales_quote_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales-quotes/{sales_quote_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve a submitted quote (finance.approve)
+         * @description Requires the ``finance.approve`` permission (traders and admins never hold it) and refuses the submitter, so approval is always a second pair of eyes.
+         */
+        post: operations["approve_sales_quote_api_v1_sales_quotes__sales_quote_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales-quotes/{sales_quote_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject a submitted quote (finance.approve)
+         * @description A rejection explains itself: the reason is stored and audited.
+         */
+        post: operations["reject_sales_quote_api_v1_sales_quotes__sales_quote_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales-quotes/{sales_quote_id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open a new revision of an approved, rejected or withdrawn quote
+         * @description The new revision starts in DRAFT, carries the next revision number and supersedes the previous row. Prices are re-read from the pricing scenario.
+         */
+        post: operations["revise_sales_quote_api_v1_sales_quotes__sales_quote_id__revisions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales-quotes/{sales_quote_id}/revisions/{revision}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a stored sales quote revision snapshot */
+        get: operations["get_sales_quote_revision_api_v1_sales_quotes__sales_quote_id__revisions__revision__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales-quotes/{sales_quote_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a draft for approval (If-Match + Idempotency-Key required)
+         * @description Only a scenario with VERIFIED_INPUTS may be submitted: an estimate can be drafted and discussed, never approved as if it were verified.
+         */
+        post: operations["submit_sales_quote_api_v1_sales_quotes__sales_quote_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales-quotes/{sales_quote_id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw a draft or submitted quote (If-Match required)
+         * @description Withdrawal is a dead end: an approved quote cannot be withdrawn, it is superseded by a new revision instead, so the approval trail stays intact.
+         */
+        post: operations["withdraw_sales_quote_api_v1_sales_quotes__sales_quote_id__withdraw_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/session/company": {
         parameters: {
             query?: never;
@@ -321,6 +670,100 @@ export interface paths {
          * @description Requires a CSRF header and an active membership for the requested company. The company id supplied by the client is only used as a lookup key: an unauthorised id returns 403 and writes an ACCESS_DENIED audit record. On success the session token and CSRF token are rotated and the absolute expiry is preserved.
          */
         post: operations["switch_company_api_v1_session_company_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/supplier-quotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List supplier quotes
+         * @description Cursor-paginated by receipt time, newest first. Superseded revisions stay visible with their ``superseded_by_quote_id`` set, so a price history is never lost.
+         */
+        get: operations["list_supplier_quotes_api_v1_supplier_quotes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/supplier-quotes/{quote_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one supplier quote with lines and revisions */
+        get: operations["get_supplier_quote_api_v1_supplier_quotes__quote_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/supplier-quotes/{quote_id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a new revision of a supplier quote (If-Match required)
+         * @description Creates a new quote row that supersedes the given one. The previous revision is never modified, so both prices remain readable and only the newest revision can be priced.
+         */
+        post: operations["revise_supplier_quote_api_v1_supplier_quotes__quote_id__revisions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/supplier-quotes/{quote_id}/revisions/{revision}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a stored quote revision snapshot */
+        get: operations["get_supplier_quote_revision_api_v1_supplier_quotes__quote_id__revisions__revision__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/supplier-quotes/{quote_id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw a received quote (If-Match required)
+         * @description A withdrawn quote keeps its data and revision history but can no longer be priced; a reason is required and recorded in the audit trail.
+         */
+        post: operations["withdraw_supplier_quote_api_v1_supplier_quotes__quote_id__withdraw_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -885,6 +1328,82 @@ export interface components {
         ErrorEnvelope: {
             error: components["schemas"]["ErrorDetail"];
         };
+        /**
+         * FxRateCreateRequest
+         * @example {
+         *       "base_currency": "EUR",
+         *       "effective_at": "2026-10-22T00:00:00Z",
+         *       "quote_currency": "USD",
+         *       "rate": "1.0875000000",
+         *       "source": "ECB reference rate 2026-10-22"
+         *     }
+         */
+        FxRateCreateRequest: {
+            /**
+             * Base Currency
+             * @description ISO 4217 base currency.
+             */
+            base_currency: string;
+            /**
+             * Effective At
+             * Format: date-time
+             */
+            effective_at: string;
+            /**
+             * Quote Currency
+             * @description ISO 4217 quote currency.
+             */
+            quote_currency: string;
+            /** Rate */
+            rate: number | string;
+            /** Source */
+            source: string;
+        };
+        /** FxRateListResponse */
+        FxRateListResponse: {
+            /** Has More */
+            has_more: boolean;
+            /** Items */
+            items: components["schemas"]["FxRateResponse"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** FxRateResponse */
+        FxRateResponse: {
+            /** Base Currency */
+            base_currency: string;
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Effective At
+             * Format: date-time
+             */
+            effective_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Quote Currency */
+            quote_currency: string;
+            /** Rate */
+            rate: string;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /**
+             * Recorded By
+             * Format: uuid
+             */
+            recorded_by: string;
+            /** Source */
+            source: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -990,6 +1509,268 @@ export interface components {
              * @constant
              */
             status: "signed_out";
+        };
+        /** PricingCostComponentRequest */
+        PricingCostComponentRequest: {
+            /** Amount */
+            amount: number | string;
+            /**
+             * Basis
+             * @default ORDER
+             * @enum {string}
+             */
+            basis: "ORDER" | "LINE";
+            /**
+             * Cost Type
+             * @enum {string}
+             */
+            cost_type: "PURCHASE" | "FREIGHT" | "DOMESTIC_TRANSPORT" | "INSURANCE" | "CUSTOMS_DUTY" | "CUSTOMS_BROKERAGE" | "QUALITY_INSPECTION" | "BANKING_FINANCE" | "OTHER" | "CONTINGENCY" | "VAT_CASHFLOW";
+            /** Currency */
+            currency: string;
+            /**
+             * Fx Rate Snapshot Id
+             * @description Required when the currency differs from the target.
+             */
+            fx_rate_snapshot_id?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Product Id
+             * @description Required for LINE basis, forbidden for ORDER.
+             */
+            product_id?: string | null;
+            /** Source Reference */
+            source_reference: string;
+            /**
+             * Verification Status
+             * @enum {string}
+             */
+            verification_status: "ESTIMATED" | "VERIFIED";
+        };
+        /** PricingCostComponentResponse */
+        PricingCostComponentResponse: {
+            /** Amount */
+            amount: string;
+            /**
+             * Basis
+             * @enum {string}
+             */
+            basis: "ORDER" | "LINE";
+            /**
+             * Cost Type
+             * @enum {string}
+             */
+            cost_type: "PURCHASE" | "FREIGHT" | "DOMESTIC_TRANSPORT" | "INSURANCE" | "CUSTOMS_DUTY" | "CUSTOMS_BROKERAGE" | "QUALITY_INSPECTION" | "BANKING_FINANCE" | "OTHER" | "CONTINGENCY" | "VAT_CASHFLOW";
+            /** Currency */
+            currency: string;
+            /** Fx Rate Snapshot Id */
+            fx_rate_snapshot_id: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Notes */
+            notes: string | null;
+            /** Product Id */
+            product_id: string | null;
+            /** Product Name */
+            product_name: string | null;
+            /** Product Sku */
+            product_sku: string | null;
+            /** Source Reference */
+            source_reference: string;
+            /**
+             * Verification Status
+             * @enum {string}
+             */
+            verification_status: "ESTIMATED" | "VERIFIED";
+        };
+        /** PricingScenarioListResponse */
+        PricingScenarioListResponse: {
+            /** Has More */
+            has_more: boolean;
+            /** Items */
+            items: components["schemas"]["PricingScenarioSummaryResponse"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** PricingScenarioRequest */
+        PricingScenarioRequest: {
+            /** Components */
+            components?: components["schemas"]["PricingCostComponentRequest"][];
+            /**
+             * Fx Rate Snapshot Id
+             * @description Required when the quote currency differs from the target.
+             */
+            fx_rate_snapshot_id?: string | null;
+            /**
+             * Margin Pct
+             * @default 0
+             */
+            margin_pct: number | string;
+            /**
+             * Markup Pct
+             * @default 0
+             */
+            markup_pct: number | string;
+            /** Sales Incoterm */
+            sales_incoterm?: ("EXW" | "FCA" | "FAS" | "FOB" | "CFR" | "CIF" | "CPT" | "CIP" | "DAP" | "DPU" | "DDP") | null;
+            /** Sales Named Place */
+            sales_named_place?: string | null;
+            /**
+             * Supplier Quote Id
+             * Format: uuid
+             */
+            supplier_quote_id: string;
+            /** Target Currency */
+            target_currency: string;
+        };
+        /** PricingScenarioResponse */
+        PricingScenarioResponse: {
+            /** Calculated Results */
+            calculated_results: {
+                [key: string]: unknown;
+            };
+            /** Calculation Version */
+            calculation_version: string;
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /** Completeness */
+            completeness: {
+                [key: string]: unknown;
+            };
+            /** Components */
+            components: components["schemas"]["PricingCostComponentResponse"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /**
+             * Deal Id
+             * Format: uuid
+             */
+            deal_id: string;
+            /** Deal Reference */
+            deal_reference: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Pricing Inputs */
+            pricing_inputs: {
+                [key: string]: unknown;
+            };
+            /** Quote Currency */
+            quote_currency: string;
+            /** Quote Revision */
+            quote_revision: number;
+            /**
+             * Rfq Id
+             * Format: uuid
+             */
+            rfq_id: string;
+            /** Rfq Reference */
+            rfq_reference: string;
+            /** Sales Incoterm */
+            sales_incoterm: ("EXW" | "FCA" | "FAS" | "FOB" | "CFR" | "CIF" | "CPT" | "CIP" | "DAP" | "DPU" | "DDP") | null;
+            /** Sales Named Place */
+            sales_named_place: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "INCOMPLETE" | "ESTIMATED" | "VERIFIED_INPUTS";
+            /**
+             * Supplier Counterparty Id
+             * Format: uuid
+             */
+            supplier_counterparty_id: string;
+            /** Supplier Name */
+            supplier_name: string;
+            /**
+             * Supplier Quote Id
+             * Format: uuid
+             */
+            supplier_quote_id: string;
+            /** Target Currency */
+            target_currency: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Version
+             * @description Optimistic concurrency version; also sent as ETag.
+             */
+            version: number;
+        };
+        /** PricingScenarioSummaryResponse */
+        PricingScenarioSummaryResponse: {
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Deal Id
+             * Format: uuid
+             */
+            deal_id: string;
+            /** Deal Reference */
+            deal_reference: string;
+            /** Gross Margin */
+            gross_margin: string;
+            /** Gross Margin Pct */
+            gross_margin_pct: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Landed Total */
+            landed_total: string;
+            /** Rfq Reference */
+            rfq_reference: string;
+            /** Sales Total */
+            sales_total: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "INCOMPLETE" | "ESTIMATED" | "VERIFIED_INPUTS";
+            /** Supplier Name */
+            supplier_name: string;
+            /**
+             * Supplier Quote Id
+             * Format: uuid
+             */
+            supplier_quote_id: string;
+            /** Target Currency */
+            target_currency: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
         };
         /** ProductCreateRequest */
         ProductCreateRequest: {
@@ -1118,6 +1899,668 @@ export interface components {
             version: string;
         };
         /**
+         * RfqBatchResponse
+         * @description One row per supplier that was asked, created in one transaction.
+         */
+        RfqBatchResponse: {
+            /** Items */
+            items: components["schemas"]["RfqResponse"][];
+        };
+        /**
+         * RfqCreateRequest
+         * @example {
+         *       "deal_id": "7f7b0a54-0f43-4d7d-9a1b-3f5f3f0f0a11",
+         *       "delivery_location": "Rotterdam, NL",
+         *       "items": [
+         *         {
+         *           "description": "Almond kernels, 25 kg bags",
+         *           "product_id": "0f6a1f43-2b61-4a4d-9ad6-5a1f1a1f1a12",
+         *           "quantity": "1000.000",
+         *           "unit": "kg"
+         *         }
+         *       ],
+         *       "requested_currency": "USD",
+         *       "response_due_date": "2026-11-05",
+         *       "supplier_ids": [
+         *         "0f6a1f43-2b61-4a4d-9ad6-5a1f1a1f1a11"
+         *       ]
+         *     }
+         */
+        RfqCreateRequest: {
+            /**
+             * Deal Id
+             * Format: uuid
+             */
+            deal_id: string;
+            /** Delivery Location */
+            delivery_location: string;
+            /** Items */
+            items: components["schemas"]["RfqItemRequest"][];
+            /** Notes */
+            notes?: string | null;
+            /** Requested Currency */
+            requested_currency: string;
+            /** Requested Delivery Terms */
+            requested_delivery_terms?: string | null;
+            /** Response Due Date */
+            response_due_date?: string | null;
+            /**
+             * Supplier Ids
+             * @description One RFQ is created per supplier in a single transaction.
+             */
+            supplier_ids: string[];
+        };
+        /** RfqItemRequest */
+        RfqItemRequest: {
+            /** Description */
+            description: string;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Quantity */
+            quantity: number | string;
+            /**
+             * Unit
+             * @enum {string}
+             */
+            unit: "kg" | "mt" | "lb" | "unit" | "l" | "m3";
+        };
+        /** RfqItemResponse */
+        RfqItemResponse: {
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes: string | null;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Quantity */
+            quantity: string;
+            /** Sku */
+            sku: string;
+            /**
+             * Unit
+             * @enum {string}
+             */
+            unit: "kg" | "mt" | "lb" | "unit" | "l" | "m3";
+        };
+        /** RfqListResponse */
+        RfqListResponse: {
+            /** Has More */
+            has_more: boolean;
+            /** Items */
+            items: components["schemas"]["RfqSummaryResponse"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** RfqQuoteSummaryResponse */
+        RfqQuoteSummaryResponse: {
+            /** Currency */
+            currency: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Received At
+             * Format: date-time
+             */
+            received_at: string;
+            /** Revision */
+            revision: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "RECEIVED" | "WITHDRAWN";
+            /** Total Value */
+            total_value: string;
+            /**
+             * Valid Until
+             * Format: date
+             */
+            valid_until: string;
+        };
+        /** RfqResponse */
+        RfqResponse: {
+            /** Allowed Transitions */
+            allowed_transitions: ("DRAFT" | "PREPARED" | "SENT" | "RESPONDED" | "CLOSED" | "CANCELLED")[];
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /**
+             * Deal Id
+             * Format: uuid
+             */
+            deal_id: string;
+            /** Deal Reference */
+            deal_reference: string;
+            /** Delivery Location */
+            delivery_location: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Editable */
+            is_editable: boolean;
+            /** Items */
+            items: components["schemas"]["RfqItemResponse"][];
+            /** Notes */
+            notes: string | null;
+            /** Quotes */
+            quotes: components["schemas"]["RfqQuoteSummaryResponse"][];
+            /** Reference Number */
+            reference_number: string;
+            /** Requested Currency */
+            requested_currency: string;
+            /** Requested Delivery Terms */
+            requested_delivery_terms: string | null;
+            /** Response Due Date */
+            response_due_date: string | null;
+            /** Revision */
+            revision: number;
+            /** Revisions */
+            revisions: components["schemas"]["RfqRevisionResponse"][];
+            /** Sent At */
+            sent_at: string | null;
+            /** Sent Channel */
+            sent_channel: string | null;
+            /** Sent Evidence */
+            sent_evidence: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "PREPARED" | "SENT" | "RESPONDED" | "CLOSED" | "CANCELLED";
+            /**
+             * Supplier Counterparty Id
+             * Format: uuid
+             */
+            supplier_counterparty_id: string;
+            /** Supplier Name */
+            supplier_name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Version
+             * @description Optimistic concurrency version; also sent as ETag.
+             */
+            version: number;
+        };
+        /** RfqRevisionDetailResponse */
+        RfqRevisionDetailResponse: {
+            /**
+             * Actor Id
+             * Format: uuid
+             */
+            actor_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Reason */
+            reason: string | null;
+            /** Revision */
+            revision: number;
+            /** Snapshot */
+            snapshot: {
+                [key: string]: unknown;
+            };
+        };
+        /** RfqRevisionResponse */
+        RfqRevisionResponse: {
+            /**
+             * Actor Id
+             * Format: uuid
+             */
+            actor_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Reason */
+            reason: string | null;
+            /** Revision */
+            revision: number;
+        };
+        /** RfqSummaryResponse */
+        RfqSummaryResponse: {
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Deal Id
+             * Format: uuid
+             */
+            deal_id: string;
+            /** Deal Reference */
+            deal_reference: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Item Count */
+            item_count: number;
+            /** Quote Count */
+            quote_count: number;
+            /** Reference Number */
+            reference_number: string;
+            /** Requested Currency */
+            requested_currency: string;
+            /** Response Due Date */
+            response_due_date: string | null;
+            /** Revision */
+            revision: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "PREPARED" | "SENT" | "RESPONDED" | "CLOSED" | "CANCELLED";
+            /**
+             * Supplier Counterparty Id
+             * Format: uuid
+             */
+            supplier_counterparty_id: string;
+            /** Supplier Name */
+            supplier_name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** RfqTransitionRequest */
+        RfqTransitionRequest: {
+            /**
+             * Channel
+             * @description Required to send: for example 'email'.
+             */
+            channel?: string | null;
+            /**
+             * Evidence
+             * @description Required to send: message id, thread or file proving dispatch.
+             */
+            evidence?: string | null;
+            /**
+             * Reason
+             * @description Required (3-500 characters) to cancel.
+             */
+            reason?: string | null;
+            /**
+             * To
+             * @enum {string}
+             */
+            to: "DRAFT" | "PREPARED" | "SENT" | "RESPONDED" | "CLOSED" | "CANCELLED";
+        };
+        /**
+         * RfqUpdateRequest
+         * @description Header/lines update. ``status`` is intentionally absent.
+         */
+        RfqUpdateRequest: {
+            /** Delivery Location */
+            delivery_location?: string | null;
+            /** Items */
+            items?: components["schemas"]["RfqItemRequest"][] | null;
+            /** Notes */
+            notes?: string | null;
+            /** Requested Currency */
+            requested_currency?: string | null;
+            /** Requested Delivery Terms */
+            requested_delivery_terms?: string | null;
+            /** Response Due Date */
+            response_due_date?: string | null;
+        };
+        /** SalesQuoteApproveRequest */
+        SalesQuoteApproveRequest: {
+            /** Note */
+            note?: string | null;
+        };
+        /** SalesQuoteCreateRequest */
+        SalesQuoteCreateRequest: {
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /**
+             * Incoterm
+             * @enum {string}
+             */
+            incoterm: "EXW" | "FCA" | "FAS" | "FOB" | "CFR" | "CIF" | "CPT" | "CIP" | "DAP" | "DPU" | "DDP";
+            /** Named Delivery Place */
+            named_delivery_place: string;
+            /** Notes */
+            notes?: string | null;
+            /** Payment Terms */
+            payment_terms: string;
+            /**
+             * Scenario Id
+             * Format: uuid
+             */
+            scenario_id: string;
+            /**
+             * Valid Until
+             * Format: date
+             */
+            valid_until: string;
+        };
+        /** SalesQuoteItemResponse */
+        SalesQuoteItemResponse: {
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Line Total */
+            line_total: string;
+            /** Name */
+            name: string;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Quantity */
+            quantity: string;
+            /** Sku */
+            sku: string;
+            /**
+             * Unit
+             * @enum {string}
+             */
+            unit: "kg" | "mt" | "lb" | "unit" | "l" | "m3";
+            /** Unit Price */
+            unit_price: string;
+        };
+        /** SalesQuoteListResponse */
+        SalesQuoteListResponse: {
+            /** Has More */
+            has_more: boolean;
+            /** Items */
+            items: components["schemas"]["SalesQuoteSummaryResponse"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** SalesQuoteRejectRequest */
+        SalesQuoteRejectRequest: {
+            /** Reason */
+            reason: string;
+        };
+        /** SalesQuoteResponse */
+        SalesQuoteResponse: {
+            /** Allowed Transitions */
+            allowed_transitions: ("DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "WITHDRAWN")[];
+            /** Approved At */
+            approved_at: string | null;
+            /** Approved By */
+            approved_by: string | null;
+            /** Can Submit */
+            can_submit: boolean;
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /** Customer Name */
+            customer_name: string;
+            /**
+             * Deal Id
+             * Format: uuid
+             */
+            deal_id: string;
+            /** Deal Reference */
+            deal_reference: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Incoterm
+             * @enum {string}
+             */
+            incoterm: "EXW" | "FCA" | "FAS" | "FOB" | "CFR" | "CIF" | "CPT" | "CIP" | "DAP" | "DPU" | "DDP";
+            /** Items */
+            items: components["schemas"]["SalesQuoteItemResponse"][];
+            /** Named Delivery Place */
+            named_delivery_place: string;
+            /** Notes */
+            notes: string | null;
+            /** Payment Terms */
+            payment_terms: string;
+            /** Quote Number */
+            quote_number: string;
+            /** Rejection Reason */
+            rejection_reason: string | null;
+            /** Revision */
+            revision: number;
+            /** Revisions */
+            revisions: components["schemas"]["SalesQuoteRevisionResponse"][];
+            /**
+             * Scenario Id
+             * Format: uuid
+             */
+            scenario_id: string;
+            /**
+             * Scenario Status
+             * @enum {string}
+             */
+            scenario_status: "INCOMPLETE" | "ESTIMATED" | "VERIFIED_INPUTS";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "WITHDRAWN";
+            /** Submitted At */
+            submitted_at: string | null;
+            /** Submitted By */
+            submitted_by: string | null;
+            /** Superseded By Sales Quote Id */
+            superseded_by_sales_quote_id: string | null;
+            /** Supersedes Sales Quote Id */
+            supersedes_sales_quote_id: string | null;
+            /** Total Value */
+            total_value: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Valid Until
+             * Format: date
+             */
+            valid_until: string;
+            /**
+             * Version
+             * @description Optimistic concurrency version; also sent as ETag.
+             */
+            version: number;
+        };
+        /** SalesQuoteReviseRequest */
+        SalesQuoteReviseRequest: {
+            /** Notes */
+            notes?: string | null;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Valid Until
+             * Format: date
+             */
+            valid_until: string;
+        };
+        /** SalesQuoteRevisionDetailResponse */
+        SalesQuoteRevisionDetailResponse: {
+            /**
+             * Actor Id
+             * Format: uuid
+             */
+            actor_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Reason */
+            reason: string | null;
+            /** Revision */
+            revision: number;
+            /** Snapshot */
+            snapshot: {
+                [key: string]: unknown;
+            };
+        };
+        /** SalesQuoteRevisionResponse */
+        SalesQuoteRevisionResponse: {
+            /**
+             * Actor Id
+             * Format: uuid
+             */
+            actor_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Reason */
+            reason: string | null;
+            /** Revision */
+            revision: number;
+        };
+        /** SalesQuoteSummaryResponse */
+        SalesQuoteSummaryResponse: {
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /** Customer Name */
+            customer_name: string;
+            /**
+             * Deal Id
+             * Format: uuid
+             */
+            deal_id: string;
+            /** Deal Reference */
+            deal_reference: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Quote Number */
+            quote_number: string;
+            /** Revision */
+            revision: number;
+            /**
+             * Scenario Id
+             * Format: uuid
+             */
+            scenario_id: string;
+            /**
+             * Scenario Status
+             * @enum {string}
+             */
+            scenario_status: "INCOMPLETE" | "ESTIMATED" | "VERIFIED_INPUTS";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "WITHDRAWN";
+            /** Total Value */
+            total_value: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Valid Until
+             * Format: date
+             */
+            valid_until: string;
+            /** Version */
+            version: number;
+        };
+        /** SalesQuoteWithdrawRequest */
+        SalesQuoteWithdrawRequest: {
+            /** Reason */
+            reason?: string | null;
+        };
+        /**
          * SessionUser
          * @description The authenticated actor.
          */
@@ -1176,6 +2619,379 @@ export interface components {
             session_id: string;
             /** User Agent */
             user_agent?: string | null;
+        };
+        /** SupplierQuoteCreateRequest */
+        SupplierQuoteCreateRequest: {
+            /**
+             * Currency
+             * @description Currency the supplier quoted in.
+             */
+            currency: string;
+            /**
+             * Incoterm
+             * @enum {string}
+             */
+            incoterm: "EXW" | "FCA" | "FAS" | "FOB" | "CFR" | "CIF" | "CPT" | "CIP" | "DAP" | "DPU" | "DDP";
+            /** Items */
+            items: components["schemas"]["SupplierQuoteItemRequest"][];
+            /** Lead Time Days */
+            lead_time_days: number;
+            /** Named Delivery Place */
+            named_delivery_place: string;
+            /** Notes */
+            notes?: string | null;
+            /** Payment Terms */
+            payment_terms: string;
+            /**
+             * Received At
+             * @description When the supplier's reply arrived; defaults to now.
+             */
+            received_at?: string | null;
+            /** Shipping Conditions */
+            shipping_conditions?: string | null;
+            /**
+             * Source Reference
+             * @description Email, file or portal message the quote was taken from.
+             */
+            source_reference: string;
+            /** Supplier Reference */
+            supplier_reference?: string | null;
+            /**
+             * Valid Until
+             * Format: date
+             */
+            valid_until: string;
+        };
+        /** SupplierQuoteItemRequest */
+        SupplierQuoteItemRequest: {
+            /** Moq */
+            moq?: number | string | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Quantity */
+            quantity: number | string;
+            /** Unit Price */
+            unit_price: number | string;
+        };
+        /** SupplierQuoteItemResponse */
+        SupplierQuoteItemResponse: {
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Line Total */
+            line_total: string;
+            /** Moq */
+            moq: string | null;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes: string | null;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Quantity */
+            quantity: string;
+            /** Sku */
+            sku: string;
+            /**
+             * Unit
+             * @enum {string}
+             */
+            unit: "kg" | "mt" | "lb" | "unit" | "l" | "m3";
+            /** Unit Price */
+            unit_price: string;
+        };
+        /** SupplierQuoteListResponse */
+        SupplierQuoteListResponse: {
+            /** Has More */
+            has_more: boolean;
+            /** Items */
+            items: components["schemas"]["SupplierQuoteSummaryResponse"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** SupplierQuoteResponse */
+        SupplierQuoteResponse: {
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Deal Id
+             * Format: uuid
+             */
+            deal_id: string;
+            /** Deal Reference */
+            deal_reference: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Incoterm
+             * @enum {string}
+             */
+            incoterm: "EXW" | "FCA" | "FAS" | "FOB" | "CFR" | "CIF" | "CPT" | "CIP" | "DAP" | "DPU" | "DDP";
+            /** Is Active */
+            is_active: boolean;
+            /** Items */
+            items: components["schemas"]["SupplierQuoteItemResponse"][];
+            /** Lead Time Days */
+            lead_time_days: number;
+            /** Named Delivery Place */
+            named_delivery_place: string;
+            /** Notes */
+            notes: string | null;
+            /** Payment Terms */
+            payment_terms: string;
+            /**
+             * Received At
+             * Format: date-time
+             */
+            received_at: string;
+            /** Revision */
+            revision: number;
+            /** Revisions */
+            revisions: components["schemas"]["SupplierQuoteRevisionResponse"][];
+            /**
+             * Rfq Id
+             * Format: uuid
+             */
+            rfq_id: string;
+            /** Rfq Reference */
+            rfq_reference: string;
+            /** Shipping Conditions */
+            shipping_conditions: string | null;
+            /** Source Reference */
+            source_reference: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "RECEIVED" | "WITHDRAWN";
+            /** Superseded By Quote Id */
+            superseded_by_quote_id: string | null;
+            /** Supersedes Quote Id */
+            supersedes_quote_id: string | null;
+            /**
+             * Supplier Counterparty Id
+             * Format: uuid
+             */
+            supplier_counterparty_id: string;
+            /** Supplier Name */
+            supplier_name: string;
+            /** Supplier Reference */
+            supplier_reference: string | null;
+            /** Total Value */
+            total_value: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Valid Until
+             * Format: date
+             */
+            valid_until: string;
+            /**
+             * Version
+             * @description Optimistic concurrency version; also sent as ETag.
+             */
+            version: number;
+        };
+        /** SupplierQuoteReviseRequest */
+        SupplierQuoteReviseRequest: {
+            /**
+             * Currency
+             * @description Currency the supplier quoted in.
+             */
+            currency: string;
+            /**
+             * Incoterm
+             * @enum {string}
+             */
+            incoterm: "EXW" | "FCA" | "FAS" | "FOB" | "CFR" | "CIF" | "CPT" | "CIP" | "DAP" | "DPU" | "DDP";
+            /** Items */
+            items: components["schemas"]["SupplierQuoteItemRequest"][];
+            /** Lead Time Days */
+            lead_time_days: number;
+            /** Named Delivery Place */
+            named_delivery_place: string;
+            /** Notes */
+            notes?: string | null;
+            /** Payment Terms */
+            payment_terms: string;
+            /**
+             * Reason
+             * @description Why a new revision was recorded.
+             */
+            reason?: string | null;
+            /**
+             * Received At
+             * @description When the supplier's reply arrived; defaults to now.
+             */
+            received_at?: string | null;
+            /** Shipping Conditions */
+            shipping_conditions?: string | null;
+            /**
+             * Source Reference
+             * @description Email, file or portal message the quote was taken from.
+             */
+            source_reference: string;
+            /** Supplier Reference */
+            supplier_reference?: string | null;
+            /**
+             * Valid Until
+             * Format: date
+             */
+            valid_until: string;
+        };
+        /** SupplierQuoteRevisionDetailResponse */
+        SupplierQuoteRevisionDetailResponse: {
+            /**
+             * Actor Id
+             * Format: uuid
+             */
+            actor_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Reason */
+            reason: string | null;
+            /** Revision */
+            revision: number;
+            /** Snapshot */
+            snapshot: {
+                [key: string]: unknown;
+            };
+        };
+        /** SupplierQuoteRevisionResponse */
+        SupplierQuoteRevisionResponse: {
+            /**
+             * Actor Id
+             * Format: uuid
+             */
+            actor_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Reason */
+            reason: string | null;
+            /** Revision */
+            revision: number;
+        };
+        /** SupplierQuoteSummaryResponse */
+        SupplierQuoteSummaryResponse: {
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Deal Id
+             * Format: uuid
+             */
+            deal_id: string;
+            /** Deal Reference */
+            deal_reference: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Incoterm
+             * @enum {string}
+             */
+            incoterm: "EXW" | "FCA" | "FAS" | "FOB" | "CFR" | "CIF" | "CPT" | "CIP" | "DAP" | "DPU" | "DDP";
+            /** Item Count */
+            item_count: number;
+            /**
+             * Received At
+             * Format: date-time
+             */
+            received_at: string;
+            /** Revision */
+            revision: number;
+            /**
+             * Rfq Id
+             * Format: uuid
+             */
+            rfq_id: string;
+            /** Rfq Reference */
+            rfq_reference: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "RECEIVED" | "WITHDRAWN";
+            /** Superseded By Quote Id */
+            superseded_by_quote_id: string | null;
+            /**
+             * Supplier Counterparty Id
+             * Format: uuid
+             */
+            supplier_counterparty_id: string;
+            /** Supplier Name */
+            supplier_name: string;
+            /** Supplier Reference */
+            supplier_reference: string | null;
+            /** Total Value */
+            total_value: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Valid Until
+             * Format: date
+             */
+            valid_until: string;
+            /** Version */
+            version: number;
+        };
+        /** SupplierQuoteWithdrawRequest */
+        SupplierQuoteWithdrawRequest: {
+            /** Reason */
+            reason: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -1889,6 +3705,131 @@ export interface operations {
             };
         };
     };
+    list_fx_rates_api_v1_fx_rates_get: {
+        parameters: {
+            query?: {
+                base_currency?: string | null;
+                quote_currency?: string | null;
+                limit?: number | null;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of FX snapshots. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxRateListResponse"];
+                };
+            };
+            /** @description Invalid cursor or limit. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_fx_rate_api_v1_fx_rates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FxRateCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Recorded. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxRateResponse"];
+                };
+            };
+            /** @description Missing/invalid Idempotency-Key. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Duplicate snapshot. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid payload. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_fx_rate_api_v1_fx_rates__fx_rate_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fx_rate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxRateResponse"];
+                };
+            };
+            /** @description Unknown snapshot. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     health_live_api_v1_health_live_get: {
         parameters: {
             query?: never;
@@ -1929,6 +3870,212 @@ export interface operations {
             };
             /** @description A required dependency is unavailable. */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_pricing_scenarios_api_v1_pricing_scenarios_get: {
+        parameters: {
+            query?: {
+                status?: ("INCOMPLETE" | "ESTIMATED" | "VERIFIED_INPUTS") | null;
+                deal_id?: string | null;
+                supplier_quote_id?: string | null;
+                limit?: number | null;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of scenarios. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PricingScenarioListResponse"];
+                };
+            };
+            /** @description Invalid cursor, limit or filter. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_pricing_scenario_api_v1_pricing_scenarios_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PricingScenarioRequest"];
+            };
+        };
+        responses: {
+            /** @description Calculated and stored. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PricingScenarioResponse"];
+                };
+            };
+            /** @description Missing FX snapshot, unpriced line or invalid component. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unknown supplier quote. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Quote withdrawn or superseded. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid payload. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_pricing_scenario_api_v1_pricing_scenarios__scenario_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PricingScenarioResponse"];
+                };
+            };
+            /** @description Unknown scenario. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recalculate_pricing_scenario_api_v1_pricing_scenarios__scenario_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PricingScenarioRequest"];
+            };
+        };
+        responses: {
+            /** @description Recalculated; the new ETag is returned. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PricingScenarioResponse"];
+                };
+            };
+            /** @description Wrong quote, FX or component. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unknown scenario. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Version conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2116,6 +4263,880 @@ export interface operations {
             };
         };
     };
+    list_rfqs_api_v1_rfqs_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                status?: ("DRAFT" | "PREPARED" | "SENT" | "RESPONDED" | "CLOSED" | "CANCELLED") | null;
+                deal_id?: string | null;
+                supplier_counterparty_id?: string | null;
+                limit?: number | null;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of RFQs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RfqListResponse"];
+                };
+            };
+            /** @description Invalid cursor, limit or filter. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_rfq_api_v1_rfqs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RfqCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created; one entry per supplier. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RfqBatchResponse"];
+                };
+            };
+            /** @description Unknown deal, supplier or product. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Duplicate reference or key conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid payload. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_rfq_api_v1_rfqs__rfq_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rfq_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RfqResponse"];
+                };
+            };
+            /** @description Unknown RFQ. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_rfq_api_v1_rfqs__rfq_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rfq_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RfqUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated; the new ETag is returned. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RfqResponse"];
+                };
+            };
+            /** @description Malformed If-Match or unknown product. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unknown RFQ. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Sent/closed RFQ or version conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid payload. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    record_supplier_quote_api_v1_rfqs__rfq_id__quotes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rfq_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierQuoteCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Recorded; the RFQ becomes RESPONDED. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierQuoteResponse"];
+                };
+            };
+            /** @description Unknown product, invalid Incoterm or missing key. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unknown RFQ. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description RFQ not sent, or a quote is already active. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid payload. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_rfq_revision_api_v1_rfqs__rfq_id__revisions__revision__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rfq_id: string;
+                revision: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RfqRevisionDetailResponse"];
+                };
+            };
+            /** @description Unknown RFQ or revision. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    transition_rfq_api_v1_rfqs__rfq_id__transitions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rfq_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RfqTransitionRequest"];
+            };
+        };
+        responses: {
+            /** @description Transition accepted; the new ETag is returned. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RfqResponse"];
+                };
+            };
+            /** @description Missing key, channel or evidence. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unknown RFQ. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid transition or version conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unknown target or missing reason. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_sales_quotes_api_v1_sales_quotes_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                status?: ("DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "WITHDRAWN") | null;
+                deal_id?: string | null;
+                customer_id?: string | null;
+                currency?: string | null;
+                limit?: number | null;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of sales quotes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesQuoteListResponse"];
+                };
+            };
+            /** @description Invalid cursor, limit or filter. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_sales_quote_api_v1_sales_quotes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalesQuoteCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Drafted. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesQuoteResponse"];
+                };
+            };
+            /** @description Unknown customer, Incoterm or date. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unknown scenario. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Scenario has no priced lines. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid payload. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_sales_quote_api_v1_sales_quotes__sales_quote_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sales_quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesQuoteResponse"];
+                };
+            };
+            /** @description Unknown sales quote. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_sales_quote_api_v1_sales_quotes__sales_quote_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sales_quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SalesQuoteApproveRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Approved; the new ETag is returned. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesQuoteResponse"];
+                };
+            };
+            /** @description Missing permission or self-approval. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unknown sales quote. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid transition or version conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reject_sales_quote_api_v1_sales_quotes__sales_quote_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sales_quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalesQuoteRejectRequest"];
+            };
+        };
+        responses: {
+            /** @description Rejected; the new ETag is returned. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesQuoteResponse"];
+                };
+            };
+            /** @description Missing permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unknown sales quote. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid transition or version conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing reason. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    revise_sales_quote_api_v1_sales_quotes__sales_quote_id__revisions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sales_quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalesQuoteReviseRequest"];
+            };
+        };
+        responses: {
+            /** @description New revision drafted. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesQuoteResponse"];
+                };
+            };
+            /** @description Invalid validity date. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unknown sales quote. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not revisable or already superseded. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_sales_quote_revision_api_v1_sales_quotes__sales_quote_id__revisions__revision__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sales_quote_id: string;
+                revision: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesQuoteRevisionDetailResponse"];
+                };
+            };
+            /** @description Unknown quote or revision. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_sales_quote_api_v1_sales_quotes__sales_quote_id__submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sales_quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Submitted; the new ETag is returned. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesQuoteResponse"];
+                };
+            };
+            /** @description Unknown sales quote. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid transition, unverified scenario or version conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    withdraw_sales_quote_api_v1_sales_quotes__sales_quote_id__withdraw_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sales_quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalesQuoteWithdrawRequest"];
+            };
+        };
+        responses: {
+            /** @description Withdrawn; the new ETag is returned. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesQuoteResponse"];
+                };
+            };
+            /** @description Unknown sales quote. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid transition or version conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     switch_company_api_v1_session_company_post: {
         parameters: {
             query?: never;
@@ -2163,6 +5184,258 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_supplier_quotes_api_v1_supplier_quotes_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                status?: ("RECEIVED" | "WITHDRAWN") | null;
+                rfq_id?: string | null;
+                deal_id?: string | null;
+                supplier_counterparty_id?: string | null;
+                currency?: string | null;
+                limit?: number | null;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of supplier quotes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierQuoteListResponse"];
+                };
+            };
+            /** @description Invalid cursor, limit or filter. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_supplier_quote_api_v1_supplier_quotes__quote_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierQuoteResponse"];
+                };
+            };
+            /** @description Unknown quote. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revise_supplier_quote_api_v1_supplier_quotes__quote_id__revisions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierQuoteReviseRequest"];
+            };
+        };
+        responses: {
+            /** @description Revision recorded. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierQuoteResponse"];
+                };
+            };
+            /** @description Unknown product or invalid payload. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unknown quote. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not received, already superseded or version conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_supplier_quote_revision_api_v1_supplier_quotes__quote_id__revisions__revision__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+                revision: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierQuoteRevisionDetailResponse"];
+                };
+            };
+            /** @description Unknown quote or revision. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    withdraw_supplier_quote_api_v1_supplier_quotes__quote_id__withdraw_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierQuoteWithdrawRequest"];
+            };
+        };
+        responses: {
+            /** @description Withdrawn; the new ETag is returned. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierQuoteResponse"];
+                };
+            };
+            /** @description Unknown quote. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not received, superseded or conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or short reason. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

@@ -21,12 +21,14 @@ explicit state machine, and a live command center.
 | ---- | ----- |
 | Frontend shell + auth UI + trade screens (`localhost:3000`) | ✅ verified |
 | API (`127.0.0.1:8000`) incl. CRM, catalogue, deals, dashboard | ✅ verified |
-| PostgreSQL 17 + migrations `0001_foundation`, `0002_identity`, `0003_trade` | ✅ verified |
+| Sourcing API + screens (RFQs, supplier quotes, pricing, sales quotes, FX) | ✅ verified at API/integration level |
+| PostgreSQL 17 + migrations `0001_foundation`, `0002_identity`, `0003_trade`, `0004_sourcing` | ✅ verified |
 | `/api/v1/health/live` · `/api/v1/health/ready` | ✅ 200 |
-| Backend tests (unit + live DB incl. RLS matrix) | ✅ 191 passed |
-| Frontend tests / lint / typecheck / build | ✅ 60 passed, clean |
+| Backend tests (unit + live DB incl. RLS matrix) | ✅ 236 passed |
+| Frontend tests / lint / typecheck / build | ✅ 71 passed, clean |
 | Live identity verification (`scripts\verify-identity.ps1`) | ✅ 31 checks passed |
 | Live trade workflow (`scripts\verify-trade.ps1`) | ✅ 39 checks passed |
+| Live sourcing workflow (`scripts\verify-sourcing.ps1`) | ✅ 53 checks passed |
 | Docker Compose path | ⚠️ not executed — Docker is not installed on this workstation |
 | GitHub Actions run | ⚠️ workflow authored, no remote run performed |
 | Browser automation | ⚠️ unavailable — verified at HTTP/integration level only |
@@ -348,5 +350,32 @@ See `docs/PROGRESS.md` §11.
 | 15 | Documentation reports actual results | PASS (`docs/PROGRESS.md` §20) |
 
 Stage 2 has **not** been started.
+
+
+## Stage 3 acceptance
+
+| # | Criterion | Result |
+| - | --------- | ------ |
+| 1 | Migration `0004_sourcing` applies, reverses and re-applies; no model drift | PASS |
+| 2 | One RFQ per supplier, created atomically; buyer cannot be addressed | PASS |
+| 3 | `PREPARED` writes an immutable revision; `SENT` needs channel, time and evidence | PASS |
+| 4 | Editing a prepared RFQ returns it to DRAFT and opens the next revision | PASS |
+| 5 | Supplier quotes are bound to the RFQ's supplier and line descriptions | PASS |
+| 6 | Revisions supersede by new row; withdrawals keep history and require a reason | PASS |
+| 7 | Cross-currency pricing needs an explicit, matching FX snapshot | PASS |
+| 8 | ORDER costs allocate cent-exactly; LINE costs land on their product | PASS |
+| 9 | Margin and markup are mutually exclusive and produce the documented prices | PASS |
+| 10 | Scenario results are stored with their inputs and a calculation version | PASS |
+| 11 | Recalculation requires a current `If-Match` and bumps the version | PASS |
+| 12 | Sales quote submission requires `VERIFIED_INPUTS` | PASS |
+| 13 | Approval requires `finance.approve` and a different person from the submitter | PASS |
+| 14 | Rejection requires a reason; approved quotes are revised, not withdrawn | PASS |
+| 15 | Cross-tenant reads blocked by RLS and composite FKs; audit rows written | PASS |
+| 16 | Generated OpenAPI/TypeScript contract regenerated and builds | PASS |
+| 17 | All earlier tests still pass | PASS (backend 236, frontend 71) |
+| 18 | Documentation reports actual results | PASS (`docs/PROGRESS.md` §21) |
+
+Stage 3 is **partially** delivered: sourcing, pricing and sales quotes are in place;
+shipments, price lists and document generation remain. Stage 4 has **not** started.
 
 

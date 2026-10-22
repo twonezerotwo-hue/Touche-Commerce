@@ -714,3 +714,108 @@ admin and viewer writes; the workflow asserts a real administrator gets 403 and
 cannot see another company's deal.
 
 
+
+---
+
+## ADR-028 - One RFQ per supplier; PREPARED is not SENT
+
+**Status:** ACCEPTED / IMPLEMENTED (Stage 3)
+
+**Decision.** An RFQ addresses exactly one supplier and one deal. Selecting several
+suppliers creates one RFQ per supplier in a single transaction. Preparing writes an
+append-only revision snapshot; sending additionally requires a channel, a timestamp
+and recorded evidence, and cancelling requires a reason. Editing a prepared RFQ
+returns it to DRAFT and opens the next revision number.
+
+**Reasoning.** A quote that could belong to two requests, or an RFQ marked sent
+without proof of dispatch, destroys the audit chain that the rest of the sourcing
+workflow depends on. Splitting prepare and send makes the moment of dispatch a
+recorded event rather than a status flip, and makes a prepared snapshot immune to
+later edits.
+
+**Consequences.** Comparing offers happens *across* RFQs of a deal, not inside one
+row. The UI creates several RFQs at once. A supplier cannot be re-quoted on the
+same RFQ without a new quote row or revision.
+
+**Verification.** `tests/test_sourcing_api.py::TestRfqCreation` (batch creation,
+buyer rejection, duplicate supplier), `TestRfqLifecycle` (SENT requires PREPARED,
+evidence gate, revision snapshot, edit reopens revision, sent RFQ not editable),
+`test_pricing_engine.py` and the migration CHECK constraints.
+
+---
+
+## ADR-029 - Pricing is a pure engine; results are stored with their inputs
+
+**Status:** ACCEPTED / IMPLEMENTED (Stage 3)
+
+**Decision.** `app.services.pricing_engine.calculate()` is a pure function of
+explicit inputs (lines, an optional FX snapshot, cost components, margin or markup).
+The scenario service resolves database rows into those inputs, runs the engine once,
+and stores `pricing_inputs`, `calculated_results` and `completeness` together with a
+`calculation_version`. Reads never recompute; recalculation is an audited `PUT`
+guarded by `If-Match`.
+
+**Reasoning.** A landed cost must be reproducible after prices, invoices and rates
+change. Recomputing on read would silently rewrite an already-approved price.
+Keeping the engine pure makes it unit-testable without a database and keeps
+rounding rules in one place.
+
+**Consequences.** Money rounds to cents (`ROUND_HALF_UP`), unit prices to four
+decimals; ORDER costs use largest-remainder pro-rata allocation so allocated cents
+always sum to the component exactly. Margin and markup are mutually exclusive
+because they produce different prices for the same percentage. A scenario is bound
+to one supplier quote and cannot be repointed.
+
+**Verification.** 24 engine unit tests (allocation, margin vs markup, FX pair
+checks, LINE-product binding, status derivation, rounding) and the pricing API
+tests that assert stored totals, component replacement and version conflicts.
+
+---
+
+## ADR-030 - FX is an explicit, sourced snapshot; never inferred
+
+**Status:** ACCEPTED / IMPLEMENTED (Stage 3)
+
+**Decision.** Conversions use a stored `fx_rate_snapshot` row with base currency,
+quote currency, rate, effective timestamp and source. Cross-currency pricing
+requires a snapshot whose pair is exactly quote -> target; a component in another
+currency requires its own snapshot. There is no update endpoint and no "latest
+rate" lookup by the engine.
+
+**Reasoning.** An inferred rate makes a price unreproducible and hides the moment
+and source of the assumption. Explicit snapshots turn that assumption into
+reviewable data and let a reviewer see which rate produced which quote.
+
+**Consequences.** A user must record a rate before pricing across currencies; the
+UI links to the FX page. Recording the same pair and effective time twice is a
+`409` instead of a silently duplicated observation. A correction is a new row.
+
+**Verification.** `test_pricing_engine.py` (missing rate, wrong pair) and
+`tests/test_sourcing_api.py::TestPricingScenarios::test_cross_currency_needs_a_matching_explicit_fx_snapshot`
+(missing snapshot, wrong direction, correct pair, converted totals).
+
+---
+
+## ADR-031 - Sales quote approval: verified inputs, separation of duties, revisions over withdrawal
+
+**Status:** ACCEPTED / IMPLEMENTED (Stage 3)
+
+**Decision.** A sales quote may only be submitted when its pricing scenario is
+`VERIFIED_INPUTS`. Approval requires the `finance.approve` permission *and* an
+actor different from the submitter. Rejection requires a stored reason. An
+approved quote cannot be withdrawn or rejected; a new revision supersedes it and
+starts in `DRAFT`, leaving the approved row intact. Status and the approval pair
+are held consistent by a database CHECK.
+
+**Reasoning.** A quote is a financial commitment: approving an estimate or letting
+one person submit and approve removes the second pair of eyes the permission model
+exists to provide. Keeping the approved row immutable preserves the evidence of
+what was approved and by whom.
+
+**Consequences.** Admins and traders cannot approve (they do not hold
+`finance.approve`). A rejected or withdrawn quote is also revised, not edited. The
+UI hides actions the session cannot perform, and the API rejects them anyway.
+
+**Verification.** `tests/test_sourcing_api.py::TestSalesQuotes` covers the
+ESTIMATED submission block, trader 403 on approve, approver success, self-approval
+refusal, rejection reason, terminal states and revision superseding.

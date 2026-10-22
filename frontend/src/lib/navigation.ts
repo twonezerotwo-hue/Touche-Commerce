@@ -1,10 +1,13 @@
 import {
   Activity,
+  ArrowLeftRight,
   Banknote,
+  Calculator,
   FileText,
   Handshake,
   LayoutDashboard,
   Package,
+  Receipt,
   Settings,
   Sparkles,
   Truck,
@@ -21,6 +24,13 @@ export interface NavItem {
   href?: string;
   /** Stage in which the module becomes available. */
   stage: string;
+  /** One line of context, used by the mobile navigation. */
+  description: string;
+}
+
+export interface NavGroup {
+  label: string;
+  items: readonly NavItem[];
 }
 
 /**
@@ -30,25 +40,172 @@ export interface NavItem {
  * disabled placeholder with an explicit stage label — no dead links and no fake
  * screens.
  */
-export const NAV_ITEMS: readonly NavItem[] = [
-  { label: "Command Center", icon: LayoutDashboard, href: "/", stage: "Stage 1B" },
-  { label: "Deals", icon: Handshake, href: "/deals", stage: "Stage 1B" },
-  { label: "CRM", icon: Users, href: "/crm", stage: "Stage 1B" },
-  { label: "Products", icon: Package, href: "/products", stage: "Stage 1B" },
-  { label: "Account", icon: UserRound, href: "/account", stage: "Stage 1A" },
-  { label: "RFQ & Quotes", icon: FileText, stage: "Stage 2" },
-  { label: "Logistics", icon: Truck, stage: "Stage 2" },
-  { label: "Finance", icon: Banknote, stage: "Stage 4" },
-  { label: "AI Office", icon: Sparkles, stage: "Stage 5" },
-  { label: "Settings", icon: Settings, stage: "Stage 2" },
+export const NAV_GROUPS: readonly NavGroup[] = [
+  {
+    label: "Trade core",
+    items: [
+      {
+        label: "Command Center",
+        icon: LayoutDashboard,
+        href: "/",
+        stage: "Stage 2",
+        description: "Live pipeline, activity and platform health",
+      },
+      {
+        label: "Deals",
+        icon: Handshake,
+        href: "/deals",
+        stage: "Stage 2",
+        description: "Every deal, status and transition history",
+      },
+      {
+        label: "CRM",
+        icon: Users,
+        href: "/crm",
+        stage: "Stage 2",
+        description: "Customers and suppliers for this company",
+      },
+      {
+        label: "Products",
+        icon: Package,
+        href: "/products",
+        stage: "Stage 2",
+        description: "Catalogue SKUs, units and indicative prices",
+      },
+    ],
+  },
+  {
+    label: "Sourcing",
+    items: [
+      {
+        label: "RFQs",
+        icon: FileText,
+        href: "/rfq",
+        stage: "Stage 3",
+        description: "Supplier requests, revisions and dispatch evidence",
+      },
+      {
+        label: "Supplier quotes",
+        icon: Receipt,
+        href: "/quotes",
+        stage: "Stage 3",
+        description: "Received prices, revisions and withdrawals",
+      },
+      {
+        label: "Pricing",
+        icon: Calculator,
+        href: "/pricing",
+        stage: "Stage 3",
+        description: "Deterministic landed cost and selling price",
+      },
+      {
+        label: "Sales quotes",
+        icon: Handshake,
+        href: "/sales-quotes",
+        stage: "Stage 3",
+        description: "Customer quotations with an approval workflow",
+      },
+      {
+        label: "FX snapshots",
+        icon: ArrowLeftRight,
+        href: "/fx-rates",
+        stage: "Stage 3",
+        description: "Sourced rates used by every conversion",
+      },
+    ],
+  },
+  {
+    label: "Account",
+    items: [
+      {
+        label: "Profile & access",
+        icon: UserRound,
+        href: "/account",
+        stage: "Stage 2",
+        description: "Identity, memberships and session policy",
+      },
+      {
+        label: "Settings",
+        icon: Settings,
+        stage: "Stage 2",
+        description: "Company settings and administration",
+      },
+    ],
+  },
+  {
+    label: "Roadmap",
+    items: [
+      {
+        label: "Logistics",
+        icon: Truck,
+        stage: "Stage 3",
+        description: "Shipments, milestones and documents",
+      },
+      {
+        label: "Finance",
+        icon: Banknote,
+        stage: "Stage 4",
+        description: "Invoices, payments and approvals",
+      },
+      {
+        label: "AI Office",
+        icon: Sparkles,
+        stage: "Stage 5",
+        description: "Scoped assistants with audited actions",
+      },
+    ],
+  },
 ];
+
+/** Flat list kept for consumers that only need the available routes. */
+export const NAV_ITEMS: readonly NavItem[] = NAV_GROUPS.flatMap((group) => group.items);
 
 /** Public links outside the authenticated shell. */
 export const PUBLIC_NAV_ITEMS: readonly NavItem[] = [
-  { label: "System status", icon: Activity, href: "/status", stage: "Stage 0" },
+  {
+    label: "System status",
+    icon: Activity,
+    href: "/status",
+    stage: "Stage 0",
+    description: "Liveness, readiness and contract probes",
+  },
 ];
 
 export function isActivePath(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export interface WorkspaceContext {
+  section: string;
+  page: string;
+}
+
+/**
+ * Breadcrumb labels derived from the route tree. Detail routes get an explicit
+ * label instead of leaking a UUID into the chrome.
+ */
+export function resolveWorkspaceContext(pathname: string): WorkspaceContext {
+  if (pathname === "/") return { section: "Workspace", page: "Command Center" };
+  if (pathname === "/deals/new") return { section: "Deals", page: "New deal" };
+  if (pathname.startsWith("/deals/")) return { section: "Deals", page: "Deal detail" };
+  if (pathname === "/deals") return { section: "Workspace", page: "Deals" };
+  if (pathname === "/rfq/new") return { section: "Sourcing", page: "New RFQ" };
+  if (pathname.startsWith("/rfq/")) return { section: "Sourcing", page: "RFQ detail" };
+  if (pathname === "/rfq") return { section: "Sourcing", page: "RFQs" };
+  if (pathname.startsWith("/quotes/"))
+    return { section: "Sourcing", page: "Supplier quote detail" };
+  if (pathname === "/quotes") return { section: "Sourcing", page: "Supplier quotes" };
+  if (pathname.startsWith("/pricing/")) return { section: "Sourcing", page: "Pricing scenario" };
+  if (pathname === "/pricing") return { section: "Sourcing", page: "Pricing" };
+  if (pathname.startsWith("/sales-quotes/")) {
+    return { section: "Sourcing", page: "Sales quote detail" };
+  }
+  if (pathname === "/sales-quotes") return { section: "Sourcing", page: "Sales quotes" };
+  if (pathname === "/fx-rates") return { section: "Sourcing", page: "FX snapshots" };
+  if (pathname === "/crm") return { section: "Workspace", page: "CRM" };
+  if (pathname === "/products") return { section: "Workspace", page: "Products" };
+  if (pathname === "/account") return { section: "Account", page: "Profile & access" };
+  if (pathname === "/select-company") return { section: "Account", page: "Select company" };
+  return { section: "Workspace", page: "Workspace" };
 }

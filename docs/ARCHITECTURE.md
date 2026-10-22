@@ -788,3 +788,73 @@ isolation, dashboard) and then checks that the rendered deal page contains the
 deal reference. Results are recorded in `docs/PROGRESS.md` Â§20.
 
 
+
+---
+
+## 20. Sourcing, pricing and sales quotes (Stage 3)
+
+### 20.1 Data model
+
+Twelve tables in migration `0004_sourcing`, all tenant-scoped, RLS-protected, and
+linked to parents through composite `(id, company_id)` foreign keys:
+
+| Group | Tables |
+| ----- | ------ |
+| FX | `fx_rate_snapshot` (unique pair + effective time, immutable) |
+| RFQ | `supplier_rfq`, `supplier_rfq_item`, `supplier_rfq_revision` (append-only) |
+| Quote | `supplier_quote`, `supplier_quote_item`, `supplier_quote_revision` (append-only) |
+| Pricing | `pricing_scenario` (inputs + results JSONB), `pricing_cost_component` |
+| Sales | `sales_quote`, `sales_quote_item`, `sales_quote_revision` (append-only) |
+
+Revision tables receive `SELECT, INSERT` only. Money is `numeric`; quantities are
+`numeric(18,3)`; unit prices `numeric(18,4)`; line totals and component amounts
+`numeric(18,2)`. CHECK constraints encode the invariants: ISO-4217 currency,
+Incoterms 2020, allowed units, positive quantities, `revision >= 1`, a sent RFQ
+must carry `sent_at`, a LINE cost must name a product, and
+`(status = 'APPROVED') = (approved_by IS NOT NULL AND approved_at IS NOT NULL)`.
+
+### 20.2 Pricing engine
+
+`app/services/pricing_engine.py` is a pure module: no session, no clock, no rate
+lookup. It converts quote lines with an explicit `FxInput`, allocates ORDER costs
+pro-rata by purchase value using largest-remainder rounding, applies LINE costs to
+their product, and derives the selling price from exactly one of margin or markup.
+It returns the rounded line figures, totals, a completeness document and a derived
+status (`INCOMPLETE`, `ESTIMATED`, `VERIFIED_INPUTS`).
+
+The scenario service is the only writer: it resolves FX snapshots and components
+from the database, runs the engine once, and persists `pricing_inputs`,
+`calculated_results`, `completeness` and `calculation_version`. Reads return the
+stored calculation, so an approved price cannot drift.
+
+### 20.3 Workflows
+
+| Document | States | Notes |
+| -------- | ------ | ----- |
+| RFQ | `DRAFT › PREPARED › SENT › RESPONDED › CLOSED`, `CANCELLED` | Preparing snapshots; sending needs channel + evidence + timestamp |
+| Supplier quote | `RECEIVED › WITHDRAWN` | A revision is a new row that supersedes the old one |
+| Sales quote | `DRAFT › PENDING_APPROVAL › APPROVED / REJECTED`, `WITHDRAWN` | Submit needs `VERIFIED_INPUTS`; approve needs `finance.approve` and a second person |
+
+Every transition writes an audit row in the same transaction; mutable headers carry
+`version` for `ETag`/`If-Match`; every mutation is replay-safe through
+`Idempotency-Key`.
+
+### 20.4 Frontend
+
+Server components read through `src/lib/api/server.ts`; client components mutate
+through `src/lib/sourcing/client.ts` (CSRF, idempotency, `If-Match`). Pages:
+`/rfq`, `/rfq/new`, `/rfq/[id]`, `/quotes`, `/quotes/[id]`, `/pricing`,
+`/pricing/[id]`, `/sales-quotes`, `/sales-quotes/[id]`, `/fx-rates`. Panels render
+the API's `allowed_transitions`/`can_submit` facts rather than re-deriving rules,
+and show the stable error codes (including reload guidance for
+`VERSION_CONFLICT`).
+
+### 20.5 Verification
+
+Backend: 24 engine unit tests plus 24 sourcing API integration tests covering
+batch RFQ creation, the prepare/send gate, quote revisions and withdrawal, FX pair
+validation, allocation and totals, recalculation concurrency, approval separation
+of duties, revision superseding, RLS isolation and audit rows. Frontend: a unit
+test file for sourcing formatting and a component test for the RFQ action panel
+(evidence gate, ETag, replay/conflict messaging). Contract artefacts are
+regenerated from OpenAPI.

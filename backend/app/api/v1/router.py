@@ -8,8 +8,13 @@ from app.api.v1.routes import (
     counterparties,
     dashboard,
     deals,
+    fx_rates,
     health,
+    pricing_scenarios,
     products,
+    rfqs,
+    sales_quotes,
+    supplier_quotes,
 )
 
 api_router = APIRouter()
@@ -20,6 +25,11 @@ api_router.include_router(counterparties.router)
 api_router.include_router(products.router)
 api_router.include_router(deals.router)
 api_router.include_router(dashboard.router)
+api_router.include_router(fx_rates.router)
+api_router.include_router(rfqs.router)
+api_router.include_router(supplier_quotes.router)
+api_router.include_router(pricing_scenarios.router)
+api_router.include_router(sales_quotes.router)
 
 __all__ = ["api_router"]
 

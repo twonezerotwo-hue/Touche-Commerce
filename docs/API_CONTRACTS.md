@@ -639,6 +639,108 @@ in one database transaction for the active company.
 
 ---
 
+## 7B. Sourcing, pricing and sales quotes (Stage 3, implemented)
+
+### 7B.1 FX snapshots
+
+| Method | Path | Permission | Notes |
+| ------ | ---- | ---------- | ----- |
+| `GET` | `/api/v1/fx-rates` | `company.view` | Cursor-paginated by recording time; `base_currency`/`quote_currency` filters |
+| `POST` | `/api/v1/fx-rates` | `trade.write` | `Idempotency-Key`; unique `(company, pair, effective_at)` → `409 CONFLICT` |
+| `GET` | `/api/v1/fx-rates/{id}` | `company.view` | |
+
+A rate is an observation (`base_currency`, `quote_currency`, `rate`, `effective_at`,
+`source`). There is no update endpoint: a correction is a new snapshot. Pricing may
+only convert via a stored snapshot, so a landed cost is reproducible.
+
+### 7B.2 RFQs
+
+| Method | Path | Permission | Notes |
+| ------ | ---- | ---------- | ----- |
+| `GET` | `/api/v1/rfqs` | `company.view` | Filters: `search`, `status`, `deal_id`, `supplier_counterparty_id` |
+| `POST` | `/api/v1/rfqs` | `trade.write` | Body lists `supplier_ids`; **one RFQ per supplier in one transaction**; returns `{items: [...]}` |
+| `GET` | `/api/v1/rfqs/{id}` | `company.view` | Lines, quote summaries, revision metadata, `allowed_transitions` |
+| `PATCH` | `/api/v1/rfqs/{id}` | `trade.write` | `If-Match` required; DRAFT/PREPARED only; editing a prepared RFQ returns it to DRAFT and opens the next revision |
+| `POST` | `/api/v1/rfqs/{id}/transitions` | `trade.write` | `Idempotency-Key` required; optional `If-Match` |
+| `GET` | `/api/v1/rfqs/{id}/revisions/{revision}` | `company.view` | Stored JSON snapshot |
+
+Lifecycle: `DRAFT → PREPARED → SENT → RESPONDED → CLOSED`, plus `CANCELLED` before
+dispatch. Preparing writes an append-only `supplier_rfq_revision`; `SENT` requires
+`channel` **and** `evidence` (the database also requires `sent_at`); cancelling
+requires a reason. `PREPARED` is explicitly not `SENT`.
+
+### 7B.3 Supplier quotes
+
+| Method | Path | Permission | Notes |
+| ------ | ---- | ---------- | ----- |
+| `GET` | `/api/v1/supplier-quotes` | `company.view` | Filters: `search`, `status`, `rfq_id`, `deal_id`, `supplier_counterparty_id`, `currency` |
+| `POST` | `/api/v1/rfqs/{rfq_id}/quotes` | `trade.write` | Only a SENT (or re-quoted RESPONDED) RFQ; one active RECEIVED quote per RFQ |
+| `GET` | `/api/v1/supplier-quotes/{id}` | `company.view` | Lines, revisions, supersedes links, `is_active` |
+| `POST` | `/api/v1/supplier-quotes/{id}/revisions` | `trade.write` | `If-Match`; creates a **new row** with `revision + 1` and `supersedes_quote_id` |
+| `POST` | `/api/v1/supplier-quotes/{id}/withdraw` | `trade.write` | `If-Match`; reason required; audited |
+| `GET` | `/api/v1/supplier-quotes/{id}/revisions/{revision}` | `company.view` | Stored JSON snapshot |
+
+Quoted products must appear on the RFQ; description and unit are inherited from the
+RFQ line, so a quote cannot rename a product. Recording the first quote moves the
+RFQ to `RESPONDED`. Withdrawn or superseded quotes cannot be priced.
+
+### 7B.4 Pricing scenarios
+
+| Method | Path | Permission | Notes |
+| ------ | ---- | ---------- | ----- |
+| `GET` | `/api/v1/pricing-scenarios` | `company.view` | `status`, `deal_id`, `supplier_quote_id` filters |
+| `POST` | `/api/v1/pricing-scenarios` | `trade.write` | Calculates and stores inputs + results in one transaction |
+| `GET` | `/api/v1/pricing-scenarios/{id}` | `company.view` | `pricing_inputs`, `calculated_results`, `completeness`, components |
+| `PUT` | `/api/v1/pricing-scenarios/{id}` | `trade.write` | `If-Match`; recalculates the **same** quote, replaces components, bumps version |
+
+Rules enforced by the engine and the service:
+
+* cross-currency conversion requires an explicit snapshot with exactly the quote →
+  target pair (`400 BAD_REQUEST` otherwise); no rate is ever inferred;
+* ORDER costs are allocated pro-rata by line purchase value with cent-exact
+  largest-remainder allocation; LINE costs must name a quoted product;
+* exactly one of `margin_pct` / `markup_pct`, each `0 ≤ x < 100`
+  (`price = cost / (1 − margin)` or `cost × (1 + markup)`);
+* derived status: `INCOMPLETE` (a line has no price) → `ESTIMATED` (any estimated
+  component) → `VERIFIED_INPUTS`;
+* results are stored, never recomputed on read; `calculation_version` is recorded.
+
+### 7B.5 Sales quotes
+
+| Method | Path | Permission | Notes |
+| ------ | ---- | ---------- | ----- |
+| `GET` | `/api/v1/sales-quotes` | `company.view` | `status`, `deal_id`, `customer_id`, `currency`, `search` |
+| `POST` | `/api/v1/sales-quotes` | `trade.write` | Prices copied from the scenario's stored results; starts `DRAFT` |
+| `GET` | `/api/v1/sales-quotes/{id}` | `company.view` | Lines, revisions, approval trail, `allowed_transitions`, `can_submit` |
+| `POST` | `/api/v1/sales-quotes/{id}/submit` | `trade.write` | `If-Match` + `Idempotency-Key`; scenario must be `VERIFIED_INPUTS` |
+| `POST` | `/api/v1/sales-quotes/{id}/approve` | `finance.approve` | `If-Match`; approver must differ from the submitter (`403 FORBIDDEN`) |
+| `POST` | `/api/v1/sales-quotes/{id}/reject` | `finance.approve` | `If-Match`; reason 3–500 (`422 REASON_REQUIRED`) |
+| `POST` | `/api/v1/sales-quotes/{id}/withdraw` | `trade.write` | `If-Match`; DRAFT/PENDING_APPROVAL only |
+| `POST` | `/api/v1/sales-quotes/{id}/revisions` | `trade.write` | `If-Match`; new DRAFT row with `revision + 1` and `supersedes_sales_quote_id` |
+| `GET` | `/api/v1/sales-quotes/{id}/revisions/{revision}` | `company.view` | Stored JSON snapshot |
+
+Workflow: `DRAFT → PENDING_APPROVAL → APPROVED | REJECTED`, with `WITHDRAWN`
+before approval. Approval requires a second person holding `finance.approve`
+(separation of duties); an approved quote is revised, never withdrawn or rejected,
+so the approval pair in the database always matches the status.
+
+### 7B.6 Error behaviour specific to this stage
+
+| Case | Response |
+| ---- | -------- |
+| RFQ not sent yet, or a received quote already exists | `409 CONFLICT` |
+| Sending without channel/evidence | `400 BAD_REQUEST` with field detail |
+| Preparing an RFQ without lines | `409 CONFLICT` |
+| Missing or wrong FX pair | `400 BAD_REQUEST` with field detail |
+| Pricing a withdrawn/superseded quote | `409 CONFLICT` |
+| Margin **and** markup supplied | `422 VALIDATION_ERROR` (schema) |
+| Submitting an `ESTIMATED` scenario | `409 CONFLICT` |
+| Approving one's own submission | `403 FORBIDDEN` |
+| Stale `If-Match` | `409 VERSION_CONFLICT` with the current `ETag` |
+
+
+---
+
 ## 8. Endpoint map
 
 | Method | Path | Stage | Status |
@@ -666,6 +768,34 @@ in one database transaction for the active company.
 | `PATCH` | `/api/v1/deals/{id}` | 1B | Implemented |
 | `POST` | `/api/v1/deals/{id}/transitions` | 1B | Implemented |
 | `GET` | `/api/v1/dashboard/summary` | 1B | Implemented |
+| `GET` | `/api/v1/fx-rates` | 3 | Implemented |
+| `POST` | `/api/v1/fx-rates` | 3 | Implemented |
+| `GET` | `/api/v1/fx-rates/{id}` | 3 | Implemented |
+| `GET` | `/api/v1/rfqs` | 3 | Implemented |
+| `POST` | `/api/v1/rfqs` | 3 | Implemented |
+| `GET` | `/api/v1/rfqs/{id}` | 3 | Implemented |
+| `PATCH` | `/api/v1/rfqs/{id}` | 3 | Implemented |
+| `POST` | `/api/v1/rfqs/{id}/transitions` | 3 | Implemented |
+| `GET` | `/api/v1/rfqs/{id}/revisions/{revision}` | 3 | Implemented |
+| `GET` | `/api/v1/supplier-quotes` | 3 | Implemented |
+| `POST` | `/api/v1/rfqs/{id}/quotes` | 3 | Implemented |
+| `GET` | `/api/v1/supplier-quotes/{id}` | 3 | Implemented |
+| `POST` | `/api/v1/supplier-quotes/{id}/revisions` | 3 | Implemented |
+| `POST` | `/api/v1/supplier-quotes/{id}/withdraw` | 3 | Implemented |
+| `GET` | `/api/v1/supplier-quotes/{id}/revisions/{revision}` | 3 | Implemented |
+| `GET` | `/api/v1/pricing-scenarios` | 3 | Implemented |
+| `POST` | `/api/v1/pricing-scenarios` | 3 | Implemented |
+| `GET` | `/api/v1/pricing-scenarios/{id}` | 3 | Implemented |
+| `PUT` | `/api/v1/pricing-scenarios/{id}` | 3 | Implemented |
+| `GET` | `/api/v1/sales-quotes` | 3 | Implemented |
+| `POST` | `/api/v1/sales-quotes` | 3 | Implemented |
+| `GET` | `/api/v1/sales-quotes/{id}` | 3 | Implemented |
+| `POST` | `/api/v1/sales-quotes/{id}/submit` | 3 | Implemented |
+| `POST` | `/api/v1/sales-quotes/{id}/approve` | 3 | Implemented |
+| `POST` | `/api/v1/sales-quotes/{id}/reject` | 3 | Implemented |
+| `POST` | `/api/v1/sales-quotes/{id}/withdraw` | 3 | Implemented |
+| `POST` | `/api/v1/sales-quotes/{id}/revisions` | 3 | Implemented |
+| `GET` | `/api/v1/sales-quotes/{id}/revisions/{revision}` | 3 | Implemented |
 | `GET` | `/api/v1/audit-records` | 2 | Reserved |
 | `GET/POST/DELETE` | `/api/v1/companies/{id}/memberships` | 2 | Reserved |
 | `GET/POST/PATCH` | `/api/v1/sales-orders` | 2 | Reserved |

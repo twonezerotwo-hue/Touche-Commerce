@@ -62,6 +62,24 @@ class AuditAction(StrEnum):
     DEAL_CREATED = "deal.created"
     DEAL_UPDATED = "deal.updated"
     DEAL_TRANSITIONED = "deal.transitioned"
+    # Stage 3 sourcing, pricing and sales-quote module.
+    RFQ_CREATED = "rfq.created"
+    RFQ_UPDATED = "rfq.updated"
+    RFQ_PREPARED = "rfq.prepared"
+    RFQ_SENT = "rfq.sent"
+    RFQ_CANCELLED = "rfq.cancelled"
+    RFQ_CLOSED = "rfq.closed"
+    SUPPLIER_QUOTE_RECORDED = "supplier_quote.recorded"
+    SUPPLIER_QUOTE_REVISED = "supplier_quote.revised"
+    SUPPLIER_QUOTE_WITHDRAWN = "supplier_quote.withdrawn"
+    FX_RATE_RECORDED = "fx_rate.recorded"
+    PRICING_SCENARIO_CREATED = "pricing_scenario.created"
+    PRICING_SCENARIO_UPDATED = "pricing_scenario.updated"
+    SALES_QUOTE_CREATED = "sales_quote.created"
+    SALES_QUOTE_SUBMITTED = "sales_quote.submitted"
+    SALES_QUOTE_APPROVED = "sales_quote.approved"
+    SALES_QUOTE_REJECTED = "sales_quote.rejected"
+    SALES_QUOTE_WITHDRAWN = "sales_quote.withdrawn"
 
 
 _AUDIT_ACTIONS = tuple(action.value for action in AuditAction)

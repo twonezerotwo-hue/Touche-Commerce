@@ -912,3 +912,142 @@ state machine and history, transactional idempotency, and the outbox table.
 Do not start Stage 2 automatically.
 
 
+
+---
+
+## 21. Stage 3 - sourcing, landed cost and sales quotes (executed 2026-10-22)
+
+### 21.1 Scope delivered
+
+| Part | Delivered |
+| ---- | --------- |
+| Schema | `0004_sourcing`: 12 tables (FX, RFQ + items + revisions, supplier quote + items + revisions, pricing scenario + components, sales quote + items + revisions), RLS, composite FKs, append-only revision grants, widened audit action CHECK |
+| Engine | Pure `pricing_engine` (explicit FX, largest-remainder allocation, LINE/ORDER costs, margin or markup, derived status, calculation version) |
+| Services | `fx`, `rfqs`, `supplier_quotes`, `pricing`, `sales_quotes` with audit, idempotency, ETags, revision snapshots |
+| API | 29 endpoints across FX, RFQs, supplier quotes, pricing scenarios and sales quotes; permissions and error codes per API_CONTRACTS 7B |
+| Frontend | `/rfq`, `/rfq/new`, `/rfq/[id]`, `/quotes`, `/quotes/[id]`, `/pricing`, `/pricing/[id]`, `/sales-quotes`, `/sales-quotes/[id]`, `/fx-rates`; sourcing navigation and breadcrumbs |
+| Tests | 45 new backend tests (21 engine unit + 24 API integration); 9 new frontend tests (4 component + 5 helper) |
+
+### 21.2 Milestones
+
+| Milestone | Status | Evidence |
+| --------- | ------ | -------- |
+| M3.1 Migration applies, reverses and matches models | PASSED | `downgrade 0003_trade` -> `upgrade head`; `alembic current = 0004_sourcing`; `alembic check` reports no sourcing drift |
+| M3.2 Tenant isolation and composite FKs | PASSED | `TestTenantIsolationAndAudit::test_another_company_cannot_read_sourcing_records` |
+| M3.3 One RFQ per supplier, batch atomicity | PASSED | `TestRfqCreation::test_one_rfq_per_supplier_in_one_transaction` |
+| M3.4 PREPARED is not SENT; evidence and reason gates | PASSED | `TestRfqLifecycle` (4 tests) |
+| M3.5 Quote revisions and withdrawals are immutable | PASSED | `TestSupplierQuotes` (4 tests) |
+| M3.6 FX never inferred; wrong pair rejected | PASSED | Engine tests + `test_cross_currency_needs_a_matching_explicit_fx_snapshot` |
+| M3.7 Deterministic allocation and margin math | PASSED | `test_pricing_engine.py` (21) + `test_order_cost_is_allocated_and_margin_prices_the_lines` |
+| M3.8 Recalculation is explicit and versioned | PASSED | `test_recalculation_requires_if_match_and_replaces_components` |
+| M3.9 Approval needs verified inputs, finance.approve and a second person | PASSED | `TestSalesQuotes` (4 tests) |
+| M3.10 Contract generation deterministic | PASSED | `generate-api-types.ps1` re-run (39 paths, 22 sourcing paths) |
+| M3.11 Live end-to-end run | PASSED | `scripts\verify-sourcing.ps1` -> `backend/scripts/verify_sourcing_workflow.py`: **53/53 checks** against the local API and SSR (`docs/PROGRESS.md` 21.6) |
+
+### 21.3 Database changes
+
+* New revision `0004_sourcing` (revises `0003_trade`); applied to the development DB
+  in place (no data dropped) and reversed/re-applied once during development to add
+  `pricing_cost_component.product_id` before release.
+* Twelve tables with RLS policies driven by `touche.current_company_id()`; revision
+  tables grant only `SELECT, INSERT` to `touche_app`.
+* `ck_audit_action` widened with `rfq.*`, `supplier_quote.*`, `fx_rate.recorded`,
+  `pricing_scenario.*`, `sales_quote.*`.
+* `pricing_cost_component` carries a nullable composite `product_id` FK plus a CHECK
+  that LINE costs name a product and ORDER costs do not.
+
+### 21.4 Commands executed and results
+
+| # | Command | Result |
+| - | ------- | ------ |
+| 1 | `python -m alembic upgrade head` / `current` / `check` (development DB) | `0004_sourcing (head)`; check shows only pre-existing drift unrelated to sourcing |
+| 2 | `python -m ruff check app tests` | `All checks passed!` |
+| 3 | `python -m mypy app` | `Success: no issues found in 72 source files` |
+| 4 | `python -m pytest` | **236 passed** (191 existing + 45 new) |
+| 5 | `python scripts/export_openapi.py` | OpenAPI regenerated (39 paths) |
+| 6 | `npm run api:types` | `schema.d.ts` regenerated |
+| 7 | `npm test` | **13 files, 71 tests passed** |
+| 8 | `npm run lint` | clean |
+| 9 | `npx prettier --check src/**/*.{ts,tsx}` | clean |
+| 10 | `npm run typecheck` | clean |
+| 11 | `npm run build` | compiled; all 10 sourcing routes present |
+| 12 | `backend\.venv\Scripts\python.exe scripts\verify_sourcing_workflow.py` | **53/53 checks passed** (see 21.6) |
+
+### 21.5 Live 11-step workflow (development database, real HTTP)
+
+Executed with `backend\scripts\verify_sourcing_workflow.py` against the local API
+(`127.0.0.1:8000`) and the Next.js dev server (`127.0.0.1:3000`); **53 checks, 0
+failed, 0 skipped**:
+
+1. trader session: active company, `trade.write` present, `finance.approve`
+   absent; approver session holds `finance.approve`;
+2. supplier, buyer, product and deal created;
+3. `POST /rfqs` created exactly one RFQ (DRAFT, generated `RFQ-` reference);
+4. `DRAFT -> SENT` rejected (`409 INVALID_TRANSITION`); transition without an
+   `Idempotency-Key` rejected (`400`); `PREPARED` stored revision 1 whose snapshot
+   contains the requested product; `SENT` without evidence rejected (`400`);
+   `SENT` with channel + evidence accepted and `sent_at` set;
+5. EUR quote recorded (total `160.00`), RFQ moved to `RESPONDED`;
+6. cross-currency pricing blocked without a snapshot (`400`); an EUR/USD 1.10
+   snapshot recorded;
+7. scenario priced: purchase `176.00`, freight `40.00` allocated to the line,
+   landed `216.00`, status `VERIFIED_INPUTS`, calculation version stored;
+8. stale `If-Match` → `409 VERSION_CONFLICT`; recalculation with `"v1"` → version 2
+   and landed `236.00`;
+9. sales quote drafted (`295.00` = landed / 0.8), submitted (`PENDING_APPROVAL`),
+   trader approval refused (`403 FORBIDDEN`), approver approval accepted with the
+   approval pair recorded and no transitions left; a revision then produced
+   revision 2 (DRAFT) while the approved row kept `APPROVED` + `superseded_by`;
+10. a viewer from another company received `404 NOT_FOUND` for the RFQ and an
+    empty RFQ list;
+11. `/rfq`, `/quotes`, `/pricing`, `/sales-quotes` and `/fx-rates` rendered for the
+    authenticated trader with their expected headings.
+
+Local verification accounts were created with the CLI
+(`stage3.trader@`, `stage3.approver@` in Meridian Commodities,
+`stage3.outsider@` as a viewer in TOUCHE Trading). Their throwaway password was
+generated per run, passed through the process environment and never written to
+this repository.
+
+### 21.6 Issues found and fixed during Stage 3
+
+| Issue | Resolution |
+| ----- | ---------- |
+| The scenario inputs could not bind a LINE cost to its product | `pricing_cost_component.product_id` added with a composite FK and a basis CHECK; migration re-applied before release |
+| Decimal values reached JSONB and psycopg refused to serialise them | `pricing_inputs` renders money, percentages and ids as strings; results already used string totals |
+| The pricing engine file was corrupted by a partial edit | Re-read and repaired; ruff/mypy/tests now guard the module |
+| `list` as a method name shadowed the builtin in a type annotation | The annotation uses `Sequence` instead |
+| `ruff format` reformatted unrelated Stage 1B services | Reverted those files so the Stage 3 diff stays reviewable |
+| A sent-RFQ edit test used a stale ETag | The test re-reads the RFQ first and expects `409 CONFLICT` (not `VERSION_CONFLICT`) |
+
+### 21.7 Files changed
+
+New backend: `app/db/models/sourcing.py`,
+`alembic/versions/20261022_0004_sourcing.py`,
+`app/services/{pricing_engine,fx,rfqs,supplier_quotes,pricing,sales_quotes}.py`,
+`app/api/v1/schemas/sourcing.py`, `app/api/v1/presenters_sourcing.py`,
+`app/api/v1/routes/{fx_rates,rfqs,supplier_quotes,pricing_scenarios,sales_quotes}.py`,
+`tests/{test_pricing_engine.py,test_sourcing_api.py}`.
+
+Modified backend: `app/db/models/{__init__,audit}.py`, `app/api/v1/router.py`.
+
+New frontend: `src/lib/sourcing/{types,format,client}.ts` and `format.test.ts`,
+`src/components/sourcing/{status-badge,rfq-actions,rfq-form,quote-form,pricing-form,
+sales-quote-form,sales-quote-actions,fx-form}.tsx` plus `rfq-actions.test.tsx`,
+`src/app/(app)/{rfq,rfq/new,rfq/[id],quotes,quotes/[id],pricing,pricing/[id],
+sales-quotes,sales-quotes/[id],fx-rates}/page.tsx`.
+
+Modified frontend: `src/lib/navigation.ts`, `openapi/openapi.json`,
+`src/lib/api/schema.d.ts`.
+
+Docs: this section, `ARCHITECTURE.md` 20, `API_CONTRACTS.md` 7B and the endpoint
+map, `DECISIONS.md` ADR-028..031, `ROADMAP.md` Stage 3 status.
+
+### 21.8 Known limitations
+
+* No sales *order* exists yet, so `WON` remains disabled and a sales quote is the
+  last recorded commitment.
+* FX snapshots are recorded manually; there is no bank-feed import.
+* `scripts\verify-sourcing.ps1` needs three pre-created local accounts (trader,
+  approver, outsider) and their passwords in the process environment. It drives
+  HTTP and server-side rendering; it is not a browser automation suite.

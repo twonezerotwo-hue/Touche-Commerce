@@ -1394,6 +1394,153 @@
         "title": "ErrorEnvelope",
         "type": "object"
       },
+      "FxRateCreateRequest": {
+        "additionalProperties": false,
+        "example": {
+          "base_currency": "EUR",
+          "effective_at": "2026-10-22T00:00:00Z",
+          "quote_currency": "USD",
+          "rate": "1.0875000000",
+          "source": "ECB reference rate 2026-10-22"
+        },
+        "properties": {
+          "base_currency": {
+            "description": "ISO 4217 base currency.",
+            "pattern": "^[A-Za-z]{3}$",
+            "title": "Base Currency",
+            "type": "string"
+          },
+          "effective_at": {
+            "format": "date-time",
+            "title": "Effective At",
+            "type": "string"
+          },
+          "quote_currency": {
+            "description": "ISO 4217 quote currency.",
+            "pattern": "^[A-Za-z]{3}$",
+            "title": "Quote Currency",
+            "type": "string"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Rate"
+          },
+          "source": {
+            "maxLength": 160,
+            "minLength": 3,
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "base_currency",
+          "quote_currency",
+          "rate",
+          "effective_at",
+          "source"
+        ],
+        "title": "FxRateCreateRequest",
+        "type": "object"
+      },
+      "FxRateListResponse": {
+        "properties": {
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FxRateResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor",
+          "has_more"
+        ],
+        "title": "FxRateListResponse",
+        "type": "object"
+      },
+      "FxRateResponse": {
+        "properties": {
+          "base_currency": {
+            "title": "Base Currency",
+            "type": "string"
+          },
+          "company_id": {
+            "format": "uuid",
+            "title": "Company Id",
+            "type": "string"
+          },
+          "effective_at": {
+            "format": "date-time",
+            "title": "Effective At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "quote_currency": {
+            "title": "Quote Currency",
+            "type": "string"
+          },
+          "rate": {
+            "title": "Rate",
+            "type": "string"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "recorded_by": {
+            "format": "uuid",
+            "title": "Recorded By",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "company_id",
+          "base_currency",
+          "quote_currency",
+          "rate",
+          "effective_at",
+          "source",
+          "recorded_by",
+          "recorded_at"
+        ],
+        "title": "FxRateResponse",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1541,6 +1688,657 @@
           }
         },
         "title": "LogoutResponse",
+        "type": "object"
+      },
+      "PricingCostComponentRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Amount"
+          },
+          "basis": {
+            "default": "ORDER",
+            "enum": [
+              "ORDER",
+              "LINE"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "cost_type": {
+            "enum": [
+              "PURCHASE",
+              "FREIGHT",
+              "DOMESTIC_TRANSPORT",
+              "INSURANCE",
+              "CUSTOMS_DUTY",
+              "CUSTOMS_BROKERAGE",
+              "QUALITY_INSPECTION",
+              "BANKING_FINANCE",
+              "OTHER",
+              "CONTINGENCY",
+              "VAT_CASHFLOW"
+            ],
+            "title": "Cost Type",
+            "type": "string"
+          },
+          "currency": {
+            "pattern": "^[A-Za-z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "fx_rate_snapshot_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required when the currency differs from the target.",
+            "title": "Fx Rate Snapshot Id"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required for LINE basis, forbidden for ORDER.",
+            "title": "Product Id"
+          },
+          "source_reference": {
+            "maxLength": 200,
+            "minLength": 3,
+            "title": "Source Reference",
+            "type": "string"
+          },
+          "verification_status": {
+            "enum": [
+              "ESTIMATED",
+              "VERIFIED"
+            ],
+            "title": "Verification Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cost_type",
+          "amount",
+          "currency",
+          "source_reference",
+          "verification_status"
+        ],
+        "title": "PricingCostComponentRequest",
+        "type": "object"
+      },
+      "PricingCostComponentResponse": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "string"
+          },
+          "basis": {
+            "enum": [
+              "ORDER",
+              "LINE"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "cost_type": {
+            "enum": [
+              "PURCHASE",
+              "FREIGHT",
+              "DOMESTIC_TRANSPORT",
+              "INSURANCE",
+              "CUSTOMS_DUTY",
+              "CUSTOMS_BROKERAGE",
+              "QUALITY_INSPECTION",
+              "BANKING_FINANCE",
+              "OTHER",
+              "CONTINGENCY",
+              "VAT_CASHFLOW"
+            ],
+            "title": "Cost Type",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "fx_rate_snapshot_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fx Rate Snapshot Id"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "product_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Name"
+          },
+          "product_sku": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Sku"
+          },
+          "source_reference": {
+            "title": "Source Reference",
+            "type": "string"
+          },
+          "verification_status": {
+            "enum": [
+              "ESTIMATED",
+              "VERIFIED"
+            ],
+            "title": "Verification Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "cost_type",
+          "amount",
+          "currency",
+          "basis",
+          "source_reference",
+          "verification_status",
+          "fx_rate_snapshot_id",
+          "product_id",
+          "product_sku",
+          "product_name",
+          "notes"
+        ],
+        "title": "PricingCostComponentResponse",
+        "type": "object"
+      },
+      "PricingScenarioListResponse": {
+        "properties": {
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PricingScenarioSummaryResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor",
+          "has_more"
+        ],
+        "title": "PricingScenarioListResponse",
+        "type": "object"
+      },
+      "PricingScenarioRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "components": {
+            "items": {
+              "$ref": "#/components/schemas/PricingCostComponentRequest"
+            },
+            "maxItems": 50,
+            "title": "Components",
+            "type": "array"
+          },
+          "fx_rate_snapshot_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required when the quote currency differs from the target.",
+            "title": "Fx Rate Snapshot Id"
+          },
+          "margin_pct": {
+            "anyOf": [
+              {
+                "exclusiveMaximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Margin Pct"
+          },
+          "markup_pct": {
+            "anyOf": [
+              {
+                "exclusiveMaximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Markup Pct"
+          },
+          "sales_incoterm": {
+            "anyOf": [
+              {
+                "enum": [
+                  "EXW",
+                  "FCA",
+                  "FAS",
+                  "FOB",
+                  "CFR",
+                  "CIF",
+                  "CPT",
+                  "CIP",
+                  "DAP",
+                  "DPU",
+                  "DDP"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sales Incoterm"
+          },
+          "sales_named_place": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sales Named Place"
+          },
+          "supplier_quote_id": {
+            "format": "uuid",
+            "title": "Supplier Quote Id",
+            "type": "string"
+          },
+          "target_currency": {
+            "pattern": "^[A-Za-z]{3}$",
+            "title": "Target Currency",
+            "type": "string"
+          }
+        },
+        "required": [
+          "supplier_quote_id",
+          "target_currency"
+        ],
+        "title": "PricingScenarioRequest",
+        "type": "object"
+      },
+      "PricingScenarioResponse": {
+        "properties": {
+          "calculated_results": {
+            "additionalProperties": true,
+            "title": "Calculated Results",
+            "type": "object"
+          },
+          "calculation_version": {
+            "title": "Calculation Version",
+            "type": "string"
+          },
+          "company_id": {
+            "format": "uuid",
+            "title": "Company Id",
+            "type": "string"
+          },
+          "completeness": {
+            "additionalProperties": true,
+            "title": "Completeness",
+            "type": "object"
+          },
+          "components": {
+            "items": {
+              "$ref": "#/components/schemas/PricingCostComponentResponse"
+            },
+            "title": "Components",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "format": "uuid",
+            "title": "Created By",
+            "type": "string"
+          },
+          "deal_id": {
+            "format": "uuid",
+            "title": "Deal Id",
+            "type": "string"
+          },
+          "deal_reference": {
+            "title": "Deal Reference",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "pricing_inputs": {
+            "additionalProperties": true,
+            "title": "Pricing Inputs",
+            "type": "object"
+          },
+          "quote_currency": {
+            "title": "Quote Currency",
+            "type": "string"
+          },
+          "quote_revision": {
+            "title": "Quote Revision",
+            "type": "integer"
+          },
+          "rfq_id": {
+            "format": "uuid",
+            "title": "Rfq Id",
+            "type": "string"
+          },
+          "rfq_reference": {
+            "title": "Rfq Reference",
+            "type": "string"
+          },
+          "sales_incoterm": {
+            "anyOf": [
+              {
+                "enum": [
+                  "EXW",
+                  "FCA",
+                  "FAS",
+                  "FOB",
+                  "CFR",
+                  "CIF",
+                  "CPT",
+                  "CIP",
+                  "DAP",
+                  "DPU",
+                  "DDP"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sales Incoterm"
+          },
+          "sales_named_place": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sales Named Place"
+          },
+          "status": {
+            "enum": [
+              "INCOMPLETE",
+              "ESTIMATED",
+              "VERIFIED_INPUTS"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "supplier_counterparty_id": {
+            "format": "uuid",
+            "title": "Supplier Counterparty Id",
+            "type": "string"
+          },
+          "supplier_name": {
+            "title": "Supplier Name",
+            "type": "string"
+          },
+          "supplier_quote_id": {
+            "format": "uuid",
+            "title": "Supplier Quote Id",
+            "type": "string"
+          },
+          "target_currency": {
+            "title": "Target Currency",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "description": "Optimistic concurrency version; also sent as ETag.",
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "company_id",
+          "deal_id",
+          "deal_reference",
+          "supplier_quote_id",
+          "rfq_id",
+          "rfq_reference",
+          "supplier_counterparty_id",
+          "supplier_name",
+          "quote_currency",
+          "quote_revision",
+          "target_currency",
+          "sales_incoterm",
+          "sales_named_place",
+          "status",
+          "calculation_version",
+          "pricing_inputs",
+          "calculated_results",
+          "completeness",
+          "version",
+          "created_by",
+          "created_at",
+          "updated_at",
+          "components"
+        ],
+        "title": "PricingScenarioResponse",
+        "type": "object"
+      },
+      "PricingScenarioSummaryResponse": {
+        "properties": {
+          "company_id": {
+            "format": "uuid",
+            "title": "Company Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "deal_id": {
+            "format": "uuid",
+            "title": "Deal Id",
+            "type": "string"
+          },
+          "deal_reference": {
+            "title": "Deal Reference",
+            "type": "string"
+          },
+          "gross_margin": {
+            "title": "Gross Margin",
+            "type": "string"
+          },
+          "gross_margin_pct": {
+            "title": "Gross Margin Pct",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "landed_total": {
+            "title": "Landed Total",
+            "type": "string"
+          },
+          "rfq_reference": {
+            "title": "Rfq Reference",
+            "type": "string"
+          },
+          "sales_total": {
+            "title": "Sales Total",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "INCOMPLETE",
+              "ESTIMATED",
+              "VERIFIED_INPUTS"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "supplier_name": {
+            "title": "Supplier Name",
+            "type": "string"
+          },
+          "supplier_quote_id": {
+            "format": "uuid",
+            "title": "Supplier Quote Id",
+            "type": "string"
+          },
+          "target_currency": {
+            "title": "Target Currency",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "company_id",
+          "deal_id",
+          "deal_reference",
+          "supplier_quote_id",
+          "rfq_reference",
+          "supplier_name",
+          "target_currency",
+          "status",
+          "landed_total",
+          "sales_total",
+          "gross_margin",
+          "gross_margin_pct",
+          "version",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "PricingScenarioSummaryResponse",
         "type": "object"
       },
       "ProductCreateRequest": {
@@ -1864,6 +2662,1629 @@
         "title": "ReadinessResponse",
         "type": "object"
       },
+      "RfqBatchResponse": {
+        "description": "One row per supplier that was asked, created in one transaction.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RfqResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "RfqBatchResponse",
+        "type": "object"
+      },
+      "RfqCreateRequest": {
+        "additionalProperties": false,
+        "example": {
+          "deal_id": "7f7b0a54-0f43-4d7d-9a1b-3f5f3f0f0a11",
+          "delivery_location": "Rotterdam, NL",
+          "items": [
+            {
+              "description": "Almond kernels, 25 kg bags",
+              "product_id": "0f6a1f43-2b61-4a4d-9ad6-5a1f1a1f1a12",
+              "quantity": "1000.000",
+              "unit": "kg"
+            }
+          ],
+          "requested_currency": "USD",
+          "response_due_date": "2026-11-05",
+          "supplier_ids": [
+            "0f6a1f43-2b61-4a4d-9ad6-5a1f1a1f1a11"
+          ]
+        },
+        "properties": {
+          "deal_id": {
+            "format": "uuid",
+            "title": "Deal Id",
+            "type": "string"
+          },
+          "delivery_location": {
+            "maxLength": 160,
+            "minLength": 2,
+            "title": "Delivery Location",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RfqItemRequest"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Items",
+            "type": "array"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "requested_currency": {
+            "pattern": "^[A-Za-z]{3}$",
+            "title": "Requested Currency",
+            "type": "string"
+          },
+          "requested_delivery_terms": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested Delivery Terms"
+          },
+          "response_due_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Due Date"
+          },
+          "supplier_ids": {
+            "description": "One RFQ is created per supplier in a single transaction.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Supplier Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "deal_id",
+          "supplier_ids",
+          "requested_currency",
+          "delivery_location",
+          "items"
+        ],
+        "title": "RfqCreateRequest",
+        "type": "object"
+      },
+      "RfqItemRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "unit": {
+            "enum": [
+              "kg",
+              "mt",
+              "lb",
+              "unit",
+              "l",
+              "m3"
+            ],
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "description",
+          "quantity",
+          "unit"
+        ],
+        "title": "RfqItemRequest",
+        "type": "object"
+      },
+      "RfqItemResponse": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "string"
+          },
+          "sku": {
+            "title": "Sku",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "kg",
+              "mt",
+              "lb",
+              "unit",
+              "l",
+              "m3"
+            ],
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "product_id",
+          "sku",
+          "name",
+          "unit",
+          "description",
+          "quantity",
+          "notes"
+        ],
+        "title": "RfqItemResponse",
+        "type": "object"
+      },
+      "RfqListResponse": {
+        "properties": {
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RfqSummaryResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor",
+          "has_more"
+        ],
+        "title": "RfqListResponse",
+        "type": "object"
+      },
+      "RfqQuoteSummaryResponse": {
+        "properties": {
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "received_at": {
+            "format": "date-time",
+            "title": "Received At",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "RECEIVED",
+              "WITHDRAWN"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "total_value": {
+            "title": "Total Value",
+            "type": "string"
+          },
+          "valid_until": {
+            "format": "date",
+            "title": "Valid Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "revision",
+          "status",
+          "currency",
+          "total_value",
+          "valid_until",
+          "received_at"
+        ],
+        "title": "RfqQuoteSummaryResponse",
+        "type": "object"
+      },
+      "RfqResponse": {
+        "properties": {
+          "allowed_transitions": {
+            "items": {
+              "enum": [
+                "DRAFT",
+                "PREPARED",
+                "SENT",
+                "RESPONDED",
+                "CLOSED",
+                "CANCELLED"
+              ],
+              "type": "string"
+            },
+            "title": "Allowed Transitions",
+            "type": "array"
+          },
+          "company_id": {
+            "format": "uuid",
+            "title": "Company Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "format": "uuid",
+            "title": "Created By",
+            "type": "string"
+          },
+          "deal_id": {
+            "format": "uuid",
+            "title": "Deal Id",
+            "type": "string"
+          },
+          "deal_reference": {
+            "title": "Deal Reference",
+            "type": "string"
+          },
+          "delivery_location": {
+            "title": "Delivery Location",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_editable": {
+            "title": "Is Editable",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RfqItemResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "quotes": {
+            "items": {
+              "$ref": "#/components/schemas/RfqQuoteSummaryResponse"
+            },
+            "title": "Quotes",
+            "type": "array"
+          },
+          "reference_number": {
+            "title": "Reference Number",
+            "type": "string"
+          },
+          "requested_currency": {
+            "title": "Requested Currency",
+            "type": "string"
+          },
+          "requested_delivery_terms": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested Delivery Terms"
+          },
+          "response_due_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Due Date"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "revisions": {
+            "items": {
+              "$ref": "#/components/schemas/RfqRevisionResponse"
+            },
+            "title": "Revisions",
+            "type": "array"
+          },
+          "sent_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent At"
+          },
+          "sent_channel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent Channel"
+          },
+          "sent_evidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent Evidence"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PREPARED",
+              "SENT",
+              "RESPONDED",
+              "CLOSED",
+              "CANCELLED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "supplier_counterparty_id": {
+            "format": "uuid",
+            "title": "Supplier Counterparty Id",
+            "type": "string"
+          },
+          "supplier_name": {
+            "title": "Supplier Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "description": "Optimistic concurrency version; also sent as ETag.",
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "company_id",
+          "deal_id",
+          "deal_reference",
+          "supplier_counterparty_id",
+          "supplier_name",
+          "reference_number",
+          "requested_currency",
+          "requested_delivery_terms",
+          "delivery_location",
+          "response_due_date",
+          "notes",
+          "status",
+          "revision",
+          "version",
+          "sent_channel",
+          "sent_at",
+          "sent_evidence",
+          "created_by",
+          "created_at",
+          "updated_at",
+          "items",
+          "quotes",
+          "revisions",
+          "allowed_transitions",
+          "is_editable"
+        ],
+        "title": "RfqResponse",
+        "type": "object"
+      },
+      "RfqRevisionDetailResponse": {
+        "properties": {
+          "actor_id": {
+            "format": "uuid",
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "snapshot": {
+            "additionalProperties": true,
+            "title": "Snapshot",
+            "type": "object"
+          }
+        },
+        "required": [
+          "revision",
+          "reason",
+          "actor_id",
+          "created_at",
+          "snapshot"
+        ],
+        "title": "RfqRevisionDetailResponse",
+        "type": "object"
+      },
+      "RfqRevisionResponse": {
+        "properties": {
+          "actor_id": {
+            "format": "uuid",
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision",
+          "reason",
+          "actor_id",
+          "created_at"
+        ],
+        "title": "RfqRevisionResponse",
+        "type": "object"
+      },
+      "RfqSummaryResponse": {
+        "properties": {
+          "company_id": {
+            "format": "uuid",
+            "title": "Company Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "deal_id": {
+            "format": "uuid",
+            "title": "Deal Id",
+            "type": "string"
+          },
+          "deal_reference": {
+            "title": "Deal Reference",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "item_count": {
+            "title": "Item Count",
+            "type": "integer"
+          },
+          "quote_count": {
+            "title": "Quote Count",
+            "type": "integer"
+          },
+          "reference_number": {
+            "title": "Reference Number",
+            "type": "string"
+          },
+          "requested_currency": {
+            "title": "Requested Currency",
+            "type": "string"
+          },
+          "response_due_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Due Date"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PREPARED",
+              "SENT",
+              "RESPONDED",
+              "CLOSED",
+              "CANCELLED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "supplier_counterparty_id": {
+            "format": "uuid",
+            "title": "Supplier Counterparty Id",
+            "type": "string"
+          },
+          "supplier_name": {
+            "title": "Supplier Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "company_id",
+          "deal_id",
+          "deal_reference",
+          "supplier_counterparty_id",
+          "supplier_name",
+          "reference_number",
+          "requested_currency",
+          "response_due_date",
+          "status",
+          "revision",
+          "version",
+          "item_count",
+          "quote_count",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "RfqSummaryResponse",
+        "type": "object"
+      },
+      "RfqTransitionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required to send: for example 'email'.",
+            "title": "Channel"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required to send: message id, thread or file proving dispatch.",
+            "title": "Evidence"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required (3-500 characters) to cancel.",
+            "title": "Reason"
+          },
+          "to": {
+            "enum": [
+              "DRAFT",
+              "PREPARED",
+              "SENT",
+              "RESPONDED",
+              "CLOSED",
+              "CANCELLED"
+            ],
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "to"
+        ],
+        "title": "RfqTransitionRequest",
+        "type": "object"
+      },
+      "RfqUpdateRequest": {
+        "additionalProperties": false,
+        "description": "Header/lines update. ``status`` is intentionally absent.",
+        "properties": {
+          "delivery_location": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Location"
+          },
+          "items": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/RfqItemRequest"
+                },
+                "maxItems": 50,
+                "minItems": 1,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Items"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "requested_currency": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z]{3}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested Currency"
+          },
+          "requested_delivery_terms": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested Delivery Terms"
+          },
+          "response_due_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Due Date"
+          }
+        },
+        "title": "RfqUpdateRequest",
+        "type": "object"
+      },
+      "SalesQuoteApproveRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "title": "SalesQuoteApproveRequest",
+        "type": "object"
+      },
+      "SalesQuoteCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "customer_id": {
+            "format": "uuid",
+            "title": "Customer Id",
+            "type": "string"
+          },
+          "incoterm": {
+            "enum": [
+              "EXW",
+              "FCA",
+              "FAS",
+              "FOB",
+              "CFR",
+              "CIF",
+              "CPT",
+              "CIP",
+              "DAP",
+              "DPU",
+              "DDP"
+            ],
+            "title": "Incoterm",
+            "type": "string"
+          },
+          "named_delivery_place": {
+            "maxLength": 160,
+            "minLength": 2,
+            "title": "Named Delivery Place",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "payment_terms": {
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Payment Terms",
+            "type": "string"
+          },
+          "scenario_id": {
+            "format": "uuid",
+            "title": "Scenario Id",
+            "type": "string"
+          },
+          "valid_until": {
+            "format": "date",
+            "title": "Valid Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scenario_id",
+          "customer_id",
+          "valid_until",
+          "incoterm",
+          "named_delivery_place",
+          "payment_terms"
+        ],
+        "title": "SalesQuoteCreateRequest",
+        "type": "object"
+      },
+      "SalesQuoteItemResponse": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "line_total": {
+            "title": "Line Total",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "string"
+          },
+          "sku": {
+            "title": "Sku",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "kg",
+              "mt",
+              "lb",
+              "unit",
+              "l",
+              "m3"
+            ],
+            "title": "Unit",
+            "type": "string"
+          },
+          "unit_price": {
+            "title": "Unit Price",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "product_id",
+          "sku",
+          "name",
+          "unit",
+          "description",
+          "quantity",
+          "unit_price",
+          "line_total"
+        ],
+        "title": "SalesQuoteItemResponse",
+        "type": "object"
+      },
+      "SalesQuoteListResponse": {
+        "properties": {
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SalesQuoteSummaryResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor",
+          "has_more"
+        ],
+        "title": "SalesQuoteListResponse",
+        "type": "object"
+      },
+      "SalesQuoteRejectRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "SalesQuoteRejectRequest",
+        "type": "object"
+      },
+      "SalesQuoteResponse": {
+        "properties": {
+          "allowed_transitions": {
+            "items": {
+              "enum": [
+                "DRAFT",
+                "PENDING_APPROVAL",
+                "APPROVED",
+                "REJECTED",
+                "WITHDRAWN"
+              ],
+              "type": "string"
+            },
+            "title": "Allowed Transitions",
+            "type": "array"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "can_submit": {
+            "title": "Can Submit",
+            "type": "boolean"
+          },
+          "company_id": {
+            "format": "uuid",
+            "title": "Company Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "format": "uuid",
+            "title": "Created By",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "customer_id": {
+            "format": "uuid",
+            "title": "Customer Id",
+            "type": "string"
+          },
+          "customer_name": {
+            "title": "Customer Name",
+            "type": "string"
+          },
+          "deal_id": {
+            "format": "uuid",
+            "title": "Deal Id",
+            "type": "string"
+          },
+          "deal_reference": {
+            "title": "Deal Reference",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "incoterm": {
+            "enum": [
+              "EXW",
+              "FCA",
+              "FAS",
+              "FOB",
+              "CFR",
+              "CIF",
+              "CPT",
+              "CIP",
+              "DAP",
+              "DPU",
+              "DDP"
+            ],
+            "title": "Incoterm",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SalesQuoteItemResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "named_delivery_place": {
+            "title": "Named Delivery Place",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "payment_terms": {
+            "title": "Payment Terms",
+            "type": "string"
+          },
+          "quote_number": {
+            "title": "Quote Number",
+            "type": "string"
+          },
+          "rejection_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejection Reason"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "revisions": {
+            "items": {
+              "$ref": "#/components/schemas/SalesQuoteRevisionResponse"
+            },
+            "title": "Revisions",
+            "type": "array"
+          },
+          "scenario_id": {
+            "format": "uuid",
+            "title": "Scenario Id",
+            "type": "string"
+          },
+          "scenario_status": {
+            "enum": [
+              "INCOMPLETE",
+              "ESTIMATED",
+              "VERIFIED_INPUTS"
+            ],
+            "title": "Scenario Status",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PENDING_APPROVAL",
+              "APPROVED",
+              "REJECTED",
+              "WITHDRAWN"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          },
+          "submitted_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted By"
+          },
+          "superseded_by_sales_quote_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded By Sales Quote Id"
+          },
+          "supersedes_sales_quote_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedes Sales Quote Id"
+          },
+          "total_value": {
+            "title": "Total Value",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "valid_until": {
+            "format": "date",
+            "title": "Valid Until",
+            "type": "string"
+          },
+          "version": {
+            "description": "Optimistic concurrency version; also sent as ETag.",
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "company_id",
+          "deal_id",
+          "deal_reference",
+          "quote_number",
+          "revision",
+          "scenario_id",
+          "scenario_status",
+          "customer_id",
+          "customer_name",
+          "currency",
+          "valid_until",
+          "incoterm",
+          "named_delivery_place",
+          "payment_terms",
+          "status",
+          "notes",
+          "approved_by",
+          "approved_at",
+          "rejection_reason",
+          "submitted_by",
+          "submitted_at",
+          "supersedes_sales_quote_id",
+          "superseded_by_sales_quote_id",
+          "version",
+          "created_by",
+          "created_at",
+          "updated_at",
+          "items",
+          "revisions",
+          "total_value",
+          "allowed_transitions",
+          "can_submit"
+        ],
+        "title": "SalesQuoteResponse",
+        "type": "object"
+      },
+      "SalesQuoteReviseRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "valid_until": {
+            "format": "date",
+            "title": "Valid Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "valid_until"
+        ],
+        "title": "SalesQuoteReviseRequest",
+        "type": "object"
+      },
+      "SalesQuoteRevisionDetailResponse": {
+        "properties": {
+          "actor_id": {
+            "format": "uuid",
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "snapshot": {
+            "additionalProperties": true,
+            "title": "Snapshot",
+            "type": "object"
+          }
+        },
+        "required": [
+          "revision",
+          "reason",
+          "actor_id",
+          "created_at",
+          "snapshot"
+        ],
+        "title": "SalesQuoteRevisionDetailResponse",
+        "type": "object"
+      },
+      "SalesQuoteRevisionResponse": {
+        "properties": {
+          "actor_id": {
+            "format": "uuid",
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision",
+          "reason",
+          "actor_id",
+          "created_at"
+        ],
+        "title": "SalesQuoteRevisionResponse",
+        "type": "object"
+      },
+      "SalesQuoteSummaryResponse": {
+        "properties": {
+          "company_id": {
+            "format": "uuid",
+            "title": "Company Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "customer_id": {
+            "format": "uuid",
+            "title": "Customer Id",
+            "type": "string"
+          },
+          "customer_name": {
+            "title": "Customer Name",
+            "type": "string"
+          },
+          "deal_id": {
+            "format": "uuid",
+            "title": "Deal Id",
+            "type": "string"
+          },
+          "deal_reference": {
+            "title": "Deal Reference",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "quote_number": {
+            "title": "Quote Number",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "scenario_id": {
+            "format": "uuid",
+            "title": "Scenario Id",
+            "type": "string"
+          },
+          "scenario_status": {
+            "enum": [
+              "INCOMPLETE",
+              "ESTIMATED",
+              "VERIFIED_INPUTS"
+            ],
+            "title": "Scenario Status",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PENDING_APPROVAL",
+              "APPROVED",
+              "REJECTED",
+              "WITHDRAWN"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "total_value": {
+            "title": "Total Value",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "valid_until": {
+            "format": "date",
+            "title": "Valid Until",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "company_id",
+          "deal_id",
+          "deal_reference",
+          "quote_number",
+          "revision",
+          "scenario_id",
+          "scenario_status",
+          "customer_id",
+          "customer_name",
+          "currency",
+          "valid_until",
+          "status",
+          "total_value",
+          "version",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SalesQuoteSummaryResponse",
+        "type": "object"
+      },
+      "SalesQuoteWithdrawRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "title": "SalesQuoteWithdrawRequest",
+        "type": "object"
+      },
       "SessionUser": {
         "description": "The authenticated actor.",
         "properties": {
@@ -1971,6 +4392,947 @@
           "csrf_token"
         ],
         "title": "SessionView",
+        "type": "object"
+      },
+      "SupplierQuoteCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "description": "Currency the supplier quoted in.",
+            "pattern": "^[A-Za-z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "incoterm": {
+            "enum": [
+              "EXW",
+              "FCA",
+              "FAS",
+              "FOB",
+              "CFR",
+              "CIF",
+              "CPT",
+              "CIP",
+              "DAP",
+              "DPU",
+              "DDP"
+            ],
+            "title": "Incoterm",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SupplierQuoteItemRequest"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Items",
+            "type": "array"
+          },
+          "lead_time_days": {
+            "maximum": 3650.0,
+            "minimum": 0.0,
+            "title": "Lead Time Days",
+            "type": "integer"
+          },
+          "named_delivery_place": {
+            "maxLength": 160,
+            "minLength": 2,
+            "title": "Named Delivery Place",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "payment_terms": {
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Payment Terms",
+            "type": "string"
+          },
+          "received_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the supplier's reply arrived; defaults to now.",
+            "title": "Received At"
+          },
+          "shipping_conditions": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shipping Conditions"
+          },
+          "source_reference": {
+            "description": "Email, file or portal message the quote was taken from.",
+            "maxLength": 200,
+            "minLength": 3,
+            "title": "Source Reference",
+            "type": "string"
+          },
+          "supplier_reference": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplier Reference"
+          },
+          "valid_until": {
+            "format": "date",
+            "title": "Valid Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "currency",
+          "incoterm",
+          "named_delivery_place",
+          "payment_terms",
+          "lead_time_days",
+          "valid_until",
+          "source_reference",
+          "items"
+        ],
+        "title": "SupplierQuoteCreateRequest",
+        "type": "object"
+      },
+      "SupplierQuoteItemRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "moq": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Moq"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Unit Price"
+          }
+        },
+        "required": [
+          "product_id",
+          "quantity",
+          "unit_price"
+        ],
+        "title": "SupplierQuoteItemRequest",
+        "type": "object"
+      },
+      "SupplierQuoteItemResponse": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "line_total": {
+            "title": "Line Total",
+            "type": "string"
+          },
+          "moq": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Moq"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "string"
+          },
+          "sku": {
+            "title": "Sku",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "kg",
+              "mt",
+              "lb",
+              "unit",
+              "l",
+              "m3"
+            ],
+            "title": "Unit",
+            "type": "string"
+          },
+          "unit_price": {
+            "title": "Unit Price",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "product_id",
+          "sku",
+          "name",
+          "unit",
+          "description",
+          "quantity",
+          "unit_price",
+          "moq",
+          "notes",
+          "line_total"
+        ],
+        "title": "SupplierQuoteItemResponse",
+        "type": "object"
+      },
+      "SupplierQuoteListResponse": {
+        "properties": {
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SupplierQuoteSummaryResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor",
+          "has_more"
+        ],
+        "title": "SupplierQuoteListResponse",
+        "type": "object"
+      },
+      "SupplierQuoteResponse": {
+        "properties": {
+          "company_id": {
+            "format": "uuid",
+            "title": "Company Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "format": "uuid",
+            "title": "Created By",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "deal_id": {
+            "format": "uuid",
+            "title": "Deal Id",
+            "type": "string"
+          },
+          "deal_reference": {
+            "title": "Deal Reference",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "incoterm": {
+            "enum": [
+              "EXW",
+              "FCA",
+              "FAS",
+              "FOB",
+              "CFR",
+              "CIF",
+              "CPT",
+              "CIP",
+              "DAP",
+              "DPU",
+              "DDP"
+            ],
+            "title": "Incoterm",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SupplierQuoteItemResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "lead_time_days": {
+            "title": "Lead Time Days",
+            "type": "integer"
+          },
+          "named_delivery_place": {
+            "title": "Named Delivery Place",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "payment_terms": {
+            "title": "Payment Terms",
+            "type": "string"
+          },
+          "received_at": {
+            "format": "date-time",
+            "title": "Received At",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "revisions": {
+            "items": {
+              "$ref": "#/components/schemas/SupplierQuoteRevisionResponse"
+            },
+            "title": "Revisions",
+            "type": "array"
+          },
+          "rfq_id": {
+            "format": "uuid",
+            "title": "Rfq Id",
+            "type": "string"
+          },
+          "rfq_reference": {
+            "title": "Rfq Reference",
+            "type": "string"
+          },
+          "shipping_conditions": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shipping Conditions"
+          },
+          "source_reference": {
+            "title": "Source Reference",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "RECEIVED",
+              "WITHDRAWN"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "superseded_by_quote_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded By Quote Id"
+          },
+          "supersedes_quote_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedes Quote Id"
+          },
+          "supplier_counterparty_id": {
+            "format": "uuid",
+            "title": "Supplier Counterparty Id",
+            "type": "string"
+          },
+          "supplier_name": {
+            "title": "Supplier Name",
+            "type": "string"
+          },
+          "supplier_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplier Reference"
+          },
+          "total_value": {
+            "title": "Total Value",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "valid_until": {
+            "format": "date",
+            "title": "Valid Until",
+            "type": "string"
+          },
+          "version": {
+            "description": "Optimistic concurrency version; also sent as ETag.",
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "company_id",
+          "rfq_id",
+          "rfq_reference",
+          "deal_id",
+          "deal_reference",
+          "supplier_counterparty_id",
+          "supplier_name",
+          "supplier_reference",
+          "currency",
+          "incoterm",
+          "named_delivery_place",
+          "payment_terms",
+          "shipping_conditions",
+          "lead_time_days",
+          "valid_until",
+          "status",
+          "revision",
+          "source_reference",
+          "notes",
+          "received_at",
+          "supersedes_quote_id",
+          "superseded_by_quote_id",
+          "version",
+          "created_by",
+          "created_at",
+          "updated_at",
+          "items",
+          "revisions",
+          "total_value",
+          "is_active"
+        ],
+        "title": "SupplierQuoteResponse",
+        "type": "object"
+      },
+      "SupplierQuoteReviseRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "description": "Currency the supplier quoted in.",
+            "pattern": "^[A-Za-z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "incoterm": {
+            "enum": [
+              "EXW",
+              "FCA",
+              "FAS",
+              "FOB",
+              "CFR",
+              "CIF",
+              "CPT",
+              "CIP",
+              "DAP",
+              "DPU",
+              "DDP"
+            ],
+            "title": "Incoterm",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SupplierQuoteItemRequest"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Items",
+            "type": "array"
+          },
+          "lead_time_days": {
+            "maximum": 3650.0,
+            "minimum": 0.0,
+            "title": "Lead Time Days",
+            "type": "integer"
+          },
+          "named_delivery_place": {
+            "maxLength": 160,
+            "minLength": 2,
+            "title": "Named Delivery Place",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "payment_terms": {
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Payment Terms",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why a new revision was recorded.",
+            "title": "Reason"
+          },
+          "received_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the supplier's reply arrived; defaults to now.",
+            "title": "Received At"
+          },
+          "shipping_conditions": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shipping Conditions"
+          },
+          "source_reference": {
+            "description": "Email, file or portal message the quote was taken from.",
+            "maxLength": 200,
+            "minLength": 3,
+            "title": "Source Reference",
+            "type": "string"
+          },
+          "supplier_reference": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplier Reference"
+          },
+          "valid_until": {
+            "format": "date",
+            "title": "Valid Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "currency",
+          "incoterm",
+          "named_delivery_place",
+          "payment_terms",
+          "lead_time_days",
+          "valid_until",
+          "source_reference",
+          "items"
+        ],
+        "title": "SupplierQuoteReviseRequest",
+        "type": "object"
+      },
+      "SupplierQuoteRevisionDetailResponse": {
+        "properties": {
+          "actor_id": {
+            "format": "uuid",
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "snapshot": {
+            "additionalProperties": true,
+            "title": "Snapshot",
+            "type": "object"
+          }
+        },
+        "required": [
+          "revision",
+          "reason",
+          "actor_id",
+          "created_at",
+          "snapshot"
+        ],
+        "title": "SupplierQuoteRevisionDetailResponse",
+        "type": "object"
+      },
+      "SupplierQuoteRevisionResponse": {
+        "properties": {
+          "actor_id": {
+            "format": "uuid",
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision",
+          "reason",
+          "actor_id",
+          "created_at"
+        ],
+        "title": "SupplierQuoteRevisionResponse",
+        "type": "object"
+      },
+      "SupplierQuoteSummaryResponse": {
+        "properties": {
+          "company_id": {
+            "format": "uuid",
+            "title": "Company Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "deal_id": {
+            "format": "uuid",
+            "title": "Deal Id",
+            "type": "string"
+          },
+          "deal_reference": {
+            "title": "Deal Reference",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "incoterm": {
+            "enum": [
+              "EXW",
+              "FCA",
+              "FAS",
+              "FOB",
+              "CFR",
+              "CIF",
+              "CPT",
+              "CIP",
+              "DAP",
+              "DPU",
+              "DDP"
+            ],
+            "title": "Incoterm",
+            "type": "string"
+          },
+          "item_count": {
+            "title": "Item Count",
+            "type": "integer"
+          },
+          "received_at": {
+            "format": "date-time",
+            "title": "Received At",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "rfq_id": {
+            "format": "uuid",
+            "title": "Rfq Id",
+            "type": "string"
+          },
+          "rfq_reference": {
+            "title": "Rfq Reference",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "RECEIVED",
+              "WITHDRAWN"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "superseded_by_quote_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded By Quote Id"
+          },
+          "supplier_counterparty_id": {
+            "format": "uuid",
+            "title": "Supplier Counterparty Id",
+            "type": "string"
+          },
+          "supplier_name": {
+            "title": "Supplier Name",
+            "type": "string"
+          },
+          "supplier_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplier Reference"
+          },
+          "total_value": {
+            "title": "Total Value",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "valid_until": {
+            "format": "date",
+            "title": "Valid Until",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "company_id",
+          "rfq_id",
+          "rfq_reference",
+          "deal_id",
+          "deal_reference",
+          "supplier_counterparty_id",
+          "supplier_name",
+          "supplier_reference",
+          "currency",
+          "incoterm",
+          "valid_until",
+          "status",
+          "revision",
+          "received_at",
+          "superseded_by_quote_id",
+          "version",
+          "item_count",
+          "total_value",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SupplierQuoteSummaryResponse",
+        "type": "object"
+      },
+      "SupplierQuoteWithdrawRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "SupplierQuoteWithdrawRequest",
         "type": "object"
       },
       "ValidationError": {
@@ -3032,6 +6394,221 @@
         ]
       }
     },
+    "/api/v1/fx-rates": {
+      "get": {
+        "description": "Cursor-paginated, newest recording first. Filter by the currency pair. No endpoint returns a 'current' rate: pricing always refers to a stored snapshot so a landed cost stays reproducible.",
+        "operationId": "list_fx_rates_api_v1_fx_rates_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "base_currency",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 3,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base Currency"
+            }
+          },
+          {
+            "in": "query",
+            "name": "quote_currency",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 3,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quote Currency"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FxRateListResponse"
+                }
+              }
+            },
+            "description": "A page of FX snapshots."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid cursor or limit."
+          }
+        },
+        "summary": "List recorded FX snapshots",
+        "tags": [
+          "fx-rates"
+        ]
+      },
+      "post": {
+        "description": "Stores one sourced observation. The pair and effective time are unique per company, so recording the same observation twice is a 409 instead of a duplicate rate that could be picked arbitrarily.",
+        "operationId": "create_fx_rate_api_v1_fx_rates_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FxRateCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FxRateResponse"
+                }
+              }
+            },
+            "description": "Recorded."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing/invalid Idempotency-Key."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Duplicate snapshot."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid payload."
+          }
+        },
+        "summary": "Record an FX snapshot",
+        "tags": [
+          "fx-rates"
+        ]
+      }
+    },
+    "/api/v1/fx-rates/{fx_rate_id}": {
+      "get": {
+        "operationId": "get_fx_rate_api_v1_fx_rates__fx_rate_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fx_rate_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Fx Rate Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FxRateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown snapshot."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read one FX snapshot",
+        "tags": [
+          "fx-rates"
+        ]
+      }
+    },
     "/api/v1/health/live": {
       "get": {
         "description": "Returns 200 as soon as the API process can serve HTTP. It deliberately performs no database, cache or network I/O so a dependency outage cannot cause the orchestrator to kill a healthy process.",
@@ -3083,6 +6660,344 @@
         "summary": "Readiness probe",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/v1/pricing-scenarios": {
+      "get": {
+        "description": "Cursor-paginated, newest first. The summary carries landed total, sales total and gross margin so a comparison table needs no extra call.",
+        "operationId": "list_pricing_scenarios_api_v1_pricing_scenarios_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "INCOMPLETE",
+                    "ESTIMATED",
+                    "VERIFIED_INPUTS"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "deal_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Deal Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "supplier_quote_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Supplier Quote Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PricingScenarioListResponse"
+                }
+              }
+            },
+            "description": "A page of scenarios."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid cursor, limit or filter."
+          }
+        },
+        "summary": "List pricing scenarios",
+        "tags": [
+          "pricing-scenarios"
+        ]
+      },
+      "post": {
+        "description": "Converts the quote into the target currency using an explicit FX snapshot, allocates every cost component (ORDER pro-rata by purchase value, LINE to its product) and derives selling prices from exactly one of margin or markup. The inputs and the rounded results are stored together.",
+        "operationId": "create_pricing_scenario_api_v1_pricing_scenarios_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PricingScenarioRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PricingScenarioResponse"
+                }
+              }
+            },
+            "description": "Calculated and stored."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing FX snapshot, unpriced line or invalid component."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown supplier quote."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Quote withdrawn or superseded."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid payload."
+          }
+        },
+        "summary": "Price a supplier quote (landed cost + selling price)",
+        "tags": [
+          "pricing-scenarios"
+        ]
+      }
+    },
+    "/api/v1/pricing-scenarios/{scenario_id}": {
+      "get": {
+        "operationId": "get_pricing_scenario_api_v1_pricing_scenarios__scenario_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scenario_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Scenario Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PricingScenarioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown scenario."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read one scenario with inputs, results and components",
+        "tags": [
+          "pricing-scenarios"
+        ]
+      },
+      "put": {
+        "description": "Replaces the cost components and reruns the engine for the same supplier quote. A scenario is bound to its quote: repointing it is a 400, not a silent rewrite of history.",
+        "operationId": "recalculate_pricing_scenario_api_v1_pricing_scenarios__scenario_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scenario_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Scenario Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PricingScenarioRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PricingScenarioResponse"
+                }
+              }
+            },
+            "description": "Recalculated; the new ETag is returned."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Wrong quote, FX or component."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown scenario."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Version conflict."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "If-Match header missing."
+          }
+        },
+        "summary": "Recalculate a scenario with new inputs (If-Match required)",
+        "tags": [
+          "pricing-scenarios"
         ]
       }
     },
@@ -3374,6 +7289,1376 @@
         ]
       }
     },
+    "/api/v1/rfqs": {
+      "get": {
+        "description": "Cursor-paginated, newest first. Each row carries its line and quote counts so a comparison table never has to fan out per row.",
+        "operationId": "list_rfqs_api_v1_rfqs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 160,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "DRAFT",
+                    "PREPARED",
+                    "SENT",
+                    "RESPONDED",
+                    "CLOSED",
+                    "CANCELLED"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "deal_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Deal Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "supplier_counterparty_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Supplier Counterparty Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqListResponse"
+                }
+              }
+            },
+            "description": "A page of RFQs."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid cursor, limit or filter."
+          }
+        },
+        "summary": "List supplier RFQs",
+        "tags": [
+          "rfqs"
+        ]
+      },
+      "post": {
+        "description": "Every supplier receives its own RFQ with the same lines, created in one transaction. A buyer counterparty is rejected: an RFQ is addressed to a supplier. References are generated per RFQ.",
+        "operationId": "create_rfq_api_v1_rfqs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RfqCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqBatchResponse"
+                }
+              }
+            },
+            "description": "Created; one entry per supplier."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown deal, supplier or product."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Duplicate reference or key conflict."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid payload."
+          }
+        },
+        "summary": "Create one RFQ per supplier",
+        "tags": [
+          "rfqs"
+        ]
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}": {
+      "get": {
+        "operationId": "get_rfq_api_v1_rfqs__rfq_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rfq_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rfq Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown RFQ."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read one RFQ with lines, quotes and prepared revisions",
+        "tags": [
+          "rfqs"
+        ]
+      },
+      "patch": {
+        "description": "Draft and prepared RFQs are editable. Editing a prepared RFQ returns it to DRAFT and opens the next revision, so the prepared snapshot stays intact. Status is not writable here: use the transitions endpoint.",
+        "operationId": "update_rfq_api_v1_rfqs__rfq_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rfq_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rfq Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RfqUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqResponse"
+                }
+              }
+            },
+            "description": "Updated; the new ETag is returned."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Malformed If-Match or unknown product."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown RFQ."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Sent/closed RFQ or version conflict."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid payload."
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "If-Match header missing."
+          }
+        },
+        "summary": "Update an RFQ (If-Match required)",
+        "tags": [
+          "rfqs"
+        ]
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/quotes": {
+      "post": {
+        "description": "The quote inherits its supplier, deal and line descriptions from the RFQ. Only a SENT (or re-quoted RESPONDED) RFQ accepts a quote, and only one received quote may be active at a time: later prices are revisions.",
+        "operationId": "record_supplier_quote_api_v1_rfqs__rfq_id__quotes_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rfq_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rfq Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupplierQuoteCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierQuoteResponse"
+                }
+              }
+            },
+            "description": "Recorded; the RFQ becomes RESPONDED."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown product, invalid Incoterm or missing key."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown RFQ."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "RFQ not sent, or a quote is already active."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid payload."
+          }
+        },
+        "summary": "Record a supplier's quote against a sent RFQ",
+        "tags": [
+          "supplier-quotes"
+        ]
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/revisions/{revision}": {
+      "get": {
+        "description": "Prepared snapshots are append-only; this returns the stored JSON as written.",
+        "operationId": "get_rfq_revision_api_v1_rfqs__rfq_id__revisions__revision__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rfq_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rfq Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "title": "Revision",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqRevisionDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown RFQ or revision."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read a prepared RFQ snapshot",
+        "tags": [
+          "rfqs"
+        ]
+      }
+    },
+    "/api/v1/rfqs/{rfq_id}/transitions": {
+      "post": {
+        "description": "Requires Idempotency-Key. PREPARED writes an immutable revision snapshot; SENT requires channel and evidence; CANCELLED requires a reason.",
+        "operationId": "transition_rfq_api_v1_rfqs__rfq_id__transitions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rfq_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rfq Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RfqTransitionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqResponse"
+                }
+              }
+            },
+            "description": "Transition accepted; the new ETag is returned."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing key, channel or evidence."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown RFQ."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid transition or version conflict."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown target or missing reason."
+          }
+        },
+        "summary": "Move an RFQ through its lifecycle",
+        "tags": [
+          "rfqs"
+        ]
+      }
+    },
+    "/api/v1/sales-quotes": {
+      "get": {
+        "description": "Cursor-paginated, newest first. Each row includes the scenario status so a reviewer can see whether the underlying inputs were verified.",
+        "operationId": "list_sales_quotes_api_v1_sales_quotes_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 160,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "DRAFT",
+                    "PENDING_APPROVAL",
+                    "APPROVED",
+                    "REJECTED",
+                    "WITHDRAWN"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "deal_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Deal Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "customer_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Customer Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "currency",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 3,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Currency"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesQuoteListResponse"
+                }
+              }
+            },
+            "description": "A page of sales quotes."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid cursor, limit or filter."
+          }
+        },
+        "summary": "List sales quotes",
+        "tags": [
+          "sales-quotes"
+        ]
+      },
+      "post": {
+        "description": "Prices are copied from the scenario's stored results, so the quote matches the calculation that was reviewed. A supplier counterparty cannot be a customer. The new quote starts in DRAFT.",
+        "operationId": "create_sales_quote_api_v1_sales_quotes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalesQuoteCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesQuoteResponse"
+                }
+              }
+            },
+            "description": "Drafted."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown customer, Incoterm or date."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown scenario."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Scenario has no priced lines."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid payload."
+          }
+        },
+        "summary": "Draft a sales quote from a pricing scenario",
+        "tags": [
+          "sales-quotes"
+        ]
+      }
+    },
+    "/api/v1/sales-quotes/{sales_quote_id}": {
+      "get": {
+        "operationId": "get_sales_quote_api_v1_sales_quotes__sales_quote_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sales_quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Sales Quote Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesQuoteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown sales quote."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read one sales quote with lines, revisions and allowed actions",
+        "tags": [
+          "sales-quotes"
+        ]
+      }
+    },
+    "/api/v1/sales-quotes/{sales_quote_id}/approve": {
+      "post": {
+        "description": "Requires the ``finance.approve`` permission (traders and admins never hold it) and refuses the submitter, so approval is always a second pair of eyes.",
+        "operationId": "approve_sales_quote_api_v1_sales_quotes__sales_quote_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sales_quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Sales Quote Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/SalesQuoteApproveRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesQuoteResponse"
+                }
+              }
+            },
+            "description": "Approved; the new ETag is returned."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing permission or self-approval."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown sales quote."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid transition or version conflict."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "If-Match header missing."
+          }
+        },
+        "summary": "Approve a submitted quote (finance.approve)",
+        "tags": [
+          "sales-quotes"
+        ]
+      }
+    },
+    "/api/v1/sales-quotes/{sales_quote_id}/reject": {
+      "post": {
+        "description": "A rejection explains itself: the reason is stored and audited.",
+        "operationId": "reject_sales_quote_api_v1_sales_quotes__sales_quote_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sales_quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Sales Quote Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalesQuoteRejectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesQuoteResponse"
+                }
+              }
+            },
+            "description": "Rejected; the new ETag is returned."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing permission."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown sales quote."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid transition or version conflict."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing reason."
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "If-Match header missing."
+          }
+        },
+        "summary": "Reject a submitted quote (finance.approve)",
+        "tags": [
+          "sales-quotes"
+        ]
+      }
+    },
+    "/api/v1/sales-quotes/{sales_quote_id}/revisions": {
+      "post": {
+        "description": "The new revision starts in DRAFT, carries the next revision number and supersedes the previous row. Prices are re-read from the pricing scenario.",
+        "operationId": "revise_sales_quote_api_v1_sales_quotes__sales_quote_id__revisions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sales_quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Sales Quote Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalesQuoteReviseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesQuoteResponse"
+                }
+              }
+            },
+            "description": "New revision drafted."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid validity date."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown sales quote."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not revisable or already superseded."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "If-Match header missing."
+          }
+        },
+        "summary": "Open a new revision of an approved, rejected or withdrawn quote",
+        "tags": [
+          "sales-quotes"
+        ]
+      }
+    },
+    "/api/v1/sales-quotes/{sales_quote_id}/revisions/{revision}": {
+      "get": {
+        "operationId": "get_sales_quote_revision_api_v1_sales_quotes__sales_quote_id__revisions__revision__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sales_quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Sales Quote Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "title": "Revision",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesQuoteRevisionDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown quote or revision."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read a stored sales quote revision snapshot",
+        "tags": [
+          "sales-quotes"
+        ]
+      }
+    },
+    "/api/v1/sales-quotes/{sales_quote_id}/submit": {
+      "post": {
+        "description": "Only a scenario with VERIFIED_INPUTS may be submitted: an estimate can be drafted and discussed, never approved as if it were verified.",
+        "operationId": "submit_sales_quote_api_v1_sales_quotes__sales_quote_id__submit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sales_quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Sales Quote Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesQuoteResponse"
+                }
+              }
+            },
+            "description": "Submitted; the new ETag is returned."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown sales quote."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid transition, unverified scenario or version conflict."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "If-Match header missing."
+          }
+        },
+        "summary": "Submit a draft for approval (If-Match + Idempotency-Key required)",
+        "tags": [
+          "sales-quotes"
+        ]
+      }
+    },
+    "/api/v1/sales-quotes/{sales_quote_id}/withdraw": {
+      "post": {
+        "description": "Withdrawal is a dead end: an approved quote cannot be withdrawn, it is superseded by a new revision instead, so the approval trail stays intact.",
+        "operationId": "withdraw_sales_quote_api_v1_sales_quotes__sales_quote_id__withdraw_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sales_quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Sales Quote Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalesQuoteWithdrawRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesQuoteResponse"
+                }
+              }
+            },
+            "description": "Withdrawn; the new ETag is returned."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown sales quote."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid transition or version conflict."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "If-Match header missing."
+          }
+        },
+        "summary": "Withdraw a draft or submitted quote (If-Match required)",
+        "tags": [
+          "sales-quotes"
+        ]
+      }
+    },
     "/api/v1/session/company": {
       "post": {
         "description": "Requires a CSRF header and an active membership for the requested company. The company id supplied by the client is only used as a lookup key: an unauthorised id returns 403 and writes an ACCESS_DENIED audit record. On success the session token and CSRF token are rotated and the absolute expiry is preserved.",
@@ -3433,6 +8718,472 @@
         "summary": "Select the active company and rotate the session token",
         "tags": [
           "companies"
+        ]
+      }
+    },
+    "/api/v1/supplier-quotes": {
+      "get": {
+        "description": "Cursor-paginated by receipt time, newest first. Superseded revisions stay visible with their ``superseded_by_quote_id`` set, so a price history is never lost.",
+        "operationId": "list_supplier_quotes_api_v1_supplier_quotes_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 160,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "RECEIVED",
+                    "WITHDRAWN"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "rfq_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Rfq Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "deal_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Deal Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "supplier_counterparty_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Supplier Counterparty Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "currency",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 3,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Currency"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierQuoteListResponse"
+                }
+              }
+            },
+            "description": "A page of supplier quotes."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid cursor, limit or filter."
+          }
+        },
+        "summary": "List supplier quotes",
+        "tags": [
+          "supplier-quotes"
+        ]
+      }
+    },
+    "/api/v1/supplier-quotes/{quote_id}": {
+      "get": {
+        "operationId": "get_supplier_quote_api_v1_supplier_quotes__quote_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Quote Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierQuoteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown quote."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read one supplier quote with lines and revisions",
+        "tags": [
+          "supplier-quotes"
+        ]
+      }
+    },
+    "/api/v1/supplier-quotes/{quote_id}/revisions": {
+      "post": {
+        "description": "Creates a new quote row that supersedes the given one. The previous revision is never modified, so both prices remain readable and only the newest revision can be priced.",
+        "operationId": "revise_supplier_quote_api_v1_supplier_quotes__quote_id__revisions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Quote Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupplierQuoteReviseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierQuoteResponse"
+                }
+              }
+            },
+            "description": "Revision recorded."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown product or invalid payload."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown quote."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not received, already superseded or version conflict."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "If-Match header missing."
+          }
+        },
+        "summary": "Record a new revision of a supplier quote (If-Match required)",
+        "tags": [
+          "supplier-quotes"
+        ]
+      }
+    },
+    "/api/v1/supplier-quotes/{quote_id}/revisions/{revision}": {
+      "get": {
+        "operationId": "get_supplier_quote_revision_api_v1_supplier_quotes__quote_id__revisions__revision__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Quote Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "title": "Revision",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierQuoteRevisionDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown quote or revision."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read a stored quote revision snapshot",
+        "tags": [
+          "supplier-quotes"
+        ]
+      }
+    },
+    "/api/v1/supplier-quotes/{quote_id}/withdraw": {
+      "post": {
+        "description": "A withdrawn quote keeps its data and revision history but can no longer be priced; a reason is required and recorded in the audit trail.",
+        "operationId": "withdraw_supplier_quote_api_v1_supplier_quotes__quote_id__withdraw_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Quote Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupplierQuoteWithdrawRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierQuoteResponse"
+                }
+              }
+            },
+            "description": "Withdrawn; the new ETag is returned."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unknown quote."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not received, superseded or conflict."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Missing or short reason."
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "If-Match header missing."
+          }
+        },
+        "summary": "Withdraw a received quote (If-Match required)",
+        "tags": [
+          "supplier-quotes"
         ]
       }
     }

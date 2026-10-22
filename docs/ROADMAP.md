@@ -150,14 +150,32 @@ retried with backoff; no orphaned order/deal states exist.
 
 ## Stage 3 — CRM, RFQ, quotes, products, logistics
 
+**Status: sourcing, pricing and sales quotes delivered (2026-10-22); logistics
+and document generation remain.**
+
 **Goal:** the day-to-day trading workflow.
 
 Work: accounts/contacts, RFQ intake, quotation versioning, product catalogue,
 price lists, shipments and milestones, document generation. Quotes and orders
 reuse the Decimal/currency/FX rules and the audit/idempotency conventions.
 
+**Delivered in this stage:**
+RFQ per supplier with prepared snapshots and dispatch evidence; supplier quote
+recording, superseding revisions and withdrawals; explicit FX snapshots; a
+deterministic landed-cost engine (pro-rata/line allocation, margin or markup) whose
+inputs and results are stored; sales quotes with a submit → approve/reject
+workflow, segregation of duties and immutable revisions.
+
 **Exit criteria:** quote → order traceability with immutable revisions; every
 state change audited; list endpoints paginated and permission-filtered.
+
+Traceability now holds from RFQ through supplier quote and pricing scenario to the
+sales quote; the sales *order* is the next stage, so a won deal still cannot claim
+an order that does not exist.
+
+**Remaining for this stage:** shipments/milestones, price lists, document
+generation, contact-level CRM.
+
 
 ---
 
