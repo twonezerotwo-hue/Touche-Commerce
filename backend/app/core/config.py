@@ -105,6 +105,12 @@ class Settings(BaseSettings):
     # integration suite can never point at a development database.
     test_database_name: str = "touche_commerce_test"
 
+    # --- Documents ---------------------------------------------------------
+    # Files live outside every served directory; the API streams them only after
+    # authorising both the company and the linked business entity.
+    document_storage_path: Path = BACKEND_ROOT / "var" / "documents"
+    document_max_bytes: int = Field(default=10 * 1024 * 1024, ge=1024, le=100 * 1024 * 1024)
+
     # --- Contracts ---------------------------------------------------------
     idempotency_ttl_hours: int = Field(default=24, ge=1)
     pagination_default_limit: int = Field(default=25, ge=1)

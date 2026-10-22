@@ -205,6 +205,14 @@ class ConflictError(ApiError):
     default_message = "The request conflicts with the current state of the resource."
 
 
+class PayloadTooLargeError(ApiError):
+    """An upload exceeded the configured maximum size (checked while streaming)."""
+
+    status_code = 413
+    code = ErrorCode.PAYLOAD_TOO_LARGE
+    default_message = "The uploaded file is larger than the configured limit."
+
+
 class InvalidTransitionError(ApiError):
     """The deal state machine does not allow this edge (ADR-025)."""
 

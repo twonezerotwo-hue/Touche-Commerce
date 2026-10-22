@@ -8,12 +8,16 @@ from app.api.v1.routes import (
     counterparties,
     dashboard,
     deals,
+    documents,
     fx_rates,
     health,
+    orders,
     pricing_scenarios,
     products,
+    purchase_orders,
     rfqs,
     sales_quotes,
+    shipments,
     supplier_quotes,
 )
 
@@ -30,6 +34,12 @@ api_router.include_router(rfqs.router)
 api_router.include_router(supplier_quotes.router)
 api_router.include_router(pricing_scenarios.router)
 api_router.include_router(sales_quotes.router)
+# Stage 4: sales orders must be registered before the generic document routes so
+# ``/sales-orders/{id}/documents/preview`` is matched by its own handler.
+api_router.include_router(orders.router)
+api_router.include_router(purchase_orders.router)
+api_router.include_router(shipments.router)
+api_router.include_router(documents.router)
 
 __all__ = ["api_router"]
 

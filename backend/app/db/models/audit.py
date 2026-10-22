@@ -80,6 +80,22 @@ class AuditAction(StrEnum):
     SALES_QUOTE_APPROVED = "sales_quote.approved"
     SALES_QUOTE_REJECTED = "sales_quote.rejected"
     SALES_QUOTE_WITHDRAWN = "sales_quote.withdrawn"
+    # Stage 4 orders, procurement, logistics and documents.
+    DEAL_WON = "deal.won"
+    CUSTOMER_ACCEPTANCE_RECORDED = "customer_acceptance.recorded"
+    SALES_ORDER_CREATED = "sales_order.created"
+    SALES_ORDER_TRANSITIONED = "sales_order.transitioned"
+    SALES_ORDER_AMENDED = "sales_order.amended"
+    PURCHASE_ORDER_CREATED = "purchase_order.created"
+    PURCHASE_ORDER_TRANSITIONED = "purchase_order.transitioned"
+    SHIPMENT_CREATED = "shipment.created"
+    SHIPMENT_UPDATED = "shipment.updated"
+    SHIPMENT_TRANSITIONED = "shipment.transitioned"
+    SHIPMENT_COST_RECORDED = "shipment.cost_recorded"
+    DOCUMENT_UPLOADED = "document.uploaded"
+    DOCUMENT_DOWNLOADED = "document.downloaded"
+    DOCUMENT_ARCHIVED = "document.archived"
+    DOCUMENT_VERIFIED = "document.verified"
 
 
 _AUDIT_ACTIONS = tuple(action.value for action in AuditAction)
