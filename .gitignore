@@ -45,6 +45,9 @@ infra/.local/
 infra/pgdata/
 infra/postgres-data/
 
+# Backend runtime state (private document storage, verification temp dirs) ---
+backend/var/
+
 # Editors / OS --------------------------------------------------------------
 .DS_Store
 Thumbs.db

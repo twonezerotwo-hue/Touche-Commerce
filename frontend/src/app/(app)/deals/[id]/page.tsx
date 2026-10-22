@@ -5,6 +5,7 @@ import { ArrowLeft, History, ReceiptText } from "lucide-react";
 import { DealEditForm } from "@/components/trade/deal-edit-form";
 import { DealStatusBadge } from "@/components/trade/status-badge";
 import { TransitionPanel } from "@/components/trade/transition-panel";
+import { ConversionCard } from "@/components/operations/conversion-card";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,11 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import type {
+  CustomerAcceptance,
+  SalesQuoteOption,
+  SalesQuoteOptionList,
+} from "@/lib/operations/types";
 import { formatDate, formatMoney, formatQuantity, formatTimestamp } from "@/lib/trade/format";
 import type { Deal } from "@/lib/trade/types";
 import { cn } from "@/lib/utils";
@@ -52,6 +58,14 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
   const deal = result.data;
   const session = state.session.session;
   const canWrite = session.company?.permissions.includes("trade.write") ?? false;
+
+  const [quoteOptions, acceptances] = await Promise.all([
+    serverGet<SalesQuoteOptionList>(`/sales-quotes?deal_id=${deal.id}&limit=50`),
+    serverGet<{ items: CustomerAcceptance[] }>(`/deals/${deal.id}/customer-acceptance`),
+  ]);
+  const quotes: SalesQuoteOption[] = quoteOptions.ok ? quoteOptions.data.items : [];
+  const recordedAcceptances: CustomerAcceptance[] = acceptances.ok ? acceptances.data.items : [];
+  const convertible = deal.status === "OPEN" || deal.status === "NEGOTIATION";
 
   return (
     <div className="mx-auto max-w-[1280px] space-y-5">
@@ -113,6 +127,43 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
           detail={formatTimestamp(deal.created_at)}
           tone="neutral"
         />
+      </section>
+
+      <section className="panel space-y-3 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="eyebrow">Execution</p>
+            <h2 className="mt-1 text-[14px] font-medium text-mist-100">
+              {deal.status === "WON" ? "This deal is won" : "Convert to a sales order"}
+            </h2>
+          </div>
+          <Badge variant={deal.status === "WON" ? "success" : "outline"}>
+            {deal.status === "WON" ? "WON" : "Requires customer acceptance"}
+          </Badge>
+        </div>
+
+        {deal.status === "WON" ? (
+          <p className="text-[11.5px] text-mist-400">
+            The deal already produced its sales order.{" "}
+            <Link href="/orders" className="text-accent-200 hover:text-accent-100">
+              Open the order register
+            </Link>{" "}
+            to see the frozen commercial terms and fulfilment progress.
+          </p>
+        ) : convertible ? (
+          <ConversionCard
+            dealId={deal.id}
+            quotes={quotes}
+            acceptances={recordedAcceptances}
+            csrfToken={session.csrf_token}
+            canWrite={canWrite}
+          />
+        ) : (
+          <Alert variant="info" title="Deal not convertible">
+            Only an open or negotiating deal can become an order. Move the deal to negotiation
+            first.
+          </Alert>
+        )}
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">

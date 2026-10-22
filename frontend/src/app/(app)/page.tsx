@@ -1,13 +1,16 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
   Banknote,
+  ClipboardCheck,
   Database,
   Handshake,
   Package,
   Server,
   ShieldCheck,
+  Truck,
   Users,
 } from "lucide-react";
 
@@ -38,6 +41,7 @@ import {
 import { API_URLS } from "@/lib/api/config";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import type { OperationsSummary } from "@/lib/operations/types";
 import { formatDate, formatMoney, formatTimestamp } from "@/lib/trade/format";
 import type { DashboardSummary } from "@/lib/trade/types";
 import { cn } from "@/lib/utils";
@@ -55,8 +59,9 @@ export default async function CommandCenterPage() {
   const company = session.company;
   const canWrite = company?.permissions.includes("trade.write") ?? false;
 
-  const [summary, live, readiness, contract] = await Promise.all([
+  const [summary, operations, live, readiness, contract] = await Promise.all([
     serverGet<DashboardSummary>("/dashboard/summary"),
+    serverGet<OperationsSummary>("/operations/summary"),
     fetchLiveness(),
     fetchReadiness(),
     fetchContract(),
@@ -140,6 +145,8 @@ export default async function CommandCenterPage() {
       ) : (
         <DashboardBody summary={summary.data} canWrite={canWrite} />
       )}
+
+      <OperationsStrip operations={operations} />
 
       <PlatformHealth live={live} readiness={readiness} contract={contract} />
 
@@ -566,6 +573,131 @@ function HealthCell({
       >
         {ok ? "ok" : "fail"}
       </span>
+    </div>
+  );
+}
+
+function OperationsStrip({ operations }: { operations: ApiResult<OperationsSummary> }) {
+  if (!operations.ok) {
+    return (
+      <Alert variant="warning" title="Operations summary unavailable">
+        {operations.message}
+      </Alert>
+    );
+  }
+
+  const data = operations.data;
+  const primary = data.order_value_by_currency[0];
+
+  return (
+    <section className="panel animate-enter overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4.5 pb-3">
+        <div>
+          <p className="eyebrow">Execution</p>
+          <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">
+            Orders, shipments and documents
+          </h2>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 text-[10.5px]">
+          <Link href="/orders" className="text-accent-200 hover:text-accent-100">
+            Orders
+          </Link>
+          <Link href="/shipments" className="text-accent-200 hover:text-accent-100">
+            Shipments
+          </Link>
+          <Link href="/documents" className="text-accent-200 hover:text-accent-100">
+            Documents
+          </Link>
+          <span className="font-mono text-mist-600">{formatTimestamp(data.generated_at)}</span>
+        </div>
+      </div>
+      <div className="hairline" />
+      <div className="grid divide-y divide-white/[0.05] sm:grid-cols-2 xl:grid-cols-5 sm:divide-x sm:divide-y-0">
+        <OperationsCell
+          label="Orders created"
+          value={data.orders_total}
+          detail={
+            primary
+              ? `${formatMoney(primary.total_value, primary.currency)}${data.order_value_by_currency.length > 1 ? ` +${data.order_value_by_currency.length - 1} currencies` : ""}`
+              : "No orders yet"
+          }
+          href="/orders"
+          icon={<ClipboardCheck className="size-3.5" aria-hidden />}
+        />
+        <OperationsCell
+          label="In fulfillment"
+          value={data.orders_in_fulfillment}
+          detail={`${data.orders_confirmed} confirmed · ${data.orders_fulfilled} fulfilled`}
+          href="/orders"
+          icon={<Package className="size-3.5" aria-hidden />}
+        />
+        <OperationsCell
+          label="Active shipments"
+          value={data.active_shipments}
+          detail={`${data.delivered_shipments} delivered`}
+          href="/shipments"
+          icon={<Truck className="size-3.5" aria-hidden />}
+        />
+        <OperationsCell
+          label="Delayed shipments"
+          value={data.delayed_shipments}
+          detail="Documented ETA has passed"
+          href="/shipments"
+          tone={data.delayed_shipments > 0 ? "danger" : "neutral"}
+        />
+        <OperationsCell
+          label="Missing evidence"
+          value={data.delivered_shipments_without_evidence}
+          detail={`${data.documents_total} active documents on file`}
+          href="/documents"
+          tone={data.delivered_shipments_without_evidence > 0 ? "warning" : "neutral"}
+        />
+      </div>
+    </section>
+  );
+}
+
+function OperationsCell({
+  label,
+  value,
+  detail,
+  href,
+  tone = "neutral",
+  icon,
+}: {
+  label: string;
+  value: number;
+  detail: string;
+  href: string;
+  tone?: "neutral" | "warning" | "danger";
+  icon?: ReactNode;
+}) {
+  return (
+    <div className="px-5 py-4">
+      <p className="flex items-center gap-1.5 text-[10px] tracking-[0.08em] text-mist-500 uppercase">
+        {icon}
+        {label}
+      </p>
+      <p
+        className={cn(
+          "data-value mt-1.5 text-[22px] font-medium",
+          tone === "danger"
+            ? "text-crimson-400"
+            : tone === "warning"
+              ? "text-amber-400"
+              : "text-mist-100",
+        )}
+      >
+        {value}
+      </p>
+      <p className="mt-1 text-[10.5px] leading-relaxed text-mist-500">{detail}</p>
+      <Link
+        href={href}
+        className="mt-2 inline-flex items-center gap-1 text-[10.5px] text-accent-200 hover:text-accent-100"
+      >
+        Open
+        <ArrowRight className="size-3" aria-hidden />
+      </Link>
     </div>
   );
 }

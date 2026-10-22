@@ -3,11 +3,14 @@ import {
   ArrowLeftRight,
   Banknote,
   Calculator,
+  ClipboardCheck,
   FileText,
+  FolderLock,
   Handshake,
   LayoutDashboard,
   Package,
   Receipt,
+  ReceiptText,
   Settings,
   Sparkles,
   Truck,
@@ -115,6 +118,39 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     ],
   },
   {
+    label: "Execution",
+    items: [
+      {
+        label: "Sales orders",
+        icon: ClipboardCheck,
+        href: "/orders",
+        stage: "Stage 4",
+        description: "Won deals, frozen commercial terms and fulfilment progress",
+      },
+      {
+        label: "Purchase orders",
+        icon: ReceiptText,
+        href: "/purchase-orders",
+        stage: "Stage 4",
+        description: "Supplier orders, approvals and recorded dispatch evidence",
+      },
+      {
+        label: "Shipments",
+        icon: Truck,
+        href: "/shipments",
+        stage: "Stage 4",
+        description: "Planned movements, partial deliveries and milestones",
+      },
+      {
+        label: "Documents",
+        icon: FolderLock,
+        href: "/documents",
+        stage: "Stage 4",
+        description: "Private trade documents, versions and verification",
+      },
+    ],
+  },
+  {
     label: "Account",
     items: [
       {
@@ -136,21 +172,15 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     label: "Roadmap",
     items: [
       {
-        label: "Logistics",
-        icon: Truck,
-        stage: "Stage 3",
-        description: "Shipments, milestones and documents",
-      },
-      {
         label: "Finance",
         icon: Banknote,
-        stage: "Stage 4",
+        stage: "Stage 5",
         description: "Invoices, payments and approvals",
       },
       {
         label: "AI Office",
         icon: Sparkles,
-        stage: "Stage 5",
+        stage: "Stage 6",
         description: "Scoped assistants with audited actions",
       },
     ],
@@ -203,6 +233,15 @@ export function resolveWorkspaceContext(pathname: string): WorkspaceContext {
   }
   if (pathname === "/sales-quotes") return { section: "Sourcing", page: "Sales quotes" };
   if (pathname === "/fx-rates") return { section: "Sourcing", page: "FX snapshots" };
+  if (pathname === "/orders") return { section: "Execution", page: "Sales orders" };
+  if (pathname.startsWith("/orders/")) return { section: "Execution", page: "Sales order" };
+  if (pathname === "/purchase-orders") return { section: "Execution", page: "Purchase orders" };
+  if (pathname.startsWith("/purchase-orders/"))
+    return { section: "Execution", page: "Purchase order" };
+  if (pathname === "/shipments/new") return { section: "Logistics", page: "Plan shipment" };
+  if (pathname.startsWith("/shipments/")) return { section: "Logistics", page: "Shipment" };
+  if (pathname === "/shipments") return { section: "Logistics", page: "Shipments" };
+  if (pathname === "/documents") return { section: "Documents", page: "Trade documents" };
   if (pathname === "/crm") return { section: "Workspace", page: "CRM" };
   if (pathname === "/products") return { section: "Workspace", page: "Products" };
   if (pathname === "/account") return { section: "Account", page: "Profile & access" };

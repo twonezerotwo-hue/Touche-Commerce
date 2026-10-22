@@ -208,6 +208,47 @@ export interface paths {
         patch: operations["update_deal_api_v1_deals__deal_id__patch"];
         trace?: never;
     };
+    "/api/v1/deals/{deal_id}/customer-acceptance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List recorded customer acceptances for a deal */
+        get: operations["list_customer_acceptance_api_v1_deals__deal_id__customer_acceptance_get"];
+        put?: never;
+        /**
+         * Record documented customer acceptance of the approved quote revision
+         * @description Records the customer's acceptance with its channel, timestamp and evidence reference. Internal approval alone is never treated as acceptance.
+         */
+        post: operations["record_customer_acceptance_api_v1_deals__deal_id__customer_acceptance_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/deals/{deal_id}/sales-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Convert an accepted quote into a sales order and win the deal
+         * @description Atomic: the deal is locked, the approved quote revision and the customer acceptance evidence are verified, then the order, its immutable lines, the WON transition and the audit rows are written in one transaction. Requires an Idempotency-Key; a retry with the same key returns the original order.
+         */
+        post: operations["convert_deal_to_order_api_v1_deals__deal_id__sales_order_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/deals/{deal_id}/transitions": {
         parameters: {
             query?: never;
@@ -222,6 +263,118 @@ export interface paths {
          * @description Requires Idempotency-Key. The optional If-Match header adds optimistic concurrency on top of row locking. The deal update, the deal_transition history row and the audit row commit in one transaction.
          */
         post: operations["transition_deal_api_v1_deals__deal_id__transitions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List trade documents for the active company
+         * @description Newest first. Archived versions are returned only when explicitly requested; the configured upload ceiling is included so the UI can validate a file before sending it.
+         */
+        get: operations["list_documents_api_v1_documents_get"];
+        put?: never;
+        /**
+         * Upload a document version to private storage
+         * @description Multipart upload. The server generates the storage key, recomputes the SHA-256 while writing, rejects unsupported content types and enforces the size ceiling during the stream. A new upload for the same entity and document type becomes the next version and archives the previous one.
+         */
+        post: operations["upload_document_api_v1_documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{document_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read document metadata */
+        get: operations["get_document_api_v1_documents__document_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{document_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a document version (controlled, never a silent delete) */
+        post: operations["archive_document_api_v1_documents__document_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{document_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download an authorised document
+         * @description Authorised against the active company *and* the linked business entity. The stored digest is verified before any byte is returned; a corrupted file raises 409 rather than serving unverified content.
+         */
+        get: operations["download_document_api_v1_documents__document_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{document_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every stored version of the same document */
+        get: operations["document_history_api_v1_documents__document_id__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{document_id}/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a document VERIFIED or REJECTED */
+        post: operations["verify_document_api_v1_documents__document_id__verification_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -301,6 +454,26 @@ export interface paths {
          * @description Verifies that required dependencies are usable. Currently checks the PostgreSQL connection using the runtime role. Returns 503 with the standard error envelope when a dependency is unavailable.
          */
         get: operations["health_ready_api_v1_health_ready_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/operations/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Operational counters derived from real rows
+         * @description Counts and currency totals for orders, procurement, shipments and documents. 'Delayed' means a documented ETA that has passed on a live shipment; 'missing evidence' means a delivered shipment with no active delivery-confirmation document. No synthetic values.
+         */
+        get: operations["operations_summary_api_v1_operations_summary_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -391,6 +564,64 @@ export interface paths {
         head?: never;
         /** Update a product (If-Match required) */
         patch: operations["update_product_api_v1_products__product_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/purchase-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List supplier purchase orders */
+        get: operations["list_purchase_orders_api_v1_purchase_orders_get"];
+        put?: never;
+        /**
+         * Create a draft supplier purchase order for a sales order
+         * @description Refused for brokerage orders where TOUCHE is not the buyer. The order starts as DRAFT: nothing is sent to the supplier by this system.
+         */
+        post: operations["create_purchase_order_api_v1_purchase_orders_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/purchase-orders/{purchase_order_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a purchase order with its history and evidence */
+        get: operations["get_purchase_order_api_v1_purchase_orders__purchase_order_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/purchase-orders/{purchase_order_id}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve, record dispatch or confirm a purchase order
+         * @description APPROVED needs finance.approve and a different person from the creator. RECORDED_SENT needs a channel, a timestamp and an external reference. SUPPLIER_CONFIRMED needs the supplier's confirmation reference.
+         */
+        post: operations["transition_purchase_order_api_v1_purchase_orders__purchase_order_id__transitions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/rfqs": {
@@ -492,6 +723,123 @@ export interface paths {
          * @description Requires Idempotency-Key. PREPARED writes an immutable revision snapshot; SENT requires channel and evidence; CANCELLED requires a reason.
          */
         post: operations["transition_rfq_api_v1_rfqs__rfq_id__transitions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List sales orders
+         * @description Cursor-paginated, newest first. A viewer sees only this company's orders; RLS enforces the boundary even if a filter were wrong.
+         */
+        get: operations["list_sales_orders_api_v1_sales_orders_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales-orders/{sales_order_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a sales order with its frozen items and history */
+        get: operations["get_sales_order_api_v1_sales_orders__sales_order_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales-orders/{sales_order_id}/amendments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Amend an order with a recorded reason
+         * @description The accepted commercial snapshot is never rewritten. The amendment records exactly what changed, and a quantity cannot drop below what shipments already allocate.
+         */
+        post: operations["amend_sales_order_api_v1_sales_orders__sales_order_id__amendments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales-orders/{sales_order_id}/documents/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * DRAFT commercial-invoice or packing-list preview
+         * @description Generated from the accepted order snapshot. Every payload is labelled DRAFT and carries an explicit notice that it is not a legally issued invoice, customs declaration, certificate or carrier document.
+         */
+        get: operations["preview_order_document_api_v1_sales_orders__sales_order_id__documents_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales-orders/{sales_order_id}/fulfilment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Delivered versus ordered quantity per line
+         * @description Derived from shipment allocations and delivered shipments only. A partial delivery never marks the order fulfilled.
+         */
+        get: operations["get_order_fulfilment_api_v1_sales_orders__sales_order_id__fulfilment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales-orders/{sales_order_id}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move a sales order through its administrative states
+         * @description FULFILLED is rejected here: it is derived from delivered shipment quantities. CANCELLED requires a reason and preserves the commercial history.
+         */
+        post: operations["transition_sales_order_api_v1_sales_orders__sales_order_id__transitions_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -676,6 +1024,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/shipments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List shipments
+         * @description Delayed means a documented ETA that has passed while the shipment is not delivered or cancelled. No live carrier feed exists.
+         */
+        get: operations["list_shipments_api_v1_shipments_get"];
+        put?: never;
+        /**
+         * Plan a shipment (partial quantities allowed)
+         * @description Quantities are validated against what is still outstanding per order line, and the unit must match the order line exactly.
+         */
+        post: operations["plan_shipment_api_v1_shipments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shipments/{shipment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a shipment with its timeline, references and costs */
+        get: operations["get_shipment_api_v1_shipments__shipment_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shipments/{shipment_id}/costs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a logistics cost with its certainty stage
+         * @description ESTIMATED, QUOTED, INCURRED and DOCUMENTED are separate stages; recording a cost never rewrites the Stage 3 pricing assumptions.
+         */
+        post: operations["record_shipment_cost_api_v1_shipments__shipment_id__costs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shipments/{shipment_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record an in-transit milestone or a documented delay
+         * @description Only IN_TRANSIT and DELAY_RECORDED milestones can be appended here; status changes go through the transition endpoint.
+         */
+        post: operations["record_shipment_event_api_v1_shipments__shipment_id__events_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shipments/{shipment_id}/references": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a booking, container or transport reference
+         * @description The provenance must be MANUAL or DOCUMENT_EVIDENCE: no external carrier verification exists in this stage.
+         */
+        post: operations["add_shipment_reference_api_v1_shipments__shipment_id__references_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shipments/{shipment_id}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move a shipment through its timeline with evidence
+         * @description DISPATCHED requires an actual dispatch timestamp and a carrier reference. ARRIVED requires the actual arrival timestamp (an ETA is not an arrival). DELIVERED requires a delivery evidence reference.
+         */
+        post: operations["transition_shipment_api_v1_shipments__shipment_id__transitions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/supplier-quotes": {
         parameters: {
             query?: never;
@@ -774,6 +1243,16 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AmendmentLineRequest */
+        AmendmentLineRequest: {
+            /**
+             * Item Id
+             * Format: uuid
+             */
+            item_id: string;
+            /** Quantity */
+            quantity: number | string;
+        };
         /**
          * AuthSessionResponse
          * @description Body returned by login, company switch and ``GET /auth/me``.
@@ -786,6 +1265,38 @@ export interface components {
             memberships: components["schemas"]["CompanyAccess"][];
             session: components["schemas"]["SessionView"];
             user: components["schemas"]["SessionUser"];
+        };
+        /** Body_upload_document_api_v1_documents_post */
+        Body_upload_document_api_v1_documents_post: {
+            /**
+             * Document Type
+             * @enum {string}
+             */
+            document_type: "COMMERCIAL_INVOICE" | "PROFORMA_INVOICE" | "PACKING_LIST" | "BILL_OF_LADING" | "AIR_WAYBILL" | "CMR_CONSIGNMENT_NOTE" | "CERTIFICATE_OF_ORIGIN" | "INSURANCE_CERTIFICATE" | "QUALITY_INSPECTION_CERTIFICATE" | "CUSTOMS_DECLARATION" | "PURCHASE_ORDER" | "SALES_ORDER" | "DELIVERY_CONFIRMATION" | "OTHER";
+            /**
+             * File
+             * @description The document file to store.
+             */
+            file: string;
+            /**
+             * Is Draft
+             * @default false
+             */
+            is_draft: boolean;
+            /**
+             * Linked Entity Id
+             * Format: uuid
+             */
+            linked_entity_id: string;
+            /**
+             * Linked Entity Type
+             * @enum {string}
+             */
+            linked_entity_type: "DEAL" | "SALES_ORDER" | "PURCHASE_ORDER" | "SHIPMENT" | "CUSTOMER_ACCEPTANCE";
+            /** Supersedes Document Id */
+            supersedes_document_id?: string | null;
+            /** Title */
+            title?: string | null;
         };
         /**
          * CompanyAccess
@@ -947,6 +1458,91 @@ export interface components {
             status?: ("active" | "archived") | null;
             /** Type */
             type?: ("buyer" | "supplier" | "both") | null;
+        };
+        /** CurrencyOrderValueResponse */
+        CurrencyOrderValueResponse: {
+            /** Currency */
+            currency: string;
+            /** Order Count */
+            order_count: number;
+            /** Total Value */
+            total_value: string;
+        };
+        /** CustomerAcceptanceListResponse */
+        CustomerAcceptanceListResponse: {
+            /** Items */
+            items: components["schemas"]["CustomerAcceptanceResponse"][];
+        };
+        /** CustomerAcceptanceRequest */
+        CustomerAcceptanceRequest: {
+            /**
+             * Accepted At
+             * Format: date-time
+             */
+            accepted_at: string;
+            /** Accepted By Name */
+            accepted_by_name: string;
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "SIGNED_QUOTE" | "PURCHASE_ORDER" | "EMAIL" | "PORTAL" | "OTHER";
+            /** Evidence Document Id */
+            evidence_document_id?: string | null;
+            /** Evidence Reference */
+            evidence_reference: string;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** CustomerAcceptanceResponse */
+        CustomerAcceptanceResponse: {
+            /**
+             * Accepted At
+             * Format: date-time
+             */
+            accepted_at: string;
+            /** Accepted By Name */
+            accepted_by_name: string;
+            /** Channel */
+            channel: string;
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Deal Id
+             * Format: uuid
+             */
+            deal_id: string;
+            /** Evidence Document Id */
+            evidence_document_id: string | null;
+            /** Evidence Reference */
+            evidence_reference: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Notes */
+            notes: string | null;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /**
+             * Recorded By
+             * Format: uuid
+             */
+            recorded_by: string;
+            /**
+             * Sales Quote Id
+             * Format: uuid
+             */
+            sales_quote_id: string;
+            /** Sales Quote Revision */
+            sales_quote_revision: number;
         };
         /** DashboardActivity */
         DashboardActivity: {
@@ -1281,6 +1877,95 @@ export interface components {
             /** Title */
             title?: string | null;
         };
+        /** DocumentArchiveRequest */
+        DocumentArchiveRequest: {
+            /** Reason */
+            reason?: string | null;
+        };
+        /** DocumentHistoryResponse */
+        DocumentHistoryResponse: {
+            /** Items */
+            items: components["schemas"]["DocumentResponse"][];
+        };
+        /** DocumentListResponse */
+        DocumentListResponse: {
+            /** Items */
+            items: components["schemas"]["DocumentResponse"][];
+            /** Max Upload Bytes */
+            max_upload_bytes: number;
+        };
+        /** DocumentPreviewResponse */
+        DocumentPreviewResponse: {
+            header: components["schemas"]["PreviewHeaderResponse"];
+            /** Lines */
+            lines: components["schemas"]["PreviewLineResponse"][];
+        };
+        /** DocumentResponse */
+        DocumentResponse: {
+            /** Archived At */
+            archived_at: string | null;
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /** Document Type */
+            document_type: string;
+            /** Download Path */
+            download_path: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Draft */
+            is_draft: boolean;
+            /**
+             * Linked Entity Id
+             * Format: uuid
+             */
+            linked_entity_id: string;
+            /** Linked Entity Type */
+            linked_entity_type: string;
+            /** Mime Type */
+            mime_type: string;
+            /** Original Filename */
+            original_filename: string;
+            /** Sha256 */
+            sha256: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Status */
+            status: string;
+            /** Supersedes Document Id */
+            supersedes_document_id: string | null;
+            /** Title */
+            title: string;
+            /**
+             * Uploaded At
+             * Format: date-time
+             */
+            uploaded_at: string;
+            /**
+             * Uploaded By
+             * Format: uuid
+             */
+            uploaded_by: string;
+            /** Verification Status */
+            verification_status: string;
+            /** Version */
+            version: number;
+        };
+        /** DocumentVerifyRequest */
+        DocumentVerifyRequest: {
+            /** Note */
+            note?: string | null;
+            /**
+             * Verification Status
+             * @enum {string}
+             */
+            verification_status: "VERIFIED" | "REJECTED";
+        };
         /**
          * ErrorDetail
          * @description Machine readable error description.
@@ -1327,6 +2012,46 @@ export interface components {
          */
         ErrorEnvelope: {
             error: components["schemas"]["ErrorDetail"];
+        };
+        /** FulfilmentLineResponse */
+        FulfilmentLineResponse: {
+            /** Allocated */
+            allocated: string;
+            /** Delivered */
+            delivered: string;
+            /** Ordered */
+            ordered: string;
+            /** Remaining */
+            remaining: string;
+            /**
+             * Sales Order Item Id
+             * Format: uuid
+             */
+            sales_order_item_id: string;
+            /** Sku */
+            sku: string;
+            /** Unit */
+            unit: string;
+        };
+        /** FulfilmentSummaryResponse */
+        FulfilmentSummaryResponse: {
+            /** Completion Ratio */
+            completion_ratio: string;
+            /** Delivered Any */
+            delivered_any: boolean;
+            /** Fully Delivered */
+            fully_delivered: boolean;
+            /** Lines */
+            lines: components["schemas"]["FulfilmentLineResponse"][];
+            /** Order Number */
+            order_number: string;
+            /** Order Status */
+            order_status: string;
+            /**
+             * Sales Order Id
+             * Format: uuid
+             */
+            sales_order_id: string;
         };
         /**
          * FxRateCreateRequest
@@ -1509,6 +2234,175 @@ export interface components {
              * @constant
              */
             status: "signed_out";
+        };
+        /** OperationsSummaryResponse */
+        OperationsSummaryResponse: {
+            /** Active Shipments */
+            active_shipments: number;
+            /** Delayed Shipments */
+            delayed_shipments: number;
+            /** Delivered Shipments */
+            delivered_shipments: number;
+            /** Delivered Shipments Without Evidence */
+            delivered_shipments_without_evidence: number;
+            /** Documents Total */
+            documents_total: number;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Order Value By Currency */
+            order_value_by_currency: components["schemas"]["CurrencyOrderValueResponse"][];
+            /** Orders Cancelled */
+            orders_cancelled: number;
+            /** Orders Closed */
+            orders_closed: number;
+            /** Orders Confirmed */
+            orders_confirmed: number;
+            /** Orders Fulfilled */
+            orders_fulfilled: number;
+            /** Orders In Fulfillment */
+            orders_in_fulfillment: number;
+            /** Orders Total */
+            orders_total: number;
+            /** Purchase Orders Open */
+            purchase_orders_open: number;
+            /** Purchase Orders Total */
+            purchase_orders_total: number;
+        };
+        /** OrderAmendmentRequest */
+        OrderAmendmentRequest: {
+            /** Expected Delivery Date */
+            expected_delivery_date?: string | null;
+            /** Lines */
+            lines?: components["schemas"]["AmendmentLineRequest"][];
+            /** Named Delivery Place */
+            named_delivery_place?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Payment Terms */
+            payment_terms?: string | null;
+            /** Reason */
+            reason: string;
+        };
+        /** OrderAmendmentResponse */
+        OrderAmendmentResponse: {
+            /**
+             * Actor Id
+             * Format: uuid
+             */
+            actor_id: string;
+            /** Changes */
+            changes: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Reason */
+            reason: string;
+            /** Version After */
+            version_after: number;
+        };
+        /** OrderConversionRequest */
+        OrderConversionRequest: {
+            /** Acceptance Evidence Id */
+            acceptance_evidence_id?: string | null;
+            customer_acceptance?: components["schemas"]["CustomerAcceptanceRequest"] | null;
+            /** Expected Delivery Date */
+            expected_delivery_date?: string | null;
+            /** Expected Total */
+            expected_total?: number | string | null;
+            /**
+             * Fulfilment Model
+             * @default PURCHASE_RESALE
+             * @enum {string}
+             */
+            fulfilment_model: "PURCHASE_RESALE" | "BROKERAGE";
+            /** Notes */
+            notes?: string | null;
+            /** Order Number */
+            order_number?: string | null;
+            /**
+             * Sales Quote Id
+             * Format: uuid
+             */
+            sales_quote_id: string;
+        };
+        /** OrderTransitionRequest */
+        OrderTransitionRequest: {
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Target
+             * @enum {string}
+             */
+            target: "CONFIRMED" | "IN_FULFILLMENT" | "FULFILLED" | "CLOSED" | "CANCELLED";
+        };
+        /** PreviewHeaderResponse */
+        PreviewHeaderResponse: {
+            /** Buyer */
+            buyer: {
+                [key: string]: string;
+            };
+            /** Currency */
+            currency: string;
+            /** Document Date */
+            document_date: string;
+            /** Document Label */
+            document_label: string;
+            /** Document Number */
+            document_number: string;
+            /** Generated At */
+            generated_at: string;
+            /** Incoterm */
+            incoterm: string;
+            /** Is Draft */
+            is_draft: boolean;
+            /** Kind */
+            kind: string;
+            /** Legal Notice */
+            legal_notice: string;
+            /** Named Delivery Place */
+            named_delivery_place: string;
+            /** Order Number */
+            order_number: string;
+            /** Order Total */
+            order_total: string;
+            /** Payment Terms */
+            payment_terms: string;
+            /** Sales Order Id */
+            sales_order_id: string;
+            /** Sales Quote Revision */
+            sales_quote_revision: number;
+            /** Seller */
+            seller: {
+                [key: string]: string;
+            };
+            /** Shipment Id */
+            shipment_id: string | null;
+            /** Shipment Number */
+            shipment_number: string | null;
+        };
+        /** PreviewLineResponse */
+        PreviewLineResponse: {
+            /** Description */
+            description: string;
+            /** Line Total */
+            line_total: string;
+            /** Quantity */
+            quantity: string;
+            /** Shipment Quantity */
+            shipment_quantity: string | null;
+            /** Sku */
+            sku: string;
+            /** Unit */
+            unit: string;
+            /** Unit Price */
+            unit_price: string;
         };
         /** PricingCostComponentRequest */
         PricingCostComponentRequest: {
@@ -1857,6 +2751,264 @@ export interface components {
             unit?: ("kg" | "mt" | "lb" | "unit" | "l" | "m3") | null;
             /** Unit Price */
             unit_price?: number | string | null;
+        };
+        /** PurchaseOrderCreateRequest */
+        PurchaseOrderCreateRequest: {
+            /** Expected Delivery Date */
+            expected_delivery_date?: string | null;
+            /** Expected Dispatch Date */
+            expected_dispatch_date?: string | null;
+            /**
+             * Incoterm
+             * @enum {string}
+             */
+            incoterm: "EXW" | "FCA" | "FAS" | "FOB" | "CFR" | "CIF" | "CPT" | "CIP" | "DAP" | "DPU" | "DDP";
+            /** Items */
+            items: components["schemas"]["PurchaseOrderItemRequest"][];
+            /** Named Delivery Place */
+            named_delivery_place: string;
+            /** Notes */
+            notes?: string | null;
+            /** Payment Terms */
+            payment_terms: string;
+            /**
+             * Sales Order Id
+             * Format: uuid
+             */
+            sales_order_id: string;
+            /**
+             * Supplier Id
+             * Format: uuid
+             */
+            supplier_id: string;
+            /** Supplier Quote Id */
+            supplier_quote_id?: string | null;
+        };
+        /** PurchaseOrderItemRequest */
+        PurchaseOrderItemRequest: {
+            /** Description */
+            description?: string | null;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Quantity */
+            quantity: number | string;
+            /** Unit */
+            unit?: ("kg" | "mt" | "lb" | "unit" | "l" | "m3") | null;
+            /** Unit Cost */
+            unit_cost: number | string;
+        };
+        /** PurchaseOrderItemResponse */
+        PurchaseOrderItemResponse: {
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Line Total */
+            line_total: string;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Quantity */
+            quantity: string;
+            /** Sku */
+            sku: string;
+            /** Unit */
+            unit: string;
+            /** Unit Cost */
+            unit_cost: string;
+        };
+        /** PurchaseOrderListResponse */
+        PurchaseOrderListResponse: {
+            /** Has More */
+            has_more: boolean;
+            /** Items */
+            items: components["schemas"]["PurchaseOrderSummaryResponse"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** PurchaseOrderResponse */
+        PurchaseOrderResponse: {
+            /** Allowed Transitions */
+            allowed_transitions: string[];
+            /** Approved At */
+            approved_at: string | null;
+            /** Approved By */
+            approved_by: string | null;
+            /** Cancellation Reason */
+            cancellation_reason: string | null;
+            /** Cancelled At */
+            cancelled_at: string | null;
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Dispatch Channel */
+            dispatch_channel: string | null;
+            /** Dispatch Reference */
+            dispatch_reference: string | null;
+            /** Dispatched At */
+            dispatched_at: string | null;
+            /** Expected Delivery Date */
+            expected_delivery_date: string | null;
+            /** Expected Dispatch Date */
+            expected_dispatch_date: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Incoterm */
+            incoterm: string;
+            /** Items */
+            items: components["schemas"]["PurchaseOrderItemResponse"][];
+            /** Named Delivery Place */
+            named_delivery_place: string;
+            /** Notes */
+            notes: string | null;
+            /** Order Number */
+            order_number: string;
+            /** Payment Terms */
+            payment_terms: string;
+            /** Po Number */
+            po_number: string;
+            /**
+             * Sales Order Id
+             * Format: uuid
+             */
+            sales_order_id: string;
+            /** Status */
+            status: string;
+            /** Supplier Confirmation Reference */
+            supplier_confirmation_reference: string | null;
+            /** Supplier Confirmed At */
+            supplier_confirmed_at: string | null;
+            /**
+             * Supplier Id
+             * Format: uuid
+             */
+            supplier_id: string;
+            /** Supplier Name */
+            supplier_name: string;
+            /** Supplier Quote Id */
+            supplier_quote_id: string | null;
+            /** Total Cost */
+            total_cost: string;
+            /** Transitions */
+            transitions: components["schemas"]["PurchaseOrderTransitionResponse"][];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** PurchaseOrderSummaryResponse */
+        PurchaseOrderSummaryResponse: {
+            /** Approved At */
+            approved_at: string | null;
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /** Currency */
+            currency: string;
+            /** Expected Delivery Date */
+            expected_delivery_date: string | null;
+            /** Expected Dispatch Date */
+            expected_dispatch_date: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Order Number */
+            order_number: string;
+            /** Po Number */
+            po_number: string;
+            /**
+             * Sales Order Id
+             * Format: uuid
+             */
+            sales_order_id: string;
+            /** Status */
+            status: string;
+            /**
+             * Supplier Id
+             * Format: uuid
+             */
+            supplier_id: string;
+            /** Supplier Name */
+            supplier_name: string;
+            /** Total Cost */
+            total_cost: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** PurchaseOrderTransitionRequest */
+        PurchaseOrderTransitionRequest: {
+            /** Dispatch Channel */
+            dispatch_channel?: string | null;
+            /** Dispatch Reference */
+            dispatch_reference?: string | null;
+            /** Dispatched At */
+            dispatched_at?: string | null;
+            /** Evidence Reference */
+            evidence_reference?: string | null;
+            /** Reason */
+            reason?: string | null;
+            /** Supplier Confirmation Reference */
+            supplier_confirmation_reference?: string | null;
+            /**
+             * Target
+             * @enum {string}
+             */
+            target: "DRAFT" | "APPROVED" | "RECORDED_SENT" | "SUPPLIER_CONFIRMED" | "IN_FULFILLMENT" | "RECEIVED" | "CANCELLED";
+        };
+        /** PurchaseOrderTransitionResponse */
+        PurchaseOrderTransitionResponse: {
+            /**
+             * Actor Id
+             * Format: uuid
+             */
+            actor_id: string;
+            /** Evidence Reference */
+            evidence_reference: string | null;
+            /** From Status */
+            from_status: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Reason */
+            reason: string | null;
+            /** To Status */
+            to_status: string;
+            /** Version After */
+            version_after: number;
         };
         /**
          * ReadinessResponse
@@ -2252,6 +3404,226 @@ export interface components {
             /** Response Due Date */
             response_due_date?: string | null;
         };
+        /** SalesOrderItemResponse */
+        SalesOrderItemResponse: {
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Line Total */
+            line_total: string;
+            /** Name */
+            name: string;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Quantity */
+            quantity: string;
+            /** Sku */
+            sku: string;
+            /** Unit */
+            unit: string;
+            /** Unit Price */
+            unit_price: string;
+        };
+        /** SalesOrderListResponse */
+        SalesOrderListResponse: {
+            /** Has More */
+            has_more: boolean;
+            /** Items */
+            items: components["schemas"]["SalesOrderSummaryResponse"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** SalesOrderResponse */
+        SalesOrderResponse: {
+            /**
+             * Acceptance Evidence Id
+             * Format: uuid
+             */
+            acceptance_evidence_id: string;
+            /** Accepted Terms */
+            accepted_terms: {
+                [key: string]: unknown;
+            };
+            /** Allowed Transitions */
+            allowed_transitions: string[];
+            /** Amendments */
+            amendments: components["schemas"]["OrderAmendmentResponse"][];
+            /** Cancellation Reason */
+            cancellation_reason: string | null;
+            /** Cancelled At */
+            cancelled_at: string | null;
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Confirmed At
+             * Format: date-time
+             */
+            confirmed_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /** Customer Name */
+            customer_name: string;
+            /**
+             * Deal Id
+             * Format: uuid
+             */
+            deal_id: string;
+            /** Deal Reference */
+            deal_reference: string;
+            /** Expected Delivery Date */
+            expected_delivery_date: string | null;
+            /** Fulfilment Model */
+            fulfilment_model: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Incoterm */
+            incoterm: string;
+            /** Items */
+            items: components["schemas"]["SalesOrderItemResponse"][];
+            /** Named Delivery Place */
+            named_delivery_place: string;
+            /** Notes */
+            notes: string | null;
+            /** Order Number */
+            order_number: string;
+            /** Order Total */
+            order_total: string;
+            /** Payment Terms Snapshot */
+            payment_terms_snapshot: string;
+            /** Quote Number */
+            quote_number: string;
+            /**
+             * Sales Quote Id
+             * Format: uuid
+             */
+            sales_quote_id: string;
+            /** Sales Quote Revision */
+            sales_quote_revision: number;
+            /** Status */
+            status: string;
+            /** Transitions */
+            transitions: components["schemas"]["SalesOrderTransitionResponse"][];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** SalesOrderSummaryResponse */
+        SalesOrderSummaryResponse: {
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Confirmed At
+             * Format: date-time
+             */
+            confirmed_at: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /** Customer Name */
+            customer_name: string;
+            /**
+             * Deal Id
+             * Format: uuid
+             */
+            deal_id: string;
+            /** Deal Reference */
+            deal_reference: string;
+            /** Expected Delivery Date */
+            expected_delivery_date: string | null;
+            /** Fulfilment Model */
+            fulfilment_model: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Incoterm */
+            incoterm: string;
+            /** Named Delivery Place */
+            named_delivery_place: string;
+            /** Order Number */
+            order_number: string;
+            /** Order Total */
+            order_total: string;
+            /** Quote Number */
+            quote_number: string;
+            /**
+             * Sales Quote Id
+             * Format: uuid
+             */
+            sales_quote_id: string;
+            /** Sales Quote Revision */
+            sales_quote_revision: number;
+            /** Status */
+            status: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** SalesOrderTransitionResponse */
+        SalesOrderTransitionResponse: {
+            /**
+             * Actor Id
+             * Format: uuid
+             */
+            actor_id: string;
+            /** From Status */
+            from_status: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Reason */
+            reason: string | null;
+            /** To Status */
+            to_status: string;
+            /** Version After */
+            version_after: number;
+        };
         /** SalesQuoteApproveRequest */
         SalesQuoteApproveRequest: {
             /** Note */
@@ -2619,6 +3991,379 @@ export interface components {
             session_id: string;
             /** User Agent */
             user_agent?: string | null;
+        };
+        /** ShipmentCostRequest */
+        ShipmentCostRequest: {
+            /** Amount */
+            amount: number | string;
+            /**
+             * Cost Type
+             * @enum {string}
+             */
+            cost_type: "FREIGHT" | "INSURANCE" | "HANDLING" | "CUSTOMS_BROKERAGE" | "DOMESTIC_TRANSPORT" | "OTHER";
+            /** Currency */
+            currency: string;
+            /** Notes */
+            notes?: string | null;
+            /** Reference */
+            reference: string;
+            /**
+             * Stage
+             * @enum {string}
+             */
+            stage: "ESTIMATED" | "QUOTED" | "INCURRED" | "DOCUMENTED";
+        };
+        /** ShipmentCostResponse */
+        ShipmentCostResponse: {
+            /** Amount */
+            amount: string;
+            /** Cost Type */
+            cost_type: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Notes */
+            notes: string | null;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /** Reference */
+            reference: string;
+            /** Stage */
+            stage: string;
+        };
+        /** ShipmentCreateRequest */
+        ShipmentCreateRequest: {
+            /** Carrier */
+            carrier?: string | null;
+            /** Destination */
+            destination: string;
+            /** Estimated Arrival At */
+            estimated_arrival_at?: string | null;
+            /** Forwarder */
+            forwarder?: string | null;
+            /** Items */
+            items: components["schemas"]["ShipmentLineRequest"][];
+            /** Notes */
+            notes?: string | null;
+            /** Origin */
+            origin: string;
+            /** Planned Dispatch At */
+            planned_dispatch_at?: string | null;
+            /** Purchase Order Id */
+            purchase_order_id?: string | null;
+            /**
+             * Sales Order Id
+             * Format: uuid
+             */
+            sales_order_id: string;
+            /** Tracking Reference */
+            tracking_reference?: string | null;
+            /** Tracking Source */
+            tracking_source?: ("MANUAL" | "DOCUMENT_EVIDENCE") | null;
+            /**
+             * Transport Mode
+             * @enum {string}
+             */
+            transport_mode: "SEA" | "AIR" | "ROAD" | "RAIL" | "MULTIMODAL";
+        };
+        /** ShipmentEventRequest */
+        ShipmentEventRequest: {
+            /**
+             * Event Type
+             * @enum {string}
+             */
+            event_type: "IN_TRANSIT" | "DELAY_RECORDED";
+            /** Evidence Reference */
+            evidence_reference?: string | null;
+            /** Location */
+            location?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Tracking Source */
+            tracking_source?: ("MANUAL" | "DOCUMENT_EVIDENCE") | null;
+        };
+        /** ShipmentEventResponse */
+        ShipmentEventResponse: {
+            /** Event Type */
+            event_type: string;
+            /** Evidence Reference */
+            evidence_reference: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Location */
+            location: string | null;
+            /** Notes */
+            notes: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /**
+             * Recorded By
+             * Format: uuid
+             */
+            recorded_by: string;
+            /** Tracking Source */
+            tracking_source: string | null;
+        };
+        /** ShipmentItemResponse */
+        ShipmentItemResponse: {
+            /** Delivered Quantity */
+            delivered_quantity: string;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Quantity */
+            quantity: string;
+            /**
+             * Sales Order Item Id
+             * Format: uuid
+             */
+            sales_order_item_id: string;
+            /** Sku */
+            sku: string;
+            /** Unit */
+            unit: string;
+        };
+        /** ShipmentLineRequest */
+        ShipmentLineRequest: {
+            /** Quantity */
+            quantity: number | string;
+            /**
+             * Sales Order Item Id
+             * Format: uuid
+             */
+            sales_order_item_id: string;
+        };
+        /** ShipmentListResponse */
+        ShipmentListResponse: {
+            /** Has More */
+            has_more: boolean;
+            /** Items */
+            items: components["schemas"]["ShipmentSummaryResponse"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** ShipmentReferenceRequest */
+        ShipmentReferenceRequest: {
+            /**
+             * Provenance
+             * @enum {string}
+             */
+            provenance: "MANUAL" | "DOCUMENT_EVIDENCE";
+            /**
+             * Reference Type
+             * @enum {string}
+             */
+            reference_type: "BOOKING" | "CONTAINER" | "BILL_OF_LADING" | "AIR_WAYBILL" | "CMR" | "TRACKING" | "OTHER";
+            /** Reference Value */
+            reference_value: string;
+        };
+        /** ShipmentReferenceResponse */
+        ShipmentReferenceResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Provenance */
+            provenance: string;
+            /** Reference Type */
+            reference_type: string;
+            /** Reference Value */
+            reference_value: string;
+        };
+        /** ShipmentResponse */
+        ShipmentResponse: {
+            /** Actual Arrival At */
+            actual_arrival_at: string | null;
+            /** Actual Dispatch At */
+            actual_dispatch_at: string | null;
+            /** Allowed Transitions */
+            allowed_transitions: string[];
+            /** Cancellation Reason */
+            cancellation_reason: string | null;
+            /** Carrier */
+            carrier: string | null;
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /** Costs */
+            costs: components["schemas"]["ShipmentCostResponse"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Delay Reason */
+            delay_reason: string | null;
+            /** Delivered At */
+            delivered_at: string | null;
+            /** Delivery Evidence Reference */
+            delivery_evidence_reference: string | null;
+            /** Destination */
+            destination: string;
+            /** Estimated Arrival At */
+            estimated_arrival_at: string | null;
+            /** Events */
+            events: components["schemas"]["ShipmentEventResponse"][];
+            /** Forwarder */
+            forwarder: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Delayed */
+            is_delayed: boolean;
+            /** Items */
+            items: components["schemas"]["ShipmentItemResponse"][];
+            /** Notes */
+            notes: string | null;
+            /** Order Number */
+            order_number: string;
+            /** Origin */
+            origin: string;
+            /** Planned Dispatch At */
+            planned_dispatch_at: string | null;
+            /** Purchase Order Id */
+            purchase_order_id: string | null;
+            /** References */
+            references: components["schemas"]["ShipmentReferenceResponse"][];
+            /**
+             * Sales Order Id
+             * Format: uuid
+             */
+            sales_order_id: string;
+            /** Shipment Number */
+            shipment_number: string;
+            /** Status */
+            status: string;
+            /** Tracking Reference */
+            tracking_reference: string | null;
+            /** Tracking Source */
+            tracking_source: string | null;
+            /** Transport Mode */
+            transport_mode: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** ShipmentSummaryResponse */
+        ShipmentSummaryResponse: {
+            /** Actual Dispatch At */
+            actual_dispatch_at: string | null;
+            /** Carrier */
+            carrier: string | null;
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /** Delivered At */
+            delivered_at: string | null;
+            /** Destination */
+            destination: string;
+            /** Estimated Arrival At */
+            estimated_arrival_at: string | null;
+            /** Forwarder */
+            forwarder: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Delayed */
+            is_delayed: boolean;
+            /** Order Number */
+            order_number: string;
+            /** Origin */
+            origin: string;
+            /**
+             * Sales Order Id
+             * Format: uuid
+             */
+            sales_order_id: string;
+            /** Shipment Number */
+            shipment_number: string;
+            /** Status */
+            status: string;
+            /** Tracking Reference */
+            tracking_reference: string | null;
+            /** Transport Mode */
+            transport_mode: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** ShipmentTransitionRequest */
+        ShipmentTransitionRequest: {
+            /** Delivery Evidence Reference */
+            delivery_evidence_reference?: string | null;
+            /** Evidence Reference */
+            evidence_reference?: string | null;
+            /** Location */
+            location?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Occurred At */
+            occurred_at?: string | null;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Target
+             * @enum {string}
+             */
+            target: "PLANNED" | "BOOKED" | "DISPATCHED" | "IN_TRANSIT" | "ARRIVED" | "DELIVERED" | "CANCELLED";
+            /** Tracking Reference */
+            tracking_reference?: string | null;
+            /** Tracking Source */
+            tracking_source?: ("MANUAL" | "DOCUMENT_EVIDENCE") | null;
         };
         /** SupplierQuoteCreateRequest */
         SupplierQuoteCreateRequest: {
@@ -3643,6 +5388,134 @@ export interface operations {
             };
         };
     };
+    list_customer_acceptance_api_v1_deals__deal_id__customer_acceptance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerAcceptanceListResponse"];
+                };
+            };
+            /** @description Unknown deal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_customer_acceptance_api_v1_deals__deal_id__customer_acceptance_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerAcceptanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerAcceptanceResponse"];
+                };
+            };
+            /** @description No approved quote to accept. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    convert_deal_to_order_api_v1_deals__deal_id__sales_order_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderConversionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesOrderResponse"];
+                };
+            };
+            /** @description Acceptance missing, quote not approved, or the deal is already WON. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     transition_deal_api_v1_deals__deal_id__transitions_post: {
         parameters: {
             query?: never;
@@ -3701,6 +5574,320 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_documents_api_v1_documents_get: {
+        parameters: {
+            query?: {
+                document_type?: ("COMMERCIAL_INVOICE" | "PROFORMA_INVOICE" | "PACKING_LIST" | "BILL_OF_LADING" | "AIR_WAYBILL" | "CMR_CONSIGNMENT_NOTE" | "CERTIFICATE_OF_ORIGIN" | "INSURANCE_CERTIFICATE" | "QUALITY_INSPECTION_CERTIFICATE" | "CUSTOMS_DECLARATION" | "PURCHASE_ORDER" | "SALES_ORDER" | "DELIVERY_CONFIRMATION" | "OTHER") | null;
+                linked_entity_type?: ("DEAL" | "SALES_ORDER" | "PURCHASE_ORDER" | "SHIPMENT" | "CUSTOMER_ACCEPTANCE") | null;
+                linked_entity_id?: string | null;
+                status?: ("ACTIVE" | "ARCHIVED") | null;
+                search?: string | null;
+                limit?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_document_api_v1_documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_document_api_v1_documents_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentResponse"];
+                };
+            };
+            /** @description Unsupported type or bad link. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Idempotency or version conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Upload exceeds the size limit. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_document_api_v1_documents__document_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentResponse"];
+                };
+            };
+            /** @description Unknown document. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_document_api_v1_documents__document_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentArchiveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentResponse"];
+                };
+            };
+            /** @description Already archived. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_document_api_v1_documents__document_id__download_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "application/octet-stream": unknown;
+                };
+            };
+            /** @description Unknown document. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Archived or corrupted file. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    document_history_api_v1_documents__document_id__history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentHistoryResponse"];
+                };
+            };
+            /** @description Unknown document. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_document_api_v1_documents__document_id__verification_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentResponse"];
+                };
+            };
+            /** @description Unknown status. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -3875,6 +6062,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    operations_summary_api_v1_operations_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationsSummaryResponse"];
                 };
             };
         };
@@ -4263,6 +6470,186 @@ export interface operations {
             };
         };
     };
+    list_purchase_orders_api_v1_purchase_orders_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                status?: ("DRAFT" | "APPROVED" | "RECORDED_SENT" | "SUPPLIER_CONFIRMED" | "IN_FULFILLMENT" | "RECEIVED" | "CANCELLED") | null;
+                sales_order_id?: string | null;
+                supplier_id?: string | null;
+                limit?: number | null;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderListResponse"];
+                };
+            };
+            /** @description Invalid cursor or filter. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_purchase_order_api_v1_purchase_orders_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseOrderCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderResponse"];
+                };
+            };
+            /** @description Procurement is not applicable. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_purchase_order_api_v1_purchase_orders__purchase_order_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purchase_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderResponse"];
+                };
+            };
+            /** @description Unknown purchase order. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    transition_purchase_order_api_v1_purchase_orders__purchase_order_id__transitions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purchase_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseOrderTransitionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderResponse"];
+                };
+            };
+            /** @description Missing approval permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid transition or stale version. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     list_rfqs_api_v1_rfqs_get: {
         parameters: {
             query?: {
@@ -4617,6 +7004,263 @@ export interface operations {
             };
             /** @description Unknown target or missing reason. */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_sales_orders_api_v1_sales_orders_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                status?: ("CONFIRMED" | "IN_FULFILLMENT" | "FULFILLED" | "CLOSED" | "CANCELLED") | null;
+                customer_id?: string | null;
+                deal_id?: string | null;
+                currency?: string | null;
+                limit?: number | null;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesOrderListResponse"];
+                };
+            };
+            /** @description Invalid cursor or filter. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_sales_order_api_v1_sales_orders__sales_order_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sales_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesOrderResponse"];
+                };
+            };
+            /** @description Unknown order. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    amend_sales_order_api_v1_sales_orders__sales_order_id__amendments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sales_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderAmendmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesOrderResponse"];
+                };
+            };
+            /** @description Cancelled order or allocated quantity. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    preview_order_document_api_v1_sales_orders__sales_order_id__documents_preview_get: {
+        parameters: {
+            query: {
+                kind: string;
+                shipment_id?: string | null;
+            };
+            header?: never;
+            path: {
+                sales_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentPreviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_order_fulfilment_api_v1_sales_orders__sales_order_id__fulfilment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sales_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfilmentSummaryResponse"];
+                };
+            };
+            /** @description Unknown order. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    transition_sales_order_api_v1_sales_orders__sales_order_id__transitions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sales_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderTransitionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesOrderResponse"];
+                };
+            };
+            /** @description Invalid transition or stale version. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5184,6 +7828,309 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_shipments_api_v1_shipments_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                status?: ("PLANNED" | "BOOKED" | "DISPATCHED" | "IN_TRANSIT" | "ARRIVED" | "DELIVERED" | "CANCELLED") | null;
+                sales_order_id?: string | null;
+                transport_mode?: string | null;
+                limit?: number | null;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShipmentListResponse"];
+                };
+            };
+            /** @description Invalid cursor or filter. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    plan_shipment_api_v1_shipments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShipmentCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShipmentResponse"];
+                };
+            };
+            /** @description Over-allocation or unit mismatch. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Order not shippable. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_shipment_api_v1_shipments__shipment_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShipmentResponse"];
+                };
+            };
+            /** @description Unknown shipment. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_shipment_cost_api_v1_shipments__shipment_id__costs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShipmentCostRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShipmentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_shipment_event_api_v1_shipments__shipment_id__events_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShipmentEventRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShipmentResponse"];
+                };
+            };
+            /** @description Completed shipment. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_shipment_reference_api_v1_shipments__shipment_id__references_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShipmentReferenceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShipmentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    transition_shipment_api_v1_shipments__shipment_id__transitions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShipmentTransitionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShipmentResponse"];
+                };
+            };
+            /** @description Evidence requirement not met. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid transition or stale version. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description If-Match header missing. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };
