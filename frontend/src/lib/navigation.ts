@@ -148,6 +148,13 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         stage: "Stage 4",
         description: "Private trade documents, versions and verification",
       },
+      {
+        label: "Finance",
+        icon: Banknote,
+        href: "/finance",
+        stage: "Stage 5C",
+        description: "Read-only TOUCHE FINANCE ledger, accounts and aging",
+      },
     ],
   },
   {
@@ -171,12 +178,6 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   {
     label: "Roadmap",
     items: [
-      {
-        label: "Finance",
-        icon: Banknote,
-        stage: "Stage 5",
-        description: "Invoices, payments and approvals",
-      },
       {
         label: "AI Office",
         icon: Sparkles,
@@ -242,6 +243,7 @@ export function resolveWorkspaceContext(pathname: string): WorkspaceContext {
   if (pathname.startsWith("/shipments/")) return { section: "Logistics", page: "Shipment" };
   if (pathname === "/shipments") return { section: "Logistics", page: "Shipments" };
   if (pathname === "/documents") return { section: "Documents", page: "Trade documents" };
+  if (pathname === "/finance") return { section: "Finance", page: "Finance" };
   if (pathname === "/crm") return { section: "Workspace", page: "CRM" };
   if (pathname === "/products") return { section: "Workspace", page: "Products" };
   if (pathname === "/account") return { section: "Account", page: "Profile & access" };
