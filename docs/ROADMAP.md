@@ -376,7 +376,7 @@ editing an AI proposal.
 
 ---
 
-## Stage 7 — Messaging and external connectors (Stage 7A/7B merged, providers not started)
+## Stage 7 — Messaging and external connectors (Stage 7A/7B/7C1 merged; providers not connected)
 
 **Stage 7A (initial GitHub code, verification pending):** a company-scoped
 communications view of existing AI drafts, a status API that reports unconfigured
@@ -416,7 +416,7 @@ preflight status but no send button. Full delivery remains a separately-approved
 future milestone and requires provider accounts and secure token provisioning.
 
 
-### Stage 7C — Provider authentication and consent (partial groundwork: 7C1 in progress)
+### Stage 7C — Provider authentication and consent (7C1 CI verified; provider work pending)
 
 Per-company Gmail and WhatsApp Business account connections, secure secret
 storage, recipient provenance and consent, scoped send approval distinct from
@@ -424,7 +424,7 @@ AI draft review, explicit outbound transport with idempotent outbox and audited
 delivery evidence. No provider is configured and sending stays disabled.
 
 
-#### Stage 7C1 — CRM recipient matching
+#### Stage 7C1 — CRM recipient matching (CI verified, PR #3 merged)
 
 Preflight requires a current active-company CRM counterparty match to identify
 the **source record** for the operator-entered address/number. This is not proof
