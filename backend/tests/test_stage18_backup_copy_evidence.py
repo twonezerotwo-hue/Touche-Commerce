@@ -6,7 +6,7 @@ import hashlib
 import importlib.util
 import os
 import sys
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
