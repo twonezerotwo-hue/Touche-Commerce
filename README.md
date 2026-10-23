@@ -759,3 +759,14 @@ and `http://localhost:3000/login`. It does **not** run database migrations or
 connect Gmail/WhatsApp/E-YAY/Finance. To request migration explicitly **after a
 tested backup**, use `-ApplyMigrations`. This is not a production daemon or
 a claim that the user workstation has been started remotely.
+
+
+### Stage 10 — Release-readiness check
+
+Run `python scripts/release-gate.py --target ci` for a static repository
+prerequisite check. This is **not** proof of a functioning Windows local
+installation or production readiness. `--target local` and
+`--target production` intentionally return `BLOCKED` until independently
+documented runtime and operations acceptance exists. See
+`docs/STAGE10_RELEASE_READINESS.md` for safe startup, backup/restore and
+release-exclusion guidance. No live provider or Finance write is enabled.
