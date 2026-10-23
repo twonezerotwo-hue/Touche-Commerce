@@ -48,7 +48,7 @@ function AmountCell({
       </span>
       {percent !== undefined ? (
         <span
-          className={`block font-mono text-[10px] ${negative ? "text-crimson-400/80" : "text-mist-500"}`}
+          className={`block font-mono text-[10px] ${negative ? "text-crimson-400" : "text-mist-500"}`}
         >
           {formatReconciliationPercent(percent)}
         </span>

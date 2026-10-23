@@ -566,6 +566,9 @@ describe("IntelligenceOrdersTable", () => {
     expect(tinted[0]).toHaveClass("text-crimson-400");
     const variance = screen.getByText(/-.*1\.50/);
     expect(variance).not.toHaveClass("text-crimson-400");
+    // The percentage line uses the full-strength tint (the /80 variant fell below 4.5:1).
+    expect(screen.getByText("-40.00%")).toHaveClass("text-crimson-400");
+    expect(screen.getByText("-0.50%")).not.toHaveClass("text-crimson-400");
   });
 
   it("shows an empty state for no orders", () => {
