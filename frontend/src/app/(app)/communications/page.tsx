@@ -103,10 +103,12 @@ export default async function CommunicationsPage() {
               <SuppressionPanel
                 csrfToken={state.session.session.csrf_token}
                 counterparties={
-                  contacts.ok ? contacts.data.items.map((item) => ({
-                    id: item.id,
-                    name: item.name,
-                  })) : []
+                  contacts.ok
+                    ? contacts.data.items.map((item) => ({
+                        id: item.id,
+                        name: item.name,
+                      }))
+                    : []
                 }
                 saved={suppressions.data.items}
               />
