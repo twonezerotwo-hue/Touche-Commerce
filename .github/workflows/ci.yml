@@ -101,6 +101,13 @@ jobs:
         working-directory: frontend
         run: npm run format:check
 
+      - name: Diagnose Stage 7B format diff
+        if: failure()
+        working-directory: frontend
+        run: |
+          npx prettier --write "src/components/communications/preflight.tsx"
+          git diff -- "src/components/communications/preflight.tsx"
+
       - name: ESLint
         working-directory: frontend
         run: npm run lint
