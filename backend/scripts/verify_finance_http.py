@@ -1,4 +1,4 @@
-"""Isolated HTTP acceptance verifier for Stage 5C.
+"""Isolated HTTP acceptance verifier for Stages 5C, 5D and 5E.
 
 The verifier never starts or points at the live Finance application. It creates a
 temporary Finance base directory, initialises a synthetic SQLite ledger, creates a
@@ -12,7 +12,9 @@ Usage (from the Commerce repository):
 
 from __future__ import annotations
 
+import csv
 import hashlib
+import io
 import json
 import os
 import shutil
@@ -271,6 +273,30 @@ class Client:
             text = exc.read().decode("utf-8", "replace")
             return int(exc.code), self._json(text), text
 
+    def fetch(
+        self, url: str, *, headers: dict[str, str] | None = None
+    ) -> tuple[int, dict[str, str], str]:
+        """GET returning the lower-cased response headers (used for the CSV export)."""
+
+        request = urllib.request.Request(  # noqa: S310 - fixed loopback URLs only
+            url,
+            headers={"User-Agent": "stage5e-isolated-verifier", **dict(headers or {})},
+            method="GET",
+        )
+        try:
+            with self.opener.open(request, timeout=30) as response:
+                return (
+                    int(response.status),
+                    {key.lower(): value for key, value in response.headers.items()},
+                    response.read().decode("utf-8", "replace"),
+                )
+        except urllib.error.HTTPError as exc:
+            return (
+                int(exc.code),
+                {key.lower(): value for key, value in exc.headers.items()},
+                exc.read().decode("utf-8", "replace"),
+            )
+
     @staticmethod
     def _json(text: str) -> dict[str, Any]:
         try:
@@ -278,6 +304,11 @@ class Client:
             return payload if isinstance(payload, dict) else {}
         except json.JSONDecodeError:
             return {}
+
+
+def _check(condition: bool, message: str) -> None:
+    if not condition:
+        raise AssertionError(message)
 
 
 def _login_client(email: str, company_id: str) -> tuple[Client, str]:
@@ -304,8 +335,11 @@ def _login_client(email: str, company_id: str) -> tuple[Client, str]:
     return client, csrf
 
 
-def _stage5d_acceptance(world: dict[str, Any]) -> dict[str, Any]:
-    """Create and reconcile a real Commerce order through HTTP."""
+def _stage5d_acceptance(world: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Create and reconcile a real Commerce order through HTTP.
+
+    Returns the Stage 5D summary and the live clients/records Stage 5E re-uses.
+    """
 
     texts: list[str] = []
     trader, trader_csrf = _login_client(world["trader_email"], world["company_a"])
@@ -733,7 +767,7 @@ def _stage5d_acceptance(world: dict[str, Any]) -> dict[str, Any]:
     if "s" * 43 in joined:
         raise AssertionError("Finance credentials leaked into Stage 5D responses")
 
-    return {
+    summary = {
         "order_number": order["order_number"],
         "order_total": order["order_total"],
         "run_status": verified["status"],
@@ -752,6 +786,449 @@ def _stage5d_acceptance(world: dict[str, Any]) -> dict[str, Any]:
         "cross_tenant_isolated": True,
         "write_route_rejected": post_status,
         "credentials_in_responses": False,
+    }
+    context = {
+        "trader": trader,
+        "trader_csrf": trader_csrf,
+        "reviewer": reviewer,
+        "reviewer_csrf": reviewer_csrf,
+        "order": order,
+        "texts": texts,
+    }
+    return summary, context
+
+
+def _stage5e_acceptance(world: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
+    """Drive the Stage 5E intelligence API, CSV export and screens with the real order.
+
+    The order is the Stage 5D one: 100 kg sold for 250.00 USD against a 160.00 USD
+    approved purchase order and a 40.00 USD freight estimate, with only 10 kg
+    shipped and 20.00 USD of freight actually incurred. The expected figures below
+    follow from those inputs, not from the implementation under test.
+    """
+
+    trader: Client = context["trader"]
+    reviewer: Client = context["reviewer"]
+    trader_csrf: str = context["trader_csrf"]
+    reviewer_csrf: str = context["reviewer_csrf"]
+    order: dict[str, Any] = context["order"]
+    texts: list[str] = context["texts"]
+    order_id = str(order["id"])
+    order_number = str(order["order_number"])
+    intelligence = f"{COMMERCE_API}/api/v1/finance/intelligence"
+    pages = f"{FRONTEND}/finance/intelligence"
+
+    def api_get(
+        client: Client, path: str, *, expected: int | tuple[int, ...] = 200
+    ) -> dict[str, Any]:
+        status, body, text = client.request("GET", f"{intelligence}{path}")
+        texts.append(text)
+        allowed = (expected,) if isinstance(expected, int) else expected
+        _check(status in allowed, f"GET intelligence{path}: expected {allowed}, got {status}")
+        return body
+
+    def api_post(
+        client: Client,
+        csrf: str,
+        url: str,
+        payload: dict[str, Any],
+        *,
+        expected: int | tuple[int, ...],
+        if_match: str | None = None,
+    ) -> dict[str, Any]:
+        headers = {"Origin": ORIGIN, "X-CSRF-Token": csrf, "Idempotency-Key": uuid4().hex}
+        if if_match:
+            headers["If-Match"] = if_match
+        status, body, text = client.request("POST", url, payload=payload, headers=headers)
+        texts.append(text)
+        allowed = (expected,) if isinstance(expected, int) else expected
+        _check(status in allowed, f"POST {url}: expected {allowed}, got {status}: {text}")
+        return body
+
+    def page(client: Client, path: str, *markers: str) -> str:
+        status, _body, text = client.request("GET", f"{pages}{path}")
+        texts.append(text)
+        _check(status == 200, f"frontend {pages}{path} returned {status}")
+        for marker in markers:
+            _check(marker in text, f"frontend {pages}{path} did not render {marker!r}")
+        return text
+
+    def money_of(metric: dict[str, Any], currency: str = "USD") -> Decimal | None:
+        return next(
+            (
+                Decimal(str(item["amount"]))
+                for item in metric["money"]
+                if item["currency"] == currency
+            ),
+            None,
+        )
+
+    # --- summary: real figures, per currency, with the read-only guarantees ---------
+    summary = api_get(trader, "/summary")
+    _check(str(summary["calculation_version"]).startswith("stage5e-"), "unexpected version")
+    _check(
+        summary["read_only"] is True
+        and summary["accounting_writes_enabled"] is False
+        and summary["statutory_statements"] is False,
+        "summary lost a read-only guarantee",
+    )
+    _check(
+        summary["order_count"] == 1 and summary["active_order_count"] == 1,
+        f"unexpected order counts: {summary['order_count']}/{summary['active_order_count']}",
+    )
+    metrics = {item["key"]: item for item in summary["metrics"]}
+    expected_keys = {
+        "accepted_sales_order_value",
+        "purchase_commitments",
+        "estimated_gross_profit",
+        "estimated_gross_margin",
+        "recorded_operational_costs",
+        "reconciliation_coverage",
+        "open_discrepancies",
+        "committed_gross_profit",
+    }
+    _check(
+        expected_keys <= set(metrics), f"missing metrics: {sorted(expected_keys - set(metrics))}"
+    )
+    expected_money = {
+        "accepted_sales_order_value": "250.00",
+        "purchase_commitments": "160.00",
+        "estimated_gross_profit": "50.00",
+        "recorded_operational_costs": "20.00",
+    }
+    for key, expected in expected_money.items():
+        _check(
+            money_of(metrics[key]) == Decimal(expected),
+            f"metric {key}: expected {expected} USD, got {metrics[key]['money']}",
+        )
+    # The metric's classification names its kind and stays COMMITTED; what matters is that
+    # no figure is reported while the only order is part-shipped (the screens then say
+    # "Not available" and label it UNAVAILABLE).
+    committed_metric = metrics["committed_gross_profit"]
+    _check(
+        not committed_metric["available"]
+        and not committed_metric["money"]
+        and not committed_metric["percentages"],
+        f"committed profit was reported while the order is part-shipped: {committed_metric}",
+    )
+    currencies = {item["currency"] for metric in summary["metrics"] for item in metric["money"]}
+    _check(currencies == {"USD"}, f"metrics mixed or invented currencies: {currencies}")
+
+    # --- order list: every figure follows from the known inputs ---------------------
+    listing = api_get(trader, "/orders?limit=1&offset=0")
+    _check(
+        listing["total"] == 1 and len(listing["items"]) == 1, "order list did not hold one order"
+    )
+    row = listing["items"][0]
+    _check(
+        row["sales_order_id"] == order_id and row["order_number"] == order_number,
+        "order list returned a different order",
+    )
+    expected_figures = {
+        "sales_value": "250.00",
+        "estimated_landed_cost": "200.00",
+        "estimated_gross_profit": "50.00",
+        "estimated_gross_margin_pct": "20.00",
+        "estimated_markup_pct": "25.00",
+        "committed_purchase_cost": "160.00",
+        "documented_operational_cost": "20.00",
+    }
+    for key, expected in expected_figures.items():
+        _check(
+            row[key] is not None and Decimal(str(row[key])) == Decimal(expected),
+            f"order {key}: expected {expected}, got {row[key]}",
+        )
+    _check(row["currency"] == "USD", "order currency changed")
+    _check(row["partial_fulfilment"] is True, "partial fulfilment was not flagged")
+    _check(
+        row["committed_gross_profit"] is None, "committed profit claimed on a part-shipped order"
+    )
+    _check("PARTIAL_FULFILMENT" in row["missing_components"], "partial fulfilment not listed")
+    _check(row["committed_status"] == "PARTIAL", f"committed status was {row['committed_status']}")
+    _check("actual_profit" not in row, "an actual_profit field exists")
+    _check(
+        row["classifications"]["actual_profit"] == "UNAVAILABLE", "actual profit not unavailable"
+    )
+    _check(row["run_count"] == 2, f"expected the 2 Stage 5D runs, got {row['run_count']}")
+    _check(row["open_discrepancy_count"] >= 1, "no open discrepancy reached the order row")
+
+    # --- filters and validation ------------------------------------------------------
+    _check(
+        api_get(trader, "/summary?currency=EUR")["order_count"] == 0, "EUR filter kept a USD order"
+    )
+    _check(api_get(trader, "/orders?currency=USD")["total"] == 1, "USD filter lost the order")
+    _check(
+        api_get(trader, "/orders?fulfilment_model=PURCHASE_RESALE")["total"] == 1,
+        "fulfilment-model filter lost the order",
+    )
+    _check(
+        api_get(trader, "/orders?fulfilment_model=BROKERAGE")["total"] == 0,
+        "fulfilment-model filter kept the wrong model",
+    )
+    api_get(trader, "/summary?from=2999-12-31&to=2000-01-01", expected=(400, 422))
+
+    # --- cost variance and coverage --------------------------------------------------
+    variance = api_get(trader, "/cost-variance")
+    _check(
+        variance["total"] == 0 and variance["excluded_order_count"] == 1,
+        f"a part-shipped order produced a cost variance: {variance['total']}",
+    )
+    coverage = api_get(trader, "/coverage")
+    _check(coverage["order_count"] == 1, "coverage order count was wrong")
+    _check(sum(item["count"] for item in coverage["estimate"]) == 1, "estimate coverage mismatch")
+
+    # --- order drill-down ------------------------------------------------------------
+    detail = api_get(trader, f"/orders/{order_id}")
+    _check(
+        detail["read_only"] is True
+        and detail["accounting_writes_enabled"] is False
+        and detail["statutory_statements"] is False,
+        "detail lost a read-only guarantee",
+    )
+    _check(detail["order"]["sales_order_id"] == order_id, "detail returned a different order")
+    _check(detail["quote"]["currency"] == "USD" and detail["quote"]["lines"], "quote missing")
+    po_rows = detail["purchase_orders"]
+    _check(
+        len(po_rows) == 1
+        and Decimal(str(po_rows[0]["total_cost"])) == Decimal("160.00")
+        and po_rows[0]["classification"] == "COMMITTED",
+        f"purchase order detail wrong: {po_rows}",
+    )
+    shipment_costs = [cost for shipment in detail["shipments"] for cost in shipment["costs"]]
+    _check(
+        any(
+            cost["stage"] == "INCURRED"
+            and Decimal(str(cost["amount"])) == Decimal("20.00")
+            and cost["classification"] == "DOCUMENTED"
+            for cost in shipment_costs
+        ),
+        f"incurred freight missing from detail: {shipment_costs}",
+    )
+    _check(
+        any(
+            line["cost_type"] == "FREIGHT"
+            and Decimal(str(line["converted_amount"])) == Decimal("40.00")
+            for line in detail["cost_lines"]
+        ),
+        "estimated freight line missing from the cost lines",
+    )
+    _check(len(detail["runs"]) == 2, f"expected 2 runs in the timeline, got {len(detail['runs'])}")
+    verified_evidence = [
+        item
+        for item in detail["evidence"]
+        if item["finance_source_reference"] == "F-USD-AR-1"
+        and Decimal(str(item["amount"])) == Decimal("250.00")
+        and item["verification_status"] == "VERIFIED"
+    ]
+    _check(len(verified_evidence) == 1, "verified Finance evidence missing from the drill-down")
+    _check(bool(detail["limitations"]) and bool(detail["checks"]), "limitations or checks empty")
+    _check(
+        all(item["sales_order_id"] == order_id for item in detail["discrepancies"]),
+        "detail listed another order's discrepancies",
+    )
+    api_get(trader, f"/orders/{uuid4()}", expected=404)
+
+    # --- exceptions: enrichment, permission and resolution ---------------------------
+    open_before = api_get(trader, "/exceptions?status=OPEN&limit=50")
+    _check(open_before["total"] >= 1, "no open financial exception for the order")
+    _check(
+        all(
+            item["sales_order_id"] == order_id
+            and item["order_number"] == order_number
+            and item["currency"] == "USD"
+            for item in open_before["items"]
+        ),
+        "exceptions were not enriched with the order",
+    )
+    target = open_before["items"][0]
+    resolve_url = f"{COMMERCE_API}/api/v1/finance/discrepancies/{target['id']}/resolve"
+    denied = api_post(
+        trader,
+        trader_csrf,
+        resolve_url,
+        {"notes": "A trader must not resolve this."},
+        expected=403,
+        if_match=f'"v{target["version"]}"',
+    )
+    _check(denied["error"]["code"] == "FORBIDDEN", "trader resolution was not FORBIDDEN")
+    api_post(
+        reviewer,
+        reviewer_csrf,
+        resolve_url,
+        {"notes": "Reviewed against the isolated Finance receivable."},
+        expected=(200, 201),
+        if_match=f'"v{target["version"]}"',
+    )
+    open_after = api_get(trader, "/exceptions?status=OPEN&limit=50")
+    _check(
+        open_after["total"] == open_before["total"] - 1,
+        f"resolving did not shrink the open queue: {open_before['total']} -> {open_after['total']}",
+    )
+    resolved = api_get(trader, "/exceptions?status=RESOLVED&limit=50")
+    _check(
+        any(
+            item["id"] == target["id"] and bool(item["resolution_notes"])
+            for item in resolved["items"]
+        ),
+        "the resolved exception is missing from the RESOLVED list",
+    )
+    all_statuses = api_get(trader, "/exceptions?status=&limit=50")
+    _check(all_statuses["total"] >= open_after["total"] + 1, "the empty status filter hid items")
+
+    # --- CSV export: API and through the same-origin proxy ---------------------------
+    csv_status, csv_headers, csv_text = trader.fetch(
+        f"{intelligence}/export?currency=USD", headers={"Accept": "text/csv"}
+    )
+    texts.append(csv_text)
+    _check(csv_status == 200, f"export returned {csv_status}")
+    _check(csv_headers.get("content-type", "").startswith("text/csv"), "export is not text/csv")
+    _check(
+        "attachment;" in csv_headers.get("content-disposition", ""), "export is not an attachment"
+    )
+    _check(csv_headers.get("x-content-type-options") == "nosniff", "export lost nosniff")
+    csv_rows = list(csv.DictReader(io.StringIO(csv_text, newline="")))
+    _check(len(csv_rows) == 1, f"export held {len(csv_rows)} rows for one order")
+    export_row = csv_rows[0]
+    _check(
+        export_row["sales_order_id"] == order_id and export_row["order_number"] == order_number,
+        "export row is for a different order",
+    )
+    _check(export_row["estimated_gross_profit"] == "50.00", "export profit did not match the API")
+    _check(export_row["committed_gross_profit"] == "", "export claimed a committed profit")
+    _check("actual_profit" not in export_row, "export has an actual_profit column")
+    _check("not accounting profit" in export_row["analysis_notice"], "export lost its notice")
+    eur_text = trader.fetch(f"{intelligence}/export?currency=EUR")[2]
+    eur_rows = list(csv.DictReader(io.StringIO(eur_text, newline="")))
+    _check(not eur_rows, "EUR export contained the USD order")
+    proxy_status, proxy_headers, proxy_text = trader.fetch(
+        f"{FRONTEND}/api/v1/finance/intelligence/export?currency=USD"
+    )
+    texts.append(proxy_text)
+    _check(proxy_status == 200 and order_number in proxy_text, "export via the proxy failed")
+    _check(
+        'filename="' in proxy_headers.get("content-disposition", ""),
+        "the proxy dropped the export file name",
+    )
+    _check(
+        proxy_headers.get("x-content-type-options") == "nosniff",
+        "the proxy dropped the export nosniff header",
+    )
+
+    # --- screens rendered by Next.js from the live API -------------------------------
+    notice = "not accounting profit"
+    page(
+        trader,
+        "?currency=USD",
+        "Financial intelligence",
+        "Operational analysis",
+        "Monthly commitments",
+        "Export CSV",
+        notice,
+        "250.00",
+    )
+    page(trader, "?currency=EUR", "Financial intelligence", "No monthly commitments")
+    page(
+        trader,
+        "?currency=bad!!&customer_id=nope&from=31%2F12%2F2026",
+        "Financial intelligence",
+        "250.00",
+    )
+    page(
+        trader,
+        "/orders",
+        "Order profitability",
+        order_number,
+        f"/finance/intelligence/orders/{order_id}",
+        "Cost variance",
+    )
+    page(
+        trader, "/orders?view=variance", "Variance needs two complete bases", "No comparable orders"
+    )
+    page(
+        trader,
+        f"/orders/{order_id}",
+        order_number,
+        "Actual profit",
+        "Not available",
+        "Completion checks",
+        "Limitations",
+        "Reconciliation timeline",
+        "F-USD-AR-1",
+    )
+    page(trader, f"/orders/{uuid4()}", "Could not load the order analysis")
+    trader_exceptions = page(
+        trader,
+        "/exceptions",
+        "Financial exceptions",
+        order_number,
+        "Read-only: resolving needs finance.reconcile.",
+    )
+    _check("You can resolve items" not in trader_exceptions, "trader saw the reviewer hint")
+    page(
+        reviewer,
+        "/exceptions",
+        "Financial exceptions",
+        order_number,
+        "You can resolve items with finance.reconcile.",
+        "Resolve",
+    )
+    page(trader, "/exceptions?status=ALL", "Financial exceptions", "RESOLVED")
+
+    # --- tenant isolation and read-only -----------------------------------------------
+    outsider, outsider_csrf = _login_client(world["email"], world["company_a"])
+    switched_status, _switched_body, switched_text = outsider.request(
+        "POST",
+        f"{COMMERCE_API}/api/v1/session/company",
+        payload={"company_id": world["company_b"]},
+        headers={"Origin": ORIGIN, "X-CSRF-Token": outsider_csrf},
+    )
+    texts.append(switched_text)
+    _check(switched_status == 200, f"cross-tenant switch failed: {switched_status}")
+    _check(api_get(outsider, "/summary")["order_count"] == 0, "another company saw the order count")
+    _check(api_get(outsider, "/orders")["total"] == 0, "another company listed the order")
+    api_get(outsider, f"/orders/{order_id}", expected=404)
+    _check(api_get(outsider, "/exceptions?status=")["total"] == 0, "another company saw exceptions")
+    outsider_csv = outsider.fetch(f"{intelligence}/export")[2]
+    _check(order_number not in outsider_csv, "another company's export contained the order")
+    outsider_page = page(outsider, f"/orders/{order_id}", "Could not load the order analysis")
+    _check(order_number not in outsider_page, "another company's screen showed the order")
+    _check(order_number not in page(outsider, "/orders"), "another company's list showed the order")
+
+    write_status, _write_body, write_text = trader.request(
+        "POST", f"{intelligence}/summary", headers={"Origin": ORIGIN}
+    )
+    texts.append(write_text)
+    _check(write_status == 405, f"intelligence write-shaped route was not rejected: {write_status}")
+
+    return {
+        "order_number": order_number,
+        "sales_value": row["sales_value"],
+        "estimated_landed_cost": row["estimated_landed_cost"],
+        "estimated_gross_profit": row["estimated_gross_profit"],
+        "estimated_gross_margin_pct": row["estimated_gross_margin_pct"],
+        "committed_purchase_cost": row["committed_purchase_cost"],
+        "documented_operational_cost": row["documented_operational_cost"],
+        "committed_profit_withheld_while_partly_shipped": True,
+        "actual_profit_available": False,
+        "cost_variance_orders": variance["total"],
+        "cost_variance_excluded": variance["excluded_order_count"],
+        "open_exceptions_before_resolution": open_before["total"],
+        "open_exceptions_after_resolution": open_after["total"],
+        "trader_resolution": denied["error"]["code"],
+        "export_rows": len(csv_rows),
+        "export_via_proxy_keeps_filename_and_nosniff": True,
+        "api_routes": [
+            "summary",
+            "orders",
+            "orders/{id}",
+            "cost-variance",
+            "coverage",
+            "exceptions",
+            "export",
+        ],
+        "frontend_routes": ["dashboard", "orders", "variance", "order_detail", "exceptions"],
+        "cross_tenant_isolated": True,
+        "write_route_rejected": write_status,
     }
 
 
@@ -1086,7 +1563,9 @@ def _acceptance(
     if payables_page_status != 200 or "Supplier B" not in payables_page_text:
         raise AssertionError("frontend did not render payable aging")
 
-    stage5d = _stage5d_acceptance(world)
+    stage5d, stage5_context = _stage5d_acceptance(world)
+    stage5e = _stage5e_acceptance(world, stage5_context)
+    texts.extend(stage5_context["texts"])
 
     switched_b_status, _switched_b_body, switched_b_text = client.request(
         "POST",
@@ -1133,6 +1612,7 @@ def _acceptance(
         "payable_items": len(payable_body["items"]),
         "finance_frontend_routes": ["overview", "accounts", "receivables", "payables"],
         "stage5d": stage5d,
+        "stage5e": stage5e,
         "cross_tenant_isolated": True,
         "write_route_rejected": post_status,
         "credentials_in_responses": False,
