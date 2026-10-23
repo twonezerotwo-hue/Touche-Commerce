@@ -516,6 +516,143 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/intelligence/cost-variance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Estimated versus documented cost variance
+         * @description Returns only orders with a complete estimate and complete documented basis. Quoted costs and incomplete cases are not presented as variance.
+         */
+        get: operations["intelligence_cost_variance_api_v1_finance_intelligence_cost_variance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/intelligence/coverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Financial evidence and reconciliation coverage */
+        get: operations["intelligence_coverage_api_v1_finance_intelligence_coverage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/intelligence/exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Enriched financial exception queue
+         * @description Reuses Stage 5D discrepancies and adds the affected order, currency, source reference, reviewer and last update. Resolution remains the existing finance.reconcile action.
+         */
+        get: operations["intelligence_exceptions_api_v1_finance_intelligence_exceptions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/intelligence/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export operational financial analysis as CSV
+         * @description Respects the same company scope and filters as the dashboard. Every row carries its currency, completeness and calculation version. The file is explicitly not a statutory statement and is protected against formula injection.
+         */
+        get: operations["intelligence_export_api_v1_finance_intelligence_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/intelligence/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Filtered order profitability list
+         * @description Stable descending order-date pagination. Every amount is in the order currency; incomplete cost coverage remains explicit.
+         */
+        get: operations["intelligence_orders_api_v1_finance_intelligence_orders_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/intelligence/orders/{sales_order_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Order profitability, evidence and reconciliation timeline
+         * @description Drill-down over the original accepted sales quote, pricing scenario, purchase orders, shipment costs, FX snapshots and Stage 5D evidence.
+         */
+        get: operations["intelligence_order_detail_api_v1_finance_intelligence_orders__sales_order_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/intelligence/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Operational financial intelligence summary
+         * @description Real Commerce commitments, estimates and documented costs grouped by currency. No mixed-currency total, no Finance balance attribution and no statutory statement is produced.
+         */
+        get: operations["intelligence_summary_api_v1_finance_intelligence_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/orders/{sales_order_id}": {
         parameters: {
             query?: never;
@@ -1590,6 +1727,13 @@ export interface components {
             /** Title */
             title?: string | null;
         };
+        /** CategoryCountResponse */
+        CategoryCountResponse: {
+            /** Count */
+            count: number;
+            /** Key */
+            key: string;
+        };
         /**
          * CompanyAccess
          * @description One company the signed-in user may access, with their role there.
@@ -1659,6 +1803,67 @@ export interface components {
             label: string;
             /** Satisfied */
             satisfied: boolean;
+        };
+        /** CompletenessCountResponse */
+        CompletenessCountResponse: {
+            /** Count */
+            count: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "COMPLETE" | "PARTIAL" | "MISSING" | "UNAVAILABLE";
+        };
+        /** CompletionCheckResponse */
+        CompletionCheckResponse: {
+            /** Detail */
+            detail: string;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Satisfied */
+            satisfied: boolean;
+        };
+        /** CostComparisonResponse */
+        CostComparisonResponse: {
+            /** Currency */
+            currency: string;
+            /** Documented Cost */
+            documented_cost: string;
+            /** Estimated Cost */
+            estimated_cost: string;
+            /** Order Count */
+            order_count: number;
+            /** Variance */
+            variance: string;
+        };
+        /** CostVarianceListResponse */
+        CostVarianceListResponse: {
+            /**
+             * Accounting Writes Enabled
+             * @default false
+             * @constant
+             */
+            accounting_writes_enabled: false;
+            /** Calculation Version */
+            calculation_version: string;
+            /** Excluded Order Count */
+            excluded_order_count: number;
+            /** Items */
+            items: components["schemas"]["OrderProfitabilityResponse"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Read Only
+             * @default true
+             * @constant
+             */
+            read_only: true;
+            /** Total */
+            total: number;
         };
         /** CounterpartyCreateRequest */
         CounterpartyCreateRequest: {
@@ -1761,6 +1966,42 @@ export interface components {
             status?: ("active" | "archived") | null;
             /** Type */
             type?: ("buyer" | "supplier" | "both") | null;
+        };
+        /** CoverageResponse */
+        CoverageResponse: {
+            /**
+             * Accounting Writes Enabled
+             * @default false
+             * @constant
+             */
+            accounting_writes_enabled: false;
+            /** Active Order Count */
+            active_order_count: number;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Calculation Version */
+            calculation_version: string;
+            /** Committed */
+            committed: components["schemas"]["CompletenessCountResponse"][];
+            /** Data Through */
+            data_through?: string | null;
+            /** Estimate */
+            estimate: components["schemas"]["CompletenessCountResponse"][];
+            /** Missing Components */
+            missing_components: components["schemas"]["CategoryCountResponse"][];
+            /** Order Count */
+            order_count: number;
+            /**
+             * Read Only
+             * @default true
+             * @constant
+             */
+            read_only: true;
+            /** Reconciliation */
+            reconciliation: components["schemas"]["CategoryCountResponse"][];
         };
         /** CurrencyOrderValueResponse */
         CurrencyOrderValueResponse: {
@@ -2410,6 +2651,31 @@ export interface components {
         ErrorEnvelope: {
             error: components["schemas"]["ErrorDetail"];
         };
+        /** EstimateCostLineResponse */
+        EstimateCostLineResponse: {
+            /** Basis */
+            basis: string;
+            /** Converted Amount */
+            converted_amount?: string | null;
+            /** Cost Type */
+            cost_type: string;
+            /** Fx Rate */
+            fx_rate?: string | null;
+            /** Fx Snapshot Id */
+            fx_snapshot_id?: string | null;
+            /** Is Expense */
+            is_expense: boolean;
+            /** Original Amount */
+            original_amount?: string | null;
+            /** Original Currency */
+            original_currency: string;
+            /** Source Reference */
+            source_reference: string;
+            /** Target Currency */
+            target_currency: string;
+            /** Verification Status */
+            verification_status: string;
+        };
         /** EvidenceLinkListResponse */
         EvidenceLinkListResponse: {
             /**
@@ -2520,6 +2786,80 @@ export interface components {
             verified_at?: string | null;
             /** Verified By */
             verified_by?: string | null;
+        };
+        /** EvidenceReferenceResponse */
+        EvidenceReferenceResponse: {
+            /** Amount */
+            amount: string;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Data Through */
+            data_through?: string | null;
+            /** Finance Source Reference */
+            finance_source_reference: string;
+            /** Finance Source Type */
+            finance_source_type: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Source Entity Id
+             * Format: uuid
+             */
+            source_entity_id: string;
+            /** Source Entity Type */
+            source_entity_type: string;
+            /**
+             * Verification Status
+             * @enum {string}
+             */
+            verification_status: "UNVERIFIED" | "VERIFIED" | "REJECTED";
+            /** Verified At */
+            verified_at?: string | null;
+        };
+        /** FilterOptionResponse */
+        FilterOptionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** FilterOptionsResponse */
+        FilterOptionsResponse: {
+            /** Completeness Statuses */
+            completeness_statuses: ("COMPLETE" | "PARTIAL" | "MISSING" | "UNAVAILABLE")[];
+            /** Currencies */
+            currencies: string[];
+            /** Customers */
+            customers: components["schemas"]["FilterOptionResponse"][];
+            /** Fulfilment Models */
+            fulfilment_models: string[];
+            /** Order Statuses */
+            order_statuses: string[];
+            /** Reconciliation Statuses */
+            reconciliation_statuses: string[];
+            /** Suppliers */
+            suppliers: components["schemas"]["FilterOptionResponse"][];
         };
         /** FinanceAccount */
         FinanceAccount: {
@@ -2934,6 +3274,103 @@ export interface components {
              */
             source: "finance_ledger";
         };
+        /** FinancialExceptionListResponse */
+        FinancialExceptionListResponse: {
+            /**
+             * Accounting Writes Enabled
+             * @default false
+             * @constant
+             */
+            accounting_writes_enabled: false;
+            /** Items */
+            items: components["schemas"]["FinancialExceptionResponse"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Read Only
+             * @default true
+             * @constant
+             */
+            read_only: true;
+            /** Total */
+            total: number;
+        };
+        /** FinancialExceptionResponse */
+        FinancialExceptionResponse: {
+            /** Code */
+            code: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Customer Name */
+            customer_name: string;
+            /** Detail */
+            detail: string;
+            /** Expected */
+            expected: {
+                [key: string]: unknown;
+            };
+            /** Finance Source Reference */
+            finance_source_reference?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Observed */
+            observed: {
+                [key: string]: unknown;
+            };
+            /** Order Number */
+            order_number: string;
+            /** Order Status */
+            order_status: string;
+            /** Resolution Notes */
+            resolution_notes?: string | null;
+            /** Resolved At */
+            resolved_at?: string | null;
+            /** Reviewer Name */
+            reviewer_name?: string | null;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Sales Order Id
+             * Format: uuid
+             */
+            sales_order_id: string;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "INFO" | "WARNING" | "ERROR" | "BLOCKING";
+            /** Source Entity Id */
+            source_entity_id?: string | null;
+            /** Source Entity Type */
+            source_entity_type?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "OPEN" | "RESOLVED" | "DISMISSED";
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
         /** FulfilmentLineResponse */
         FulfilmentLineResponse: {
             /** Allocated */
@@ -2973,6 +3410,27 @@ export interface components {
              * Format: uuid
              */
             sales_order_id: string;
+        };
+        /** FxAssumptionResponse */
+        FxAssumptionResponse: {
+            /** Base Currency */
+            base_currency: string;
+            /**
+             * Effective At
+             * Format: date-time
+             */
+            effective_at: string;
+            /** Quote Currency */
+            quote_currency: string;
+            /** Rate */
+            rate: string;
+            /**
+             * Snapshot Id
+             * Format: uuid
+             */
+            snapshot_id: string;
+            /** Source */
+            source: string;
         };
         /**
          * FxRateCreateRequest
@@ -3126,6 +3584,98 @@ export interface components {
              */
             version: string;
         };
+        /** IntelligenceMetricResponse */
+        IntelligenceMetricResponse: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Available */
+            available: boolean;
+            /**
+             * Classification
+             * @enum {string}
+             */
+            classification: "ESTIMATED" | "COMMITTED" | "DOCUMENTED" | "FINANCE_OBSERVED" | "VERIFIED" | "UNAVAILABLE";
+            /**
+             * Completeness
+             * @enum {string}
+             */
+            completeness: "COMPLETE" | "PARTIAL" | "MISSING" | "UNAVAILABLE";
+            /** Count */
+            count?: number | null;
+            /** Data Through */
+            data_through?: string | null;
+            /** Key */
+            key: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "MONEY" | "PERCENT" | "COUNT";
+            /** Label */
+            label: string;
+            /** Meaning */
+            meaning: string;
+            /** Money */
+            money: components["schemas"]["MoneyTotalResponse"][];
+            /** Percentage */
+            percentage?: string | null;
+            /** Percentages */
+            percentages: components["schemas"]["PercentTotalResponse"][];
+        };
+        /** IntelligenceSummaryResponse */
+        IntelligenceSummaryResponse: {
+            /**
+             * Accounting Writes Enabled
+             * @default false
+             * @constant
+             */
+            accounting_writes_enabled: false;
+            /** Active Order Count */
+            active_order_count: number;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Calculation Version */
+            calculation_version: string;
+            /** Cancelled Order Count */
+            cancelled_order_count: number;
+            /** Completeness */
+            completeness: components["schemas"]["CompletenessCountResponse"][];
+            /** Cost Comparison */
+            cost_comparison: components["schemas"]["CostComparisonResponse"][];
+            /** Data Through */
+            data_through?: string | null;
+            /** Discrepancy Categories */
+            discrepancy_categories: components["schemas"]["CategoryCountResponse"][];
+            filter_options: components["schemas"]["FilterOptionsResponse"];
+            /** Margin Distribution */
+            margin_distribution: components["schemas"]["MarginBucketResponse"][];
+            /** Metrics */
+            metrics: components["schemas"]["IntelligenceMetricResponse"][];
+            /** Monthly Commitments */
+            monthly_commitments: components["schemas"]["MonthlyCommitmentResponse"][];
+            /** Order Count */
+            order_count: number;
+            /**
+             * Read Only
+             * @default true
+             * @constant
+             */
+            read_only: true;
+            /** Review Orders */
+            review_orders: components["schemas"]["OrderProfitabilityResponse"][];
+            /**
+             * Statutory Statements
+             * @default false
+             * @constant
+             */
+            statutory_statements: false;
+        };
         /**
          * LoginRequest
          * @description Credentials submitted from the sign-in screen.
@@ -3155,6 +3705,35 @@ export interface components {
              * @constant
              */
             status: "signed_out";
+        };
+        /** MarginBucketResponse */
+        MarginBucketResponse: {
+            /** Count */
+            count: number;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+        };
+        /** MoneyTotalResponse */
+        MoneyTotalResponse: {
+            /** Amount */
+            amount: string;
+            /** Currency */
+            currency: string;
+        };
+        /** MonthlyCommitmentResponse */
+        MonthlyCommitmentResponse: {
+            /** Accepted Value */
+            accepted_value: string;
+            /** Currency */
+            currency: string;
+            /** Month */
+            month: string;
+            /** Order Count */
+            order_count: number;
+            /** Purchase Commitments */
+            purchase_commitments: string;
         };
         /** OperationsSummaryResponse */
         OperationsSummaryResponse: {
@@ -3391,6 +3970,185 @@ export interface components {
             /** Stage */
             stage: string;
         };
+        /** OrderIntelligenceDetailResponse */
+        OrderIntelligenceDetailResponse: {
+            /**
+             * Accounting Writes Enabled
+             * @default false
+             * @constant
+             */
+            accounting_writes_enabled: false;
+            /** Checks */
+            checks: components["schemas"]["CompletionCheckResponse"][];
+            /** Cost Lines */
+            cost_lines: components["schemas"]["EstimateCostLineResponse"][];
+            /** Discrepancies */
+            discrepancies: components["schemas"]["FinancialExceptionResponse"][];
+            /** Evidence */
+            evidence: components["schemas"]["EvidenceReferenceResponse"][];
+            /** Fx Assumptions */
+            fx_assumptions: components["schemas"]["FxAssumptionResponse"][];
+            /** Limitations */
+            limitations: string[];
+            order: components["schemas"]["OrderProfitabilityResponse"];
+            /** Purchase Orders */
+            purchase_orders: components["schemas"]["PurchaseOrderDetailResponse"][];
+            quote: components["schemas"]["QuoteDetailResponse"];
+            /**
+             * Read Only
+             * @default true
+             * @constant
+             */
+            read_only: true;
+            /** Runs */
+            runs: components["schemas"]["ReconciliationTimelineResponse"][];
+            /** Shipments */
+            shipments: components["schemas"]["ShipmentDetailResponse"][];
+            /**
+             * Statutory Statements
+             * @default false
+             * @constant
+             */
+            statutory_statements: false;
+        };
+        /** OrderIntelligenceListResponse */
+        OrderIntelligenceListResponse: {
+            /**
+             * Accounting Writes Enabled
+             * @default false
+             * @constant
+             */
+            accounting_writes_enabled: false;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Calculation Version */
+            calculation_version: string;
+            /** Data Through */
+            data_through?: string | null;
+            /** Items */
+            items: components["schemas"]["OrderProfitabilityResponse"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Read Only
+             * @default true
+             * @constant
+             */
+            read_only: true;
+            /** Total */
+            total: number;
+        };
+        /** OrderProfitabilityResponse */
+        OrderProfitabilityResponse: {
+            /** Blocking Discrepancy Count */
+            blocking_discrepancy_count: number;
+            /** Cancelled */
+            cancelled: boolean;
+            /** Classifications */
+            classifications: {
+                [key: string]: string;
+            };
+            /** Committed Gross Margin Pct */
+            committed_gross_margin_pct?: string | null;
+            /** Committed Gross Profit */
+            committed_gross_profit?: string | null;
+            /** Committed Markup Pct */
+            committed_markup_pct?: string | null;
+            /** Committed Purchase Cost */
+            committed_purchase_cost?: string | null;
+            /**
+             * Committed Status
+             * @enum {string}
+             */
+            committed_status: "COMPLETE" | "PARTIAL" | "MISSING" | "UNAVAILABLE";
+            /**
+             * Completeness
+             * @enum {string}
+             */
+            completeness: "COMPLETE" | "PARTIAL" | "MISSING" | "UNAVAILABLE";
+            /**
+             * Confirmed At
+             * Format: date-time
+             */
+            confirmed_at: string;
+            /** Cost Currency Mismatch */
+            cost_currency_mismatch: boolean;
+            /** Cost Variance */
+            cost_variance?: string | null;
+            /** Cost Variance Pct */
+            cost_variance_pct?: string | null;
+            /** Currency */
+            currency: string;
+            /** Customer Name */
+            customer_name: string;
+            /** Data Through */
+            data_through?: string | null;
+            /** Documented Operational Cost */
+            documented_operational_cost?: string | null;
+            /** Documented Total Cost */
+            documented_total_cost?: string | null;
+            /**
+             * Estimate Status
+             * @enum {string}
+             */
+            estimate_status: "COMPLETE" | "PARTIAL" | "MISSING" | "UNAVAILABLE";
+            /** Estimated Extra Purchase Cost */
+            estimated_extra_purchase_cost?: string | null;
+            /** Estimated Gross Margin Pct */
+            estimated_gross_margin_pct?: string | null;
+            /** Estimated Gross Profit */
+            estimated_gross_profit?: string | null;
+            /** Estimated Landed Cost */
+            estimated_landed_cost?: string | null;
+            /** Estimated Markup Pct */
+            estimated_markup_pct?: string | null;
+            /** Estimated Operational Cost */
+            estimated_operational_cost?: string | null;
+            /** Estimated Purchase Cost */
+            estimated_purchase_cost?: string | null;
+            /** Estimated Vat Cashflow */
+            estimated_vat_cashflow?: string | null;
+            /** Expected Delivery Date */
+            expected_delivery_date?: string | null;
+            /** Fulfilment Model */
+            fulfilment_model: string;
+            /** Latest Run At */
+            latest_run_at?: string | null;
+            /** Latest Run Id */
+            latest_run_id?: string | null;
+            /** Missing Components */
+            missing_components: string[];
+            /** Open Discrepancy Count */
+            open_discrepancy_count: number;
+            /** Order Number */
+            order_number: string;
+            /** Partial Fulfilment */
+            partial_fulfilment: boolean;
+            /** Purchase Currency Mismatch */
+            purchase_currency_mismatch: boolean;
+            /** Quoted Operational Cost */
+            quoted_operational_cost?: string | null;
+            /** Reconciliation Status */
+            reconciliation_status?: ("INCOMPLETE" | "UNMATCHED" | "POTENTIAL_MATCH" | "MATCHED_EVIDENCE" | "VERIFIED" | "DISPUTED") | null;
+            /** Run Count */
+            run_count: number;
+            /**
+             * Sales Order Id
+             * Format: uuid
+             */
+            sales_order_id: string;
+            /** Sales Value */
+            sales_value: string;
+            /** Scenario Landed Total Including Vat */
+            scenario_landed_total_including_vat?: string | null;
+            /** Status */
+            status: string;
+        };
         /** OrderTransitionRequest */
         OrderTransitionRequest: {
             /** Reason */
@@ -3400,6 +4158,13 @@ export interface components {
              * @enum {string}
              */
             target: "CONFIRMED" | "IN_FULFILLMENT" | "FULFILLED" | "CLOSED" | "CANCELLED";
+        };
+        /** PercentTotalResponse */
+        PercentTotalResponse: {
+            /** Currency */
+            currency: string;
+            /** Value */
+            value: string;
         };
         /** PreviewHeaderResponse */
         PreviewHeaderResponse: {
@@ -3843,6 +4608,31 @@ export interface components {
             /** Supplier Quote Id */
             supplier_quote_id?: string | null;
         };
+        /** PurchaseOrderDetailResponse */
+        PurchaseOrderDetailResponse: {
+            /**
+             * Classification
+             * @enum {string}
+             */
+            classification: "ESTIMATED" | "COMMITTED" | "DOCUMENTED" | "FINANCE_OBSERVED" | "VERIFIED" | "UNAVAILABLE";
+            /** Currency */
+            currency: string;
+            /** Po Number */
+            po_number: string;
+            /**
+             * Purchase Order Id
+             * Format: uuid
+             */
+            purchase_order_id: string;
+            /** Status */
+            status: string;
+            /** Supplier Id */
+            supplier_id?: string | null;
+            /** Supplier Name */
+            supplier_name?: string | null;
+            /** Total Cost */
+            total_cost: string;
+        };
         /** PurchaseOrderItemRequest */
         PurchaseOrderItemRequest: {
             /** Description */
@@ -4068,6 +4858,55 @@ export interface components {
             to_status: string;
             /** Version After */
             version_after: number;
+        };
+        /** QuoteDetailResponse */
+        QuoteDetailResponse: {
+            /** Approved At */
+            approved_at?: string | null;
+            /** Currency */
+            currency: string;
+            /** Incoterm */
+            incoterm: string;
+            /** Lines */
+            lines: components["schemas"]["QuoteLineResponse"][];
+            /** Named Delivery Place */
+            named_delivery_place: string;
+            /** Payment Terms */
+            payment_terms: string;
+            /**
+             * Quote Id
+             * Format: uuid
+             */
+            quote_id: string;
+            /** Quote Number */
+            quote_number: string;
+            /** Revision */
+            revision: number;
+            /** Status */
+            status: string;
+            /**
+             * Valid Until
+             * Format: date
+             */
+            valid_until: string;
+        };
+        /** QuoteLineResponse */
+        QuoteLineResponse: {
+            /** Description */
+            description: string;
+            /** Line Total */
+            line_total: string;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Quantity */
+            quantity: string;
+            /** Unit */
+            unit: string;
+            /** Unit Price */
+            unit_price: string;
         };
         /**
          * ReadinessResponse
@@ -4318,6 +5157,41 @@ export interface components {
             status: "INCOMPLETE" | "UNMATCHED" | "POTENTIAL_MATCH" | "MATCHED_EVIDENCE" | "VERIFIED" | "DISPUTED";
             /** Version */
             version: number;
+        };
+        /** ReconciliationTimelineResponse */
+        ReconciliationTimelineResponse: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Data Through */
+            data_through?: string | null;
+            /** Evidence Count */
+            evidence_count: number;
+            /** Latest Decision */
+            latest_decision?: ("CONFIRM" | "DISPUTE" | "REQUEST_CHANGES") | null;
+            /** Latest Review At */
+            latest_review_at?: string | null;
+            /** Open Discrepancy Count */
+            open_discrepancy_count: number;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "INCOMPLETE" | "UNMATCHED" | "POTENTIAL_MATCH" | "MATCHED_EVIDENCE" | "VERIFIED" | "DISPUTED";
         };
         /** ReviewRequest */
         ReviewRequest: {
@@ -5313,6 +6187,29 @@ export interface components {
             /** User Agent */
             user_agent?: string | null;
         };
+        /** ShipmentCostDetailResponse */
+        ShipmentCostDetailResponse: {
+            /** Amount */
+            amount: string;
+            /**
+             * Classification
+             * @enum {string}
+             */
+            classification: "ESTIMATED" | "COMMITTED" | "DOCUMENTED" | "FINANCE_OBSERVED" | "VERIFIED" | "UNAVAILABLE";
+            /**
+             * Cost Id
+             * Format: uuid
+             */
+            cost_id: string;
+            /** Cost Type */
+            cost_type: string;
+            /** Currency */
+            currency: string;
+            /** Reference */
+            reference: string;
+            /** Stage */
+            stage: string;
+        };
         /** ShipmentCostRequest */
         ShipmentCostRequest: {
             /** Amount */
@@ -5393,6 +6290,20 @@ export interface components {
              * @enum {string}
              */
             transport_mode: "SEA" | "AIR" | "ROAD" | "RAIL" | "MULTIMODAL";
+        };
+        /** ShipmentDetailResponse */
+        ShipmentDetailResponse: {
+            /** Costs */
+            costs: components["schemas"]["ShipmentCostDetailResponse"][];
+            /**
+             * Shipment Id
+             * Format: uuid
+             */
+            shipment_id: string;
+            /** Shipment Number */
+            shipment_number: string;
+            /** Status */
+            status: string;
         };
         /** ShipmentEventRequest */
         ShipmentEventRequest: {
@@ -7660,6 +8571,284 @@ export interface operations {
             };
             /** @description If-Match header missing. */
             428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    intelligence_cost_variance_api_v1_finance_intelligence_cost_variance_get: {
+        parameters: {
+            query?: {
+                limit?: number | null;
+                offset?: number;
+                from?: string | null;
+                to?: string | null;
+                currency?: string | null;
+                fulfilment_model?: string | null;
+                order_status?: string | null;
+                customer_id?: string | null;
+                supplier_id?: string | null;
+                reconciliation_status?: string | null;
+                completeness?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CostVarianceListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    intelligence_coverage_api_v1_finance_intelligence_coverage_get: {
+        parameters: {
+            query?: {
+                from?: string | null;
+                to?: string | null;
+                currency?: string | null;
+                fulfilment_model?: string | null;
+                order_status?: string | null;
+                customer_id?: string | null;
+                supplier_id?: string | null;
+                reconciliation_status?: string | null;
+                completeness?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoverageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    intelligence_exceptions_api_v1_finance_intelligence_exceptions_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                severity?: string | null;
+                code?: string | null;
+                currency?: string | null;
+                order_id?: string | null;
+                from?: string | null;
+                to?: string | null;
+                limit?: number | null;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinancialExceptionListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    intelligence_export_api_v1_finance_intelligence_export_get: {
+        parameters: {
+            query?: {
+                from?: string | null;
+                to?: string | null;
+                currency?: string | null;
+                fulfilment_model?: string | null;
+                order_status?: string | null;
+                customer_id?: string | null;
+                supplier_id?: string | null;
+                reconciliation_status?: string | null;
+                completeness?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    intelligence_orders_api_v1_finance_intelligence_orders_get: {
+        parameters: {
+            query?: {
+                limit?: number | null;
+                offset?: number;
+                from?: string | null;
+                to?: string | null;
+                currency?: string | null;
+                fulfilment_model?: string | null;
+                order_status?: string | null;
+                customer_id?: string | null;
+                supplier_id?: string | null;
+                reconciliation_status?: string | null;
+                completeness?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderIntelligenceListResponse"];
+                };
+            };
+            /** @description Invalid filter. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    intelligence_order_detail_api_v1_finance_intelligence_orders__sales_order_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sales_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderIntelligenceDetailResponse"];
+                };
+            };
+            /** @description Unknown order. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    intelligence_summary_api_v1_finance_intelligence_summary_get: {
+        parameters: {
+            query?: {
+                from?: string | null;
+                to?: string | null;
+                currency?: string | null;
+                fulfilment_model?: string | null;
+                order_status?: string | null;
+                customer_id?: string | null;
+                supplier_id?: string | null;
+                reconciliation_status?: string | null;
+                completeness?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntelligenceSummaryResponse"];
+                };
+            };
+            /** @description Invalid filter. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
