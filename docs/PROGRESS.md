@@ -1,11 +1,12 @@
 # TOUCHE COMMERCE — Progress
 
 **Last updated:** 2026-10-23 (local)
-**Current stage:** Stage 7C1 — CRM recipient provenance (IN_PROGRESS; CI pending)
-**Current milestone:** 7C1 — active-tenant CRM contact match; consent still undocumented
+**Current stage:** Stage 7C1 — CRM recipient provenance (CI VERIFIED and merged)
+**Current milestone:** 7C1 — CRM source match and consent fail-closed, 561 backend / 192 frontend
 **Stage 6:** PASSED on Stage 6 local reported evidence (551 backend / 192 frontend, mock provider)
 **Stage 7A:** PASSED in GitHub CI (555 backend / 192 frontend, OpenAPI current; PR #1 merged); Windows browser acceptance not run
-**Stage 7B:** PASSED in GitHub CI (558 backend / 192 frontend, OpenAPI current; PR #2 merged); live providers and Windows browser acceptance not verified
+**Stage 7B:** PASSED in GitHub CI (558 backend / 192 frontend, PR #2 merged)
+**Stage 7C1:** PASSED in GitHub CI (561 backend / 192 frontend, PR #3 merged); live providers and browser acceptance not verified
 
 Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
 `FAILED`. Nothing is marked `PASSED` without an executed command in this file.
@@ -2120,7 +2121,7 @@ isolation. No live external calls or Finance writes.
 
 ---
 
-## 30. Stage 7C1 — CRM recipient provenance, NOT provider authentication (IN_PROGRESS)
+## 30. Stage 7C1 — CRM recipient provenance, NOT provider authentication (CI VERIFIED)
 
 Branch: `stage-7c`, based on Stage 7B docs HEAD `f44f405`.
 
@@ -2137,10 +2138,12 @@ Branch: `stage-7c`, based on Stage 7B docs HEAD `f44f405`.
 * No OAuth, token store, Gmail/WhatsApp provider credentials, send endpoint,
   scheduled job, money handling, or Finance integration change.
 
-**Verification pending:** authored integration tests for positive email/E.164
-CRM matches, missing/wrong/archived entries and always-missing consent.
-Full GitHub CI, contract regeneration and browser acceptance not yet verified.
-Stage 7C1 is not complete until these pass.
+**Verification:** GitHub Actions workflow `40021727161` PASSED: 561 backend,
+192 frontend, Ruff, mypy app, ESLint, Prettier, TypeScript, Next.js production
+build and OpenAPI drift. The new tests also caught and fixed an E.164 phone
+regex escaping issue (`ac3c4ad`). PR #3 merged to `main` at `7624c33`.
+**Not verified:** Windows interactive browser acceptance, contact ownership,
+channel-specific consent, Gmail/WhatsApp provider auth, real delivery.
 
 **Future Stage 7C:** verified contact control, independently audited
 channel-specific consent evidence, opt-out/suppression, authorized provider
