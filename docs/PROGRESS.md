@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-23 (local)
 **Current stage:** Stage 9 — safe local startup and CI (IN_PROGRESS; CI pending)
-**Current milestone:** 7C2 — 565 backend / 192 frontend; admin-only opt-out records; sending disabled
+**Current milestone:** Stage 9 GitHub CI verified and merged; Stage 10 gate/tests pending
 **Stage 6:** PASSED on Stage 6 local reported evidence (551 backend / 192 frontend, mock provider)
 **Stage 7A:** PASSED in GitHub CI (555 backend / 192 frontend, OpenAPI current; PR #1 merged); Windows browser acceptance not run
 **Stage 7B:** PASSED in GitHub CI (558 backend / 192 frontend, PR #2 merged)
@@ -2224,3 +2224,23 @@ HTTP acceptance run starts the actual E-YAY local runtime in an approved sandbox
   acceptance is claimed until exercised separately.
 
 **Verification pending:** stacked PR and GitHub CI including Windows parser.
+
+
+---
+
+## 34. Stage 10 — Release-readiness contract (IN_PROGRESS)
+
+Stage 9's CI suite passed (backend, frontend, contract and Windows PowerShell
+AST syntax) and PR #7 merged at `40a69d8`. This does not prove the local
+Windows workstation was started or production operations are ready.
+
+Stage 10 introduces a non-invasive, stdlib-only release gate:
+`python scripts/release-gate.py --target ci|local|production`. CI checks
+required repository files and refuses claims of enabled Gmail, WhatsApp,
+Finance ledger writes, trading execution or production readiness. Local and
+production targets deliberately fail closed until evidence that static CI
+cannot provide is gathered separately. See
+`docs/STAGE10_RELEASE_READINESS.md` for actual acceptance conditions.
+
+GitHub CI status for Stage 10 remains pending until checked. No live Finance
+data, provider accounts or financial operations have been touched.
