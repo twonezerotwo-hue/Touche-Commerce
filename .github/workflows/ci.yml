@@ -60,6 +60,9 @@ jobs:
       - name: Bootstrap database roles
         run: bash scripts/db/bootstrap-roles.sh
 
+      - name: Bootstrap isolated test database
+        run: bash scripts/db/bootstrap-ci-test-database.sh
+
       - name: Apply Alembic migrations
         working-directory: backend
         run: python -m alembic upgrade head
