@@ -94,7 +94,7 @@ export function IntelligenceOrdersTable({
   emptyDescription?: string;
 }) {
   if (items.length === 0) {
-    return <EmptyState title={emptyTitle} description={emptyDescription} />;
+    return <EmptyState embedded title={emptyTitle} description={emptyDescription} />;
   }
   return (
     <Table>

@@ -8,13 +8,27 @@ export interface EmptyStateProps {
   description?: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
+  /**
+   * Drop the panel chrome. Use it when the empty state already sits inside a panel
+   * (a table wrapper), so the screen shows one surface instead of a box in a box.
+   */
+  embedded?: boolean;
 }
 
-export function EmptyState({ icon, title, description, action, className }: EmptyStateProps) {
+export function EmptyState({
+  icon,
+  title,
+  description,
+  action,
+  className,
+  embedded = false,
+}: EmptyStateProps) {
   return (
     <div
+      data-embedded={embedded ? "true" : undefined}
       className={cn(
-        "panel flex flex-col items-center rounded-xl px-6 py-12 text-center",
+        "flex flex-col items-center px-6 py-12 text-center",
+        embedded ? "py-10" : "panel rounded-xl",
         className,
       )}
     >

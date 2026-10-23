@@ -27,6 +27,7 @@ export function DiscrepancyQueue({
   if (items.length === 0) {
     return (
       <EmptyState
+        embedded
         title="No discrepancies"
         description="No deterministic exceptions match the current filters."
       />

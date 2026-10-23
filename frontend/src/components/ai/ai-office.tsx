@@ -232,7 +232,7 @@ export function AiOffice({
   return (
     <div className="grid gap-5 xl:grid-cols-[17rem_minmax(0,1fr)_24rem]">
       {/* Left: context and history */}
-      <aside className="space-y-4" aria-label="Context and history">
+      <aside className="order-3 space-y-4 xl:order-1" aria-label="Context and history">
         <ProviderStatusCard status={status} companyName={companyName} />
 
         <section className="panel space-y-2 p-3" aria-label="Conversations">
@@ -283,7 +283,10 @@ export function AiOffice({
       </aside>
 
       {/* Centre: conversation */}
-      <section className="panel flex min-h-[34rem] min-w-0 flex-col" aria-label="Conversation">
+      <section
+        className="panel order-1 flex min-h-[34rem] min-w-0 flex-col xl:order-2"
+        aria-label="Conversation"
+      >
         <div className="flex-1 space-y-4 overflow-auto p-4 lg:p-5">
           {disabled ? (
             <Alert variant="warning" title="AI Office is unavailable">
@@ -406,7 +409,7 @@ export function AiOffice({
       </section>
 
       {/* Right: proposals, activity, tools */}
-      <aside className="min-w-0 space-y-3" aria-label="Actions and activity">
+      <aside className="order-2 min-w-0 space-y-3 xl:order-3" aria-label="Actions and activity">
         <div role="tablist" aria-label="Panels" className="panel flex gap-1 p-1">
           {(
             [

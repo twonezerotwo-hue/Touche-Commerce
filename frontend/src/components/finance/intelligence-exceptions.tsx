@@ -28,6 +28,7 @@ export function IntelligenceExceptionsTable({
   if (items.length === 0) {
     return (
       <EmptyState
+        embedded
         title="No financial exceptions"
         description="No exceptions match the current filters."
       />

@@ -85,6 +85,21 @@ def _evidence(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return items
 
 
+def _diverse(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """One record of each type first, so a long list cannot crowd out a whole category."""
+    seen: set[str] = set()
+    leaders: list[dict[str, Any]] = []
+    rest: list[dict[str, Any]] = []
+    for item in items:
+        kind = str(item.get("entity_type"))
+        if kind in seen:
+            rest.append(item)
+        else:
+            seen.add(kind)
+            leaders.append(item)
+    return leaders + rest
+
+
 def _first(items: list[dict[str, Any]], entity_type: str) -> dict[str, Any] | None:
     return next((i for i in items if i.get("entity_type") == entity_type), None)
 
@@ -202,7 +217,7 @@ class MockProvider:
 
     # --------------------------------------------------------------- answer
     def _answer(self, text: str, results: list[dict[str, Any]]) -> dict[str, Any]:
-        evidence = _evidence(results)
+        evidence = _diverse(_evidence(results))
         intents = _intents(text)
         findings: list[dict[str, Any]] = []
         missing: list[dict[str, Any]] = []
@@ -229,7 +244,7 @@ class MockProvider:
                     "figures": figures,
                 }
             )
-            warnings = list(item.get("warnings") or [])
+            warnings = [str(w).replace("_", " ").lower() for w in item.get("warnings") or []]
             incomplete = item.get("completeness") not in (None, "COMPLETE")
             for warning in warnings[:2]:
                 missing.append(

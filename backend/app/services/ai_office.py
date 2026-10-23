@@ -10,6 +10,7 @@ decision (see :mod:`app.ai.proposals`).
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -316,6 +317,16 @@ def _proposal(row: AiProposal) -> ProposalRecord:
         created_at=row.created_at,
         updated_at=row.updated_at,
         version=row.version,
+    )
+
+
+def _proposal_fingerprint(kind: str, title: str, payload: dict[str, Any]) -> tuple[str, ...]:
+    """Identity of a pending proposal: the same task on the same record, the same draft text."""
+    return (
+        kind,
+        title,
+        json.dumps(payload.get("target"), sort_keys=True),
+        str(payload.get("body") or ""),
     )
 
 
@@ -639,6 +650,7 @@ class AiOfficeService:
             run.validation_warnings = finish.validation_warnings
             run.safety_flags = finish.safety_flags
             run.finished_at = now
+            created: list[UUID] = []
             if finish.status is RunStatus.COMPLETED and finish.assistant_text is not None:
                 session.add(
                     AiMessage(
@@ -652,10 +664,28 @@ class AiOfficeService:
                         evidence=finish.evidence,
                     )
                 )
+                pending = {
+                    _proposal_fingerprint(row.kind, row.title, row.payload)
+                    for row in session.scalars(
+                        select(AiProposal).where(
+                            AiProposal.company_id == company_id,
+                            AiProposal.status == ProposalStatus.PROPOSED.value,
+                        )
+                    )
+                }
                 for proposal in finish.proposals:
+                    # The same follow-up asked twice stays one pending proposal.
+                    fingerprint = _proposal_fingerprint(
+                        proposal.kind.value, proposal.title, proposal.payload
+                    )
+                    if fingerprint in pending:
+                        continue
+                    pending.add(fingerprint)
+                    proposal_id = uuid4()
+                    created.append(proposal_id)
                     session.add(
                         AiProposal(
-                            id=uuid4(),
+                            id=proposal_id,
                             company_id=company_id,
                             conversation_id=run.conversation_id,
                             run_id=run.id,
@@ -668,6 +698,23 @@ class AiOfficeService:
                             evidence=proposal.evidence,
                             warnings=proposal.warnings,
                         )
+                    )
+                    record_audit(
+                        session,
+                        action=AuditAction.AI_PROPOSAL_CREATED,
+                        outcome=AuditOutcome.SUCCESS,
+                        actor_type=AuditActorType.AGENT,
+                        actor_id=user_id,
+                        company_id=company_id,
+                        request_id=request_id,
+                        resource_type="ai_proposal",
+                        resource_id=str(proposal_id),
+                        details={
+                            "kind": proposal.kind.value,
+                            "action_type": proposal.action_type.value,
+                            "warnings": list(proposal.warnings),
+                            "on_behalf_of": str(user_id),
+                        },
                     )
             conversation = session.get(AiConversation, run.conversation_id)
             if conversation is not None:
@@ -701,7 +748,7 @@ class AiOfficeService:
                     "error": finish.error_code,
                     "safety_flags": finish.safety_flags,
                     "validation_warnings": finish.validation_warnings,
-                    "proposals": len(finish.proposals),
+                    "proposals": len(created),
                 },
             )
 

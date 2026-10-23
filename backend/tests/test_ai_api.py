@@ -549,9 +549,7 @@ def test_an_unsupported_action_cannot_be_approved(
             action_spec("SEND_EMAIL")
         with pytest.raises(Exception, match="ck_ai_proposal_action_type"):
             session.execute(
-                text(
-                    "UPDATE touche.ai_proposal SET action_type = 'SEND_EMAIL' WHERE id = :id"
-                ),
+                text("UPDATE touche.ai_proposal SET action_type = 'SEND_EMAIL' WHERE id = :id"),
                 {"id": draft["id"]},
             )
 
@@ -972,7 +970,9 @@ def test_status_never_reveals_a_configured_credential(
 ) -> None:
     from pydantic import SecretStr
 
-    install_ai(ai_api_key=SecretStr("sk-test-SECRET-VALUE-123"), ai_base_url="https://example.invalid")
+    install_ai(
+        ai_api_key=SecretStr("sk-test-SECRET-VALUE-123"), ai_base_url="https://example.invalid"
+    )
     for path in ("/status", "/tools", "/suggestions", "/conversations", "/activity"):
         response = world.client.get(f"{API}{path}")
         assert response.status_code == 200
@@ -1006,3 +1006,29 @@ def test_database_records_match_the_api(
             select(func.count()).select_from(AiProposal).where(AiProposal.run_id == stored.id)
         ).scalar_one()
     assert proposals == len(run["proposals"]) >= 1
+
+
+def test_asking_twice_keeps_one_pending_proposal_and_audits_each_creation(
+    world: OrderWorld, install_ai: Callable[..., AIRuntime], migration_database: Database
+) -> None:
+    install_ai()
+    first = ask(
+        world.client, world.csrf, "Draft a follow-up email to suppliers about my deal quotes"
+    )
+    second = ask(
+        world.client, world.csrf, "Draft a follow-up email to suppliers about my deal quotes"
+    )
+    assert first["status"] == second["status"] == "COMPLETED"
+    assert first["proposals"], "the first run must create proposals"
+    # Identical drafts and identical tasks on the same record are not proposed again.
+    assert second["proposals"] == []
+
+    pending = world.client.get(f"{API}/proposals", params={"proposal_status": "PROPOSED"}).json()
+    assert len(pending["items"]) == len(first["proposals"])
+    with migration_database.session() as session:
+        created = session.execute(
+            select(func.count())
+            .select_from(AuditRecord)
+            .where(AuditRecord.action == AuditAction.AI_PROPOSAL_CREATED.value)
+        ).scalar_one()
+    assert created == len(first["proposals"])
