@@ -1353,7 +1353,7 @@ drift); PR #2 merged. Provider integration and Windows browser acceptance
 were not run, and the endpoint cannot dispatch a message.
 
 
-### 14.2 Stage 7C1 — CRM source comparison (IN PROGRESS)
+### 14.2 Stage 7C1 — CRM source comparison (CI VERIFIED)
 
 `POST /communications/preflight` optionally accepts `counterparty_id` as
 a UUID alongside the previous fields. With an authorized active tenant, the
@@ -1366,4 +1366,6 @@ CRM record or contact secret in the response.
 a record match does not assert permission, contact ownership or consent.
 The existing `sendable=false`, `external_sending_enabled=false` and
 `recipient_echoed=false` guarantees remain unchanged. No send operation exists.
-Stage 7C1 CI and browser tests remain open.
+CI workflow `40021727161` passed with 561 backend and 192 frontend tests,
+and PR #3 merged. No interactive browser or actual provider/consent evidence
+verification was performed.
