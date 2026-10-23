@@ -32,13 +32,14 @@ a private trade-document register.
 | API (`127.0.0.1:8000`) incl. CRM, catalogue, deals, dashboard | ✅ verified |
 | Sourcing API + screens (RFQs, supplier quotes, pricing, sales quotes, FX) | ✅ verified at API/integration level |
 | Execution API + screens (orders, purchase orders, shipments, documents) | ✅ verified at API/integration/SSR level |
-| PostgreSQL 17 + migrations `0001_foundation` … `0009_reconciliation` | ✅ verified |
+| PostgreSQL 17 + migrations `0001_foundation` … `0010_ai_office` | ✅ verified |
 | `/api/v1/health/live` · `/api/v1/health/ready` | ✅ 200 |
-| Backend tests (unit + live DB incl. RLS matrix) | ✅ 402 passed |
-| Frontend tests / lint / typecheck / build | ✅ 160 passed, clean |
+| Backend tests (unit + live DB incl. RLS matrix) | ✅ 551 passed |
+| Frontend tests / lint / typecheck / build | ✅ 192 passed, clean |
 | Finance read-only connector (`/api/v1/finance/*`) | ✅ Stage 5C; isolated HTTP PASS |
 | Evidence reconciliation (`/finance/reconciliation`) | ✅ Stage 5D; isolated HTTP PASS |
 | Financial intelligence (`/api/v1/finance/intelligence/*`, `/finance/intelligence`) | ✅ Stage 5E; isolated HTTP PASS, real-browser review (findings fixed; minor items listed) |
+| AI Trade Director (`/api/v1/ai/*`, `/ai`) | ✅ Stage 6; mock provider verified, real provider `REAL_PROVIDER_BLOCKED` (no credential) |
 | Live identity verification (`scripts\verify-identity.ps1`) | ✅ 31 checks passed |
 | Live trade workflow (`scripts\verify-trade.ps1`) | ✅ 39 checks passed |
 | Live sourcing workflow (`scripts\verify-sourcing.ps1`) | ✅ 53 checks passed |
@@ -240,6 +241,11 @@ the `TOUCHE_` prefix; secrets are wrapped and never logged.
 | `TOUCHE_FINANCE_INTEGRATION_SECRET` | Finance integration secret (32+ characters); server-side only, never `NEXT_PUBLIC_*` |
 | `TOUCHE_FINANCE_INTEGRATION_TIMEOUT_SECONDS` | Request budget, 0.1–10 s (default 2) |
 | `TOUCHE_FINANCE_INTEGRATION_MAX_RESPONSE_BYTES` | Bounded Finance response, default 1 MiB |
+| `TOUCHE_AI_ENABLED` | `true` enables the AI Office (default `false`) |
+| `TOUCHE_AI_PROVIDER` | `mock` (offline, local/test only) · `openai_compatible` · `anthropic` |
+| `TOUCHE_AI_API_KEY` / `TOUCHE_AI_BASE_URL` | Real-provider credential and `https` base URL; server-side only, never returned |
+| `TOUCHE_AI_EXTERNAL_PROCESSING_ACKNOWLEDGED` | Must be `true` for a real provider (data leaves the host; ADR-048) |
+| `TOUCHE_AI_MAX_*` / `..._DAILY_*_BUDGET` / `..._RUN_DEADLINE_SECONDS` | Step, tool-call, token, concurrency, rate, spend and time limits (ADR-053) |
 | `NEXT_PUBLIC_API_BASE_URL` | API origin used by server components |
 | `API_INTERNAL_BASE_URL` | Optional internal proxy target (defaults to the public base URL) |
 | `NEXT_PUBLIC_API_TIMEOUT_MS` | Client/SSR request budget (10 s) |
@@ -617,3 +623,68 @@ the browser.
 **Not implemented:** actual profit, document-supported margin, saved or scheduled
 reports, Finance writes, invoices, payments, bank transfers, journals, AI Trade
 Director, Gmail/WhatsApp automation and E-YAY integration.
+
+
+---
+
+## Stage 6 acceptance — AI Trade Director
+
+**Commerce migration:** `0010_ai_office` (head).
+
+Stage 6 adds an assistant that reads the company's real records through sixteen
+read-only tools, cites every source, separates recorded fact from its own inference,
+and proposes drafts and tasks that only a person can approve. It cannot send, sign, pay,
+post, accept a quote, mark a deal won or delete anything; approving a proposal records a
+human decision and nothing else. The company always comes from the session, the live
+membership is re-checked on every tool call, text stored in records is treated as
+untrusted data, and the provider credential never leaves the server.
+
+```text
+GET /ai          AI Office: conversation, evidence, tool progress, proposals, history, tools
+```
+
+API (all under `/api/v1/ai`, `company.view`; approve/edit/reject need `trade.write`):
+
+```text
+GET  status · tools · suggestions · activity
+POST conversations                      GET conversations[/{id}]
+POST conversations/{id}/messages        202, runs in the background
+GET  runs/{id}                          POST runs/{id}/cancel
+GET  proposals[/{id}]                   PATCH proposals/{id}   (If-Match)
+POST proposals/{id}/approve | reject    (If-Match; records a decision)
+```
+
+**Providers.** `TOUCHE_AI_ENABLED=false` by default. `mock` is a deterministic offline
+provider for development and tests. A real provider (`openai_compatible` or
+`anthropic`) needs `TOUCHE_AI_API_KEY`, a base URL and
+`TOUCHE_AI_EXTERNAL_PROCESSING_ACKNOWLEDGED=true` — it sends questions and the records
+the tools return to a third party (ADR-048). The adapters were verified against local
+stubs speaking each provider's documented wire format; **no live provider call has been
+made** (`REAL_PROVIDER_BLOCKED`: no AI credential is configured for Commerce).
+
+**Verification:** backend ``551 passed``; frontend ``192 passed` across 25 files`; ruff, mypy, ESLint,
+Prettier, typecheck, `next build` and the OpenAPI drift check pass; Alembic upgrade,
+downgrade and re-upgrade pass; the isolated HTTP verifier reports
+`ISOLATED_HTTP_VERIFIED` with the Stage 6 step `MOCK_PROVIDER_VERIFIED` (a real open
+deal with two supplier quotes compared against the stored totals, the real order's
+shipment, profitability and Finance view, a draft edited and approved without anything
+being sent, an unauthorised approval refused, another company unable to read the
+conversation or the records, a hostile deal note withheld, an oversized message
+refused, no prompt text in the API log, no business row changed). A real-browser tour
+of `/ai` covered the thread, evidence links, tool progress, proposal approval, history
+loading, the 768 px layout and the Stage 6I fixes. Reproduce with
+`backend\.venv\Scripts\python.exe backend\scripts\verify_finance_http.py` (needs ports
+8000/3000/8877 free). The final re-run on the last tree is still open (PROGRESS §27.7).
+See `docs/PROGRESS.md` §27.
+
+**Stage 6I interface debt:** muted text now meets WCAG AA (`mist-500` `#8190a6`,
+`mist-600` `#7a8ba2`), the sidebar highlights only the most specific entry, the footer
+names the current stage, empty tables no longer sit in a box within a box, and no page
+overflows horizontally at 768 px. Remaining accessibility debt (no screen-reader pass,
+focus order and contrast checked only by measurement) is listed in PROGRESS §27.7.
+
+**Not verified:** any live AI provider, Docker Compose, GitHub Actions, a screen reader.
+
+**Not implemented:** Gmail/WhatsApp, e-mail or message sending, E-YAY, web crawling,
+accounting writes, bank payments, contract signature or any commitment on a person's
+behalf.

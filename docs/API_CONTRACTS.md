@@ -991,6 +991,19 @@ specified in `docs/STAGE5_FINANCE_DISCOVERY.md` §8 and are **not** callable yet
 | `GET` | `/api/v1/finance/intelligence/coverage` | 5E | Implemented |
 | `GET` | `/api/v1/finance/intelligence/exceptions` | 5E | Implemented |
 | `GET` | `/api/v1/finance/intelligence/export` | 5E | Implemented (CSV, audited) |
+| `GET` | `/api/v1/ai/status` | 6 | Implemented (provider mode, limits, usage) |
+| `GET` | `/api/v1/ai/tools` | 6 | Implemented (registry, classes, blocked actions) |
+| `GET` | `/api/v1/ai/suggestions` | 6 | Implemented |
+| `POST` | `/api/v1/ai/conversations` | 6 | Implemented |
+| `GET` | `/api/v1/ai/conversations[/{id}]` | 6 | Implemented (owner only) |
+| `POST` | `/api/v1/ai/conversations/{id}/messages` | 6 | Implemented (202, background run) |
+| `GET` | `/api/v1/ai/runs/{id}` | 6 | Implemented |
+| `POST` | `/api/v1/ai/runs/{id}/cancel` | 6 | Implemented |
+| `GET` | `/api/v1/ai/activity` | 6 | Implemented |
+| `GET` | `/api/v1/ai/proposals[/{id}]` | 6 | Implemented |
+| `PATCH` | `/api/v1/ai/proposals/{id}` | 6 | Implemented (If-Match, trade.write) |
+| `POST` | `/api/v1/ai/proposals/{id}/approve` | 6 | Implemented (If-Match, trade.write; records a decision only) |
+| `POST` | `/api/v1/ai/proposals/{id}/reject` | 6 | Implemented (If-Match, trade.write) |
 
 Reserved endpoints do not exist in the running service; requesting them returns
 `404 NOT_FOUND`. They are listed so the frontend and future integrations share a
@@ -1215,3 +1228,95 @@ forwards `content-disposition` and `x-content-type-options`.
 | `UNAUTHORIZED` / `FORBIDDEN` | 401 / 403 | no session, no active company, or no `company.view` |
 | `METHOD_NOT_ALLOWED` | 405 | any non-`GET` request |
 
+## 13. Stage 6 — AI Office (Trade Director)
+
+Base path `/api/v1/ai`. Every route needs a session, an active company and
+`company.view`; editing and deciding a proposal need `trade.write` (re-checked against
+the live membership). The company is always the session's active company — no request
+field names one. Responses are `no-store`. Errors use the standard envelope.
+
+### 13.1 Endpoints
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/ai/status` | Mode (`DISABLED`/`MOCK`/`REAL`), provider and model, prompt version, limits, today's usage and budgets, `can_approve`, and the literal guarantees `read_only_tools=true`, `accounting_writes_enabled=false`, `sends_messages=false`. Never returns a credential or the provider URL. |
+| `GET` | `/ai/tools` | The 16 read-only tools (name, description, class, required permission, `available` for the caller, JSON schema), the four approval classes and the list of blocked actions with the reason. |
+| `GET` | `/ai/suggestions` | Suggested starting questions. |
+| `POST` | `/ai/conversations` | Start a conversation (`201`). |
+| `GET` | `/ai/conversations` | The caller's own conversations in the active company. |
+| `GET` | `/ai/conversations/{id}` | Messages (with validated answers and evidence) and proposals. Another user's conversation, even in the same company, is `404`. |
+| `POST` | `/ai/conversations/{id}/messages` | Ask a question. `202` with the run and the stored user message; the model runs in the background. |
+| `GET` | `/ai/runs/{id}` | Progress (tool calls so far) and, once `COMPLETED`, the assistant message and the proposals it produced. |
+| `POST` | `/ai/runs/{id}/cancel` | Cooperative cancel by the run's owner (`202`); `409` if it already finished. |
+| `GET` | `/ai/activity` | The caller's recent runs with token and tool counts. |
+| `GET` | `/ai/proposals`, `/ai/proposals/{id}` | Drafts and task proposals of the company (`?proposal_status=`, `?conversation_id=`); `ETag: "v{n}"`. |
+| `PATCH` | `/ai/proposals/{id}` | Edit wording of a pending proposal. `If-Match` required (`428`/`409 VERSION_CONFLICT`). |
+| `POST` | `/ai/proposals/{id}/approve` | Record a human approval. `If-Match` required; body `{notes?, acknowledge_warnings}`. |
+| `POST` | `/ai/proposals/{id}/reject` | Record a rejection. |
+
+### 13.2 Run lifecycle and errors
+
+`RUNNING` → `COMPLETED` | `FAILED` | `CANCELLED`. A run carries `provider`, `model`,
+`prompt_version`, token counters (`estimated_usage` when the provider did not report
+them), `model_steps`, `tool_call_count`, `error_code`, `validation_warnings` and
+`safety_flags`. It never carries a prompt or a tool result.
+
+| Code | HTTP | Meaning |
+|---|---|---|
+| `AI_DISABLED` | 503 | The AI Office is off. |
+| `AI_INPUT_TOO_LARGE` | 413 | Empty or oversized message. |
+| `AI_TOO_MANY_RUNS` | 429 | Per-user per-minute rate limit or concurrent-run limit. |
+| `AI_BUDGET_EXCEEDED` | 429 (admission) / run `error_code` | Daily budget, per-request token budget or step limit. |
+| `AI_PROVIDER_UNAVAILABLE` / `_TIMEOUT` / `_RATE_LIMITED` | run `error_code` | Retryable provider failures after the bounded retries. |
+| `AI_PROVIDER_AUTH_FAILED` / `_QUOTA_EXCEEDED` / `_BAD_RESPONSE` | run `error_code` | Not retried. |
+| `AI_RUN_CANCELLED` | run `error_code` | Cancelled by the owner. |
+| `AI_PROPOSAL_STATE_INVALID` | 409 | Proposal already decided, or an unacknowledged `UNVERIFIED_NUMBER`. |
+| `AI_ACTION_NOT_SUPPORTED` | 409 | An action type with no executor. |
+
+### 13.3 The answer contract
+
+`message.structured` is the server-validated answer:
+
+```json
+{
+  "summary": "…",
+  "findings": [{"claim": "…", "basis": "CONFIRMED_SOURCE", "evidence": ["E1"],
+                "figures": [{"label": "total value", "value": "250.00", "currency": "USD", "evidence": "E1"}],
+                "warnings": []}],
+  "recommendations": [{"action": "…", "priority": "HIGH", "rationale": "…", "evidence": ["E1"]}],
+  "missing_inputs": [{"item": "…", "evidence": ["E1"]}],
+  "drafts": [{"kind": "SUPPLIER_FOLLOW_UP", "title": "…", "body": "…", "evidence": ["E1"]}],
+  "task_proposals": [{"title": "…", "priority": "MEDIUM", "target": {"entity_type": "DEAL", "entity_id": "…"}, "evidence": ["E1"]}],
+  "warnings": ["UNVERIFIED_NUMBER"]
+}
+```
+
+`message.evidence` holds only the items the answer cites: `id`, `entity_type`,
+`entity_id`, `reference`, `label`, `basis`, `as_of`, `completeness`, `facts` (exact
+decimal strings from the deterministic services), `warnings`, `tool` and `href` — an
+application route computed by the server, or `null`. Validation warning codes:
+`UNVERIFIED_NUMBER`, `UNVERIFIED_FIGURE_REMOVED`, `UNKNOWN_EVIDENCE_REMOVED`,
+`NO_SOURCE_EVIDENCE`, `BASIS_DOWNGRADED`, `BASIS_INVALID`, `UNKNOWN_TARGET_REMOVED`,
+`RESPONSE_NOT_STRUCTURED`, `EDITED_BY_USER`. Safety flags on a run:
+`INJECTION:<kind>`, `BLOCKED_TOOL_REQUESTED`, `UNKNOWN_TOOL_REQUESTED`,
+`COMPANY_ID_ARGUMENT`, `PERMISSION_DENIED`.
+
+### 13.4 Tools (all `READ_ONLY`, `company.view`)
+
+`get_company_trade_overview`, `search_counterparties`, `search_products`,
+`list_active_deals`, `get_deal_details`, `get_supplier_quotes`,
+`compare_supplier_offers`, `get_pricing_scenario`, `list_sales_orders`,
+`get_order_details`, `get_purchase_commitments`, `get_shipment_status`,
+`get_document_metadata`, `get_order_profitability`, `get_finance_reconciliation`,
+`list_financial_discrepancies`. Arguments are validated against a closed schema;
+result size and list length are bounded; contact details and document contents are
+never returned; the Finance application is never queried.
+
+### 13.5 Audit
+
+New append-only actions: `ai.conversation.created`, `ai.run.completed`, `ai.run.failed`,
+`ai.run.cancelled`, `ai.tool.executed`, `ai.tool.denied`, `ai.action.blocked`,
+`ai.proposal.created`, `ai.proposal.edited`, `ai.proposal.approved`,
+`ai.proposal.rejected`. Tool and run events use `actor_type=agent` with the person on
+whose authority the agent acted as `actor_id`; details hold counts, tool names and
+validated arguments, never prompts or results.

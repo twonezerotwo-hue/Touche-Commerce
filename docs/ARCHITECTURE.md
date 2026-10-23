@@ -1329,3 +1329,112 @@ rendered screens, tenant isolation and unchanged Finance hashes. Level:
 `ISOLATED_HTTP_VERIFIED`, plus a real-browser review at four widths whose defects
 were fixed; no live Finance (PROGRESS §26).
 
+## 26. Stage 6 — the AI Trade Director
+
+Stage 6 adds an assistant that analyses the company's real records, explains them,
+cites its sources and proposes drafts and tasks for a person to approve. It is a
+consumer of the services that already exist: it has no data of its own beyond
+conversation history, usage metadata and proposals, and no path that changes a deal,
+an order, a shipment, a document or the accounting. ADRs 048–053 record the decisions.
+
+### 26.1 Components
+
+```
+ browser ──► /ai (Next.js) ──► /api/v1/ai/* (FastAPI)
+                                   │
+                 AIRuntime (one per process)
+   ┌───────────────┬───────────────┼────────────────┬──────────────────┐
+   │ AiOfficeService│  AIGateway    │ ToolExecutor   │ Evidence registry │
+   │ conversations, │ provider call │ registry of 16 │ + response        │
+   │ runs, tool log,│ retry, timeout│ READ_ONLY tools│ validator         │
+   │ usage, proposals│ budget, cancel│ authz, schema │ (ADR-050)         │
+   └───────┬────────┴──────┬────────┴───────┬────────┴──────────────────┘
+           │               │                │
+      PostgreSQL     ModelProvider      existing services (same RLS,
+   (RLS, audit)   mock │ OpenAI-compatible │ Anthropic     permissions, rules)
+```
+
+* `app/ai/providers` — the `ModelProvider` protocol and three adapters. HTTP uses the
+  standard library only (no new dependency); redirects are never followed; responses
+  are capped at 2 MiB; every failure maps to a provider error without a body or a
+  credential. The OpenAI-compatible adapter speaks `POST {base}/chat/completions` with
+  `tools[].function`; the Anthropic adapter speaks `POST {base}/v1/messages` with
+  `input_schema` and `tool_use`/`tool_result` blocks. Both were written against the
+  providers' public documentation and are exercised against a local stub server; a live
+  call needs a credential and is reported separately (`REAL_PROVIDER_BLOCKED`).
+* `app/ai/gateway.py` — bounded retries with `Retry-After`, per-request budgets
+  (tokens, steps, tool calls), a non-blocking concurrency limiter, a cancellable run
+  registry, usage estimation when a provider omits it, and logging of sizes only.
+* `app/ai/prompts.py` — versioned prompt (`trade_director@1.0.0`) stored with every run.
+* `app/ai/tools` — the registry, the executor and the 16 read-only handlers.
+* `app/ai/evidence.py`, `safety.py`, `proposals.py` — evidence registry and validator,
+  untrusted-text handling, and the only two executable approval actions.
+* `app/ai/director.py` — `AIRuntime` (admission checks, run lifecycle) and the bounded
+  loop.
+* `app/services/ai_office.py` — persistence and the human-approval rules.
+* `app/api/v1/routes/ai.py` — the HTTP surface (API_CONTRACTS §13).
+
+### 26.2 One request, end to end
+
+1. `POST /ai/conversations/{id}/messages` — the route checks the session, the active
+   company and `company.view`; the runtime checks that the AI Office is enabled, the
+   message size, the per-user rate, the daily budget and a free concurrency slot; it
+   records the run (`RUNNING`) and the user message in one transaction and answers `202`.
+2. A background task builds the context (versioned system prompt, a server-written
+   context block naming the company, the last messages) and loops: call the model →
+   for each requested tool, execute it (§26.3) → append the bounded result → repeat,
+   until the model answers or a limit is reached. Cancellation and the deadline are
+   checked before every step.
+3. The final text is parsed and validated against the run's evidence (ADR-050). The
+   assistant message (summary, validated answer, cited evidence) and any proposals are
+   stored together with the run's counters and the audit row.
+4. The client polls `GET /ai/runs/{id}`; tool progress appears as soon as each call is
+   logged.
+
+### 26.3 What the executor guarantees for every tool call
+
+Refuse unknown/blocked names → refuse invalid arguments → re-read the *current*
+membership → validate against a closed schema → run the handler with the
+server-chosen company → withhold instruction-like text → bound the size → register
+evidence → log the call → audit it. The model cannot choose, change or see a company id.
+
+### 26.4 Data model (migration `0010_ai_office`)
+
+`ai_conversation`, `ai_run`, `ai_message`, `ai_tool_call`, `ai_proposal` — all with
+`company_id`, composite `(id, company_id)` foreign keys and row level security on
+`touche.current_company_id()`. Runtime grants are narrow: `ai_message` and
+`ai_tool_call` are append-only (`SELECT, INSERT`); conversation, run and proposal can
+be updated only in the columns the application changes; nothing can be deleted. The
+audit CHECK gains eleven `ai.*` actions. Nothing stores a prompt sent to a provider, a
+credential, a raw tool result or a document body. Downgrade removes the tables and is
+refused while `ai.*` audit rows exist (the audit trail is append-only).
+
+### 26.5 Security properties
+
+* **Authority.** Read-only tools; two proposal actions that record a decision; a CHECK
+  constraint and an executor registry that cannot express anything else.
+* **Tenancy.** Company from the session only; every service call runs in the company's
+  RLS context; another user's conversation is `404`; a revoked membership loses tool
+  access on the next call.
+* **Untrusted input.** Stored text is sanitised and instruction-like text is withheld
+  (ADR-052); tool arguments are validated; tool results are size-bounded.
+* **Traceability.** Every claim is labelled with a basis and cites evidence the tools
+  returned; the server computes links and rejects invented citations and figures.
+* **Secrets.** The provider credential is a `SecretStr`, never returned, never logged;
+  errors and audit rows hold no prompt, result or credential.
+* **Resource limits.** ADR-053.
+* **Known limits.** Cancellation, the concurrency limiter and the per-user rate are
+  per process or per database window; a multi-process deployment needs a shared limiter
+  and a job runner (not needed for a single local process).
+
+### 26.6 Frontend
+
+`/ai` is a server component that loads status, tools, suggestions, conversations,
+proposals and activity, then renders a client workspace **keyed by the company id**, so
+switching company discards every conversation, draft and proposal. Panels: provider
+status and budget; history; the thread with validated answers (basis badge per claim,
+figures, links to the cited records, server-side warnings in plain language, a sources
+list); live tool progress with cancel; proposed actions (draft preview stating nothing
+is sent, edit, approve/reject only for `trade.write`); activity history; the tool
+registry with the actions that are never available. Hrefs are only followed when they
+are application-internal paths.

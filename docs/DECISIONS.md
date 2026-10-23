@@ -1260,3 +1260,198 @@ no lines), `intelligence.test.tsx` (per-currency card, “Not available” witho
 no kind badge on a figure-less metric, chart legend and table view), and the isolated
 HTTP run on the part-shipped order.
 
+## ADR-048 — A real AI provider is external data processing and must be acknowledged
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 6)
+
+**Decision.** The AI Office is disabled by default (`TOUCHE_AI_ENABLED=false`). The
+only provider that works without any configuration is the offline `mock` provider,
+which is deterministic, makes no network call and is refused in `staging` and
+`production`. A real provider (`openai_compatible` or `anthropic`) is accepted only
+when all of these are set: `TOUCHE_AI_API_KEY` (a `SecretStr`), a base URL (`https`,
+or `http` on loopback for a local stub; no embedded credentials, no query string) and
+`TOUCHE_AI_EXTERNAL_PROCESSING_ACKNOWLEDGED=true`. The credential lives only in the
+server environment; no endpoint returns it, the provider URL or a prompt, and the
+status screen says plainly whether answers come from the mock, a live provider or
+nothing.
+
+**What leaves the host.** With a real provider, the operator's question, the system
+prompt and the *tool results* the model asked for (names, references, amounts and
+dates of records the operator may already read) are sent to the provider. Personal
+contact data (e-mail, phone, contact name) is not included in any tool result, no
+document body or storage key is ever sent, and Finance is never queried by the AI.
+What the provider does with the data is governed by the contract the company has with
+that provider; Commerce cannot enforce it. The acknowledgement flag exists so an
+administrator makes that decision consciously, once, in configuration — not a user
+in a browser.
+
+**Reasoning.** Sending commercial data to a third party is a business and legal
+decision. Making it an explicit, auditable configuration step (and failing start-up
+without it) is cheaper and safer than discovering it later.
+
+**Consequences.** Switching provider needs a restart. A deployment that must keep all
+data on premises simply leaves the AI Office disabled or points `openai_compatible`
+at a self-hosted endpoint on a trusted network.
+
+**Verification.** `test_ai_providers.py` (`test_unsafe_ai_configuration_is_refused`,
+`test_mock_provider_is_refused_in_production`, `test_credentials_never_appear_in_settings_repr`)
+and `test_ai_api.py::test_status_never_reveals_a_configured_credential`.
+
+## ADR-049 — The model gets read-only tools that mirror existing reads
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 6)
+
+**Decision.** The model never touches a service. It names a tool and arguments; a
+single executor runs the call. Sixteen tools exist, all `READ_ONLY`, each a thin
+wrapper over a service that an existing REST read already uses and requiring the same
+permission (`company.view`). The executor, for every call and in this order: refuses
+an unknown or blocked name; refuses arguments the provider sent as invalid JSON;
+re-reads the caller's **current** membership and refuses a tool the caller no longer
+holds; validates arguments against a closed schema (`additionalProperties: false`, so
+a `company_id` argument is rejected and flagged, never honoured); runs the handler
+with the server-chosen company and user; sanitises untrusted text; bounds the result
+size; registers the evidence; and writes a tool-call row and an audit row.
+
+**Reasoning.** Re-using the services keeps one implementation of every rule (RLS, the
+company filter, pagination, deterministic pricing and profitability). A closed schema
+and a server-chosen company make a prompt-injected "switch to another company" a
+no-op by construction. Re-checking the membership per call means a revoked member
+loses access in the middle of a conversation.
+
+**Consequences.** A new tool is a code change with a test, not a configuration. There
+is deliberately no free-form query tool, no write tool, no network or file tool.
+`BLOCKED_ACTIONS` lists what a misbehaving model is most likely to ask for
+(`send_email`, `post_journal_entry`, `mark_deal_won`, `approve_payment`,
+`execute_sql`, …); such a request is denied, audited as `ai.action.blocked` and shows
+as a safety flag on the run.
+
+**Verification.** `test_ai_units.py` (registry, validation, executor refusals),
+`test_ai_api.py` (blocked actions change nothing, company id rejected, other-company
+ids → `NOT_FOUND`, revoked membership → `PERMISSION_DENIED`).
+
+## ADR-050 — Every claim is checked against evidence the tools returned
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 6)
+
+**Decision.** Tools return *evidence items* (entity, human reference, timestamp,
+completeness and the exact key facts as strings). The server assigns the ids
+(`E1`, `E2` …) and computes every link; the model only cites ids. The model's answer
+is one JSON object that the server parses and validates:
+
+* an unknown evidence id is removed;
+* a claim can never be stronger than its weakest cited source (`CONFIRMED_SOURCE` →
+  `ESTIMATED` → `INCOMPLETE`), and a claim with no real source becomes `AI_INFERENCE`;
+* a figure survives only if its exact value is among the cited evidence's facts;
+* a number in prose or in a draft that appears in no tool result of the run marks the
+  text `UNVERIFIED_NUMBER` (small counts and years are exempt);
+* a task target must be a record a tool returned.
+
+The five bases are `CONFIRMED_SOURCE`, `ESTIMATED`, `INCOMPLETE`, `AI_INFERENCE` and
+`NOT_AVAILABLE`. Profitability is never `CONFIRMED_SOURCE`: it is `ESTIMATED` when the
+analysis is complete and `INCOMPLETE` otherwise, because Commerce has no actual profit
+(ADR-045). A reply that is not valid JSON is kept but labelled
+`RESPONSE_NOT_STRUCTURED`, with no citations.
+
+**Reasoning.** A model may hallucinate a number or a citation whatever the prompt
+says. Validating on the server makes traceability a property of the system, not of
+the provider, and it works the same for the mock and any real model.
+
+**Consequences.** The checker can be too strict: a correct number written in a unit
+the tool did not use (for example a percentage the model derived) is flagged, which is
+the intended bias. Language is not constrained; numbers are.
+
+**Verification.** `test_ai_units.py` (basis downgrade, unknown citations, figures,
+prose numbers, task targets) and `test_ai_api.py::test_invented_evidence_and_numbers_are_removed_or_downgraded`.
+
+## ADR-051 — The AI proposes; only a person approves, and approval executes nothing risky
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 6)
+
+**Decision.** Four classes: `READ_ONLY` (the tools), `DRAFT_PROPOSAL` (a written draft),
+`REQUIRES_HUMAN_APPROVAL` (a suggested operator task) and `BLOCKED` (never available:
+accounting postings, bank payments, contract signature, financial approval,
+unapproved customer communication, arbitrary deletion, marking a deal WON, accepting a
+customer quote). Only two executors exist. Approving a draft records that a person
+reviewed the wording (`sent=false`); approving a task records the follow-up for the
+team. Neither sends, signs, pays, posts, accepts or changes a deal, order or
+shipment. The database CHECK constraint on `action_type` allows only those two values.
+
+Editing and deciding need `trade.write` (a role without it can read proposals and
+cannot edit, approve or reject). At approval the backend re-validates: the live
+membership and permission, that the proposal is still pending, the `If-Match` version,
+and that the target record still exists in the company. A proposal whose text carries
+`UNVERIFIED_NUMBER` additionally needs an explicit `acknowledge_warnings`. Edits change
+wording only; the target and the cited evidence cannot be redirected.
+
+**Reasoning.** The value of the AI is analysis and drafting. The first risky action it
+could take should still be a human's click, and the system should make a wrong click
+low-impact. Separating "a person approved this wording" from "a message was sent" keeps
+the audit trail honest until a real, separately-reviewed send integration exists.
+
+**Consequences.** There is no outbound channel in Stage 6; a draft must be copied by a
+person. A later stage that adds one needs its own ADR, its own permission and its own
+executor — it cannot be reached by editing a proposal.
+
+**Verification.** `test_ai_api.py` (edit/approve flow with `If-Match`, viewer cannot
+decide, second person can review, target revalidation, unsupported action,
+business-table row counts unchanged) and the isolated HTTP acceptance.
+
+## ADR-052 — Stored text is untrusted data
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 6)
+
+**Decision.** Free text from the database (names, notes, descriptions, delay reasons,
+document titles) reaches the model only through a sanitiser: control, zero-width and
+bidirectional-override characters are removed, the length is bounded, and text that
+reads like an instruction to an AI (override/ignore-instructions phrasing, role or
+chat-template markers, tool or `company_id` directives, requests for secrets, data
+exfiltration URLs) is **withheld** and replaced by a neutral marker; the run records
+`INJECTION:<kind>` safety flags. An action word near a business noun ("send the
+invoice") is flagged but kept, because it is ordinary in trade notes and the model
+cannot act on it anyway. The system prompt repeats the rule, but nothing depends on
+the model obeying it: the tool set, the server-chosen company, the permission
+re-check and the response validator are the controls.
+
+**Reasoning.** Anyone who can write a note, a counterparty name or an uploaded document
+title can try to steer an assistant that reads it. Withholding the text costs the
+operator one click to the record and removes the attack surface.
+
+**Consequences.** A legitimate note that happens to read like an instruction is
+withheld from the assistant (the record itself is unchanged and linked). Detection is
+pattern-based and will miss a novel phrasing; that is why it is only one layer.
+
+**Verification.** `test_ai_units.py` (parametrised hostile and ordinary text, hidden
+characters), `test_ai_api.py::test_instructions_stored_in_records_are_withheld_and_cannot_widen_authority`
+and the isolated acceptance (hostile deal note).
+
+## ADR-053 — Runs are bounded, asynchronous and cancellable
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 6)
+
+**Decision.** A question returns `202` with a run id; the model loop runs in a
+background task and the client polls `GET /ai/runs/{id}` for tool progress and the
+validated answer. Limits (all configurable, all reported by `/ai/status`): model steps
+(6), tool calls per request (10; once spent the model is called without tools and must
+answer), output tokens, total tokens per request (cumulative across steps), wall-clock
+deadline (120 s), tool-result size, user-message size, concurrent runs (4), runs per
+user per minute (6), and a daily token and cost budget per company. Provider calls
+have a timeout and at most two retries with backoff, only for retryable errors
+(unavailable, timeout, rate limit — honouring `Retry-After`, capped). Cancellation is
+cooperative and checked before every model call, tool call and backoff wait. Usage is
+recorded per run; when a provider omits it, the gateway estimates and flags the run
+`estimated_usage`. Prompts, tool results and credentials are never logged; the run row
+holds counters, the prompt version, validation warnings and safety flags only.
+
+**Reasoning.** A model loop is the one place a request can run away, cost money or hold
+a worker. Every dimension needs a hard ceiling that does not depend on the model.
+
+**Consequences.** The cancellation registry and the concurrency limiter are
+per-process; with more than one API process a cancel request must reach the process
+running the job (a run that never finishes is marked failed after the deadline plus a
+minute). Cost uses configured per-million-token prices, which default to zero, so a
+cost budget is only meaningful once prices are set.
+
+**Verification.** `test_ai_providers.py` (retry bounds, `Retry-After`, cancel during
+backoff, budget before any data leaves) and `test_ai_api.py` (tool-call, step, token,
+size, daily, rate and concurrency limits; outage, auth failure, timeout; deadline;
+cancellation).

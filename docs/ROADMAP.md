@@ -323,17 +323,64 @@ proxy, Windows ACL review and key distribution (new ADR).
 
 ---
 
-## Stage 6 — AI Office and messaging
+## Stage 6 — AI Trade Director ✅ (implemented 2026-10-23)
 
-**Goal:** assistants that operate strictly inside the rules.
+**Goal:** an assistant that works strictly inside the rules — it reads, explains,
+cites and proposes; a person decides.
 
-Work: Gmail and WhatsApp Business connectors, AI Office tooling, agent identities
-with scoped permissions, prompt/response privacy controls, audit of every tool
-invocation, human-in-the-loop for approvals and outbound messages.
+**Delivered (branch `stage-6`, migration `0010_ai_office`):**
 
-**Exit criteria:** negative tests prove an agent cannot approve finance, read
-another company's data, or bypass audit; all outbound messages are logged with
-actor and request id; no secret ever appears in a prompt log.
+* **6A — AI architecture.** A provider-independent gateway (`mock`, OpenAI-compatible,
+  Anthropic) with server-side credentials, structured tool calling, validated structured
+  answers, timeouts, bounded retries, token/step/tool budgets, concurrency and rate
+  limits, cancellation, versioned prompts and usage logging. External data processing
+  needs an explicit acknowledgement (ADR-048).
+* **6B — Safe business tools.** Sixteen `READ_ONLY` tools over the existing services
+  (deals, counterparties, products, supplier quotes and comparison, pricing scenarios,
+  orders, purchase commitments, shipments, document metadata, profitability, Finance
+  reconciliation view, discrepancies). Each re-checks the live membership and
+  permission, validates a closed schema, bounds its result and is audited (ADR-049).
+* **6C — Trade Director.** A bounded loop whose answers are validated against the
+  evidence the tools returned: five bases, server-computed links, no invented
+  citations or figures (ADR-050).
+* **6D — Human approval.** `READ_ONLY` / `DRAFT_PROPOSAL` / `REQUIRES_HUMAN_APPROVAL` /
+  `BLOCKED`. Only a draft review and a suggested task can be approved; approval records
+  a decision and nothing else (ADR-051).
+* **6E — AI Office UI** at `/ai`.
+* **6F — Security and reliability.** Stored text is untrusted (ADR-052); resource
+  limits, cancellation and failure handling (ADR-053); no prompt, result or credential
+  in a log or audit row.
+* **6G/6H — Tests and acceptance.** See `docs/PROGRESS.md` §27.
+* **6I — Interface debt.** AA muted text, single navigation highlight, current footer,
+  no box-in-box empty tables, no horizontal overflow at 768 px.
+
+**Provider status:** `MOCK_PROVIDER_VERIFIED`; `REAL_PROVIDER_BLOCKED` — no AI credential
+is configured for Commerce, so no live provider call has been made. The OpenAI-compatible
+and Anthropic adapters are verified against local stubs of their documented wire
+formats.
+
+**Explicitly not implemented:** Gmail and WhatsApp connectors, e-mail or message
+sending, E-YAY, web crawling, accounting writes, bank payments, contract signature and
+any commitment made on a person's behalf.
+
+**Exit criteria met:** negative tests prove the assistant cannot approve finance, read
+another company's data, widen its authority from text stored in a record, or bypass the
+audit trail; no prompt text or secret appears in a log.
+
+### Next safe milestone (not started)
+
+Any real-provider rollout starts with an explicit credential and data-processing
+decision (ADR-048) and a live provider check. Outbound messaging (Gmail/WhatsApp) is a
+separate stage with its own permission, ADR and executor; it must not be reachable by
+editing an AI proposal.
+
+---
+
+## Stage 7 — Messaging and external connectors (not started)
+
+Gmail and WhatsApp Business connectors, outbound message logging with actor and
+request id, and any further integrations. Requires its own ADRs, a send permission
+separate from `trade.write`, and human approval of every outbound message.
 
 ---
 

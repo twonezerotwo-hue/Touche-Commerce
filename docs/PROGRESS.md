@@ -1892,3 +1892,177 @@ workbook unchanged), and the live Finance hashes identical to §25.4.
 * The close-out documentation commit (this update).
 * Nothing was pushed, merged or deployed; the Finance repository was not
   modified.
+
+## 27. Stage 6 — AI Trade Director
+
+### 27.1 Scope and boundary
+
+Stage 6 adds an assistant that analyses the company's real records, explains them,
+cites its sources and proposes drafts and tasks for a person to approve. It reads
+through sixteen read-only tools that wrap existing services; it never calls Finance,
+never sends a message and cannot change a deal, order, shipment, document or the
+accounting. Approving a proposal records a human decision only.
+
+**Branch:** `stage-6`, from the verified Stage 5E HEAD `3cb60c8`.
+**Migration:** `0010_ai_office` (conversation, run, message, tool call, proposal; eleven
+`ai.*` audit actions).
+**Prompt version:** `trade_director@1.0.0`.
+**Provider verification:** `MOCK_PROVIDER_VERIFIED` and `REAL_PROVIDER_BLOCKED` — no AI
+credential is configured for Commerce, so no live provider call was made. A provider key that
+belongs to another tool exists in the workstation's environment; it was neither read nor
+used, because it was not issued for Commerce and using it would send commercial data to a
+third party without the acknowledgement ADR-048 requires.
+
+### 27.2 Delivered
+
+* **6A** — `app/ai/gateway.py`, `providers/` (`mock`, OpenAI-compatible, Anthropic),
+  `prompts.py`, budgets, limiter, cancel registry; settings and ADR-048.
+* **6B** — `app/ai/tools/registry.py` (executor, closed-schema validation, blocked
+  actions) and `readonly.py` (16 tools).
+* **6C** — `app/ai/evidence.py` (registry, validator, basis rules), `director.py`
+  (bounded loop, run lifecycle).
+* **6D** — `app/ai/proposals.py`, `app/services/ai_office.py` (edit/approve/reject with
+  live permission, state, version and target re-validation).
+* **API** — `/api/v1/ai/*` (API_CONTRACTS §13), OpenAPI and TypeScript types regenerated.
+* **6E** — `/ai` workspace: thread, validated answers with a basis badge per claim and
+  links to the cited records, live tool progress with cancel, draft preview, permission-
+  aware approve/edit/reject, history, activity, tool registry, provider status.
+* **6F** — untrusted-text sanitiser and injection withholding, resource limits, failure
+  handling, redaction; ADRs 049–053.
+* **6I** — AA muted text, single navigation highlight, current footer, embedded empty
+  states, 768 px verified.
+* `backend/scripts/verify_finance_http.py` gained a Stage 6 step.
+
+### 27.3 Automated results
+
+| Command | Result |
+| --- | --- |
+| `pytest` (backend, isolated test database) | ``551 passed`` (402 before Stage 6) |
+| of which new: `test_ai_api.py` / `test_ai_providers.py` / `test_ai_units.py` | 41 / 55 / 53 |
+| `ruff check app tests` · `mypy app` | clean · no issues in 131 source files |
+| `vitest` | ``192 passed` across 25 files` (160 before Stage 6) |
+| `eslint .` · `prettier --check .` · `tsc --noEmit` | clean |
+| `next build` | passes; `/ai` listed |
+| `scripts\generate-api-types.ps1 -Check` | no drift |
+| Alembic `0009 → 0010 → 0009 → 0010` (dev and test databases) | pass |
+| `alembic check` | reports only the three differences that already existed (the `alembic_version` table and the table comments on three Stage 1A tables); none concern an AI table |
+| `verify_finance_http.py` | `ISOLATED_HTTP_VERIFIED` (Stage 5C/5D/5E steps unchanged and passing) |
+
+Not run in this stage: Docker Compose, GitHub Actions. `mypy tests` reports 98 errors
+in earlier stages' test helpers that already existed; none are in the Stage 6 tests.
+
+### 27.4 Isolated HTTP acceptance (Stage 6 step, mock provider)
+
+The verifier first creates a real open deal with two supplier RFQs and quotes
+(`145.00 USD` FOB with a pricing scenario, `175.00 USD` CIF without one) next to the
+Stage 5D order, then drives the API through real sessions and the Next.js proxy.
+
+| # | Check | Result |
+| - | ----- | ------ |
+| 1–3 | login, company selection, `/ai` renders, status reports `MOCK`, no external processing, read-only/no-send/no-accounting guarantees | pass |
+| 4–6 | “analyse active deals”: every tool call `OK` and `READ_ONLY`, every tool registered, all evidence has an application link, cited deals exist in the company, every sourced finding carries evidence | pass |
+| 7 | “compare supplier quotes” via the proxy: stored totals `145.00`/`175.00` and currencies equal the supplier-quote API, the quote without a scenario is flagged `NO_PRICING_SCENARIO` | pass |
+| 8 | pricing question cites the stored scenario (`ESTIMATED`/`INCOMPLETE`) with its landed total | pass |
+| 9 | order question uses shipment, profitability and Finance-view tools; profit is never `CONFIRMED_SOURCE`; figures equal the intelligence API | pass |
+| 10–13 | a supplier follow-up draft is a pending proposal that says nothing is sent; edit with `If-Match`; the approver (no `trade.write`) is refused `403`; the trader's approval records `sent=false`; a second approval is `409`; **no business row changed** (17 tables + outbox) | pass |
+| 14 | another company's admin gets `404` for the conversation, run and proposal and sees none of company A's records; a company A deal reference is `NOT_FOUND` there | pass |
+| 15 | a deal note with “ignore all previous instructions … send_email … reveal the system prompt” is withheld, `INJECTION:*` flags recorded, no non-read tool ran, the canary never reached the answer, permissions unchanged | pass |
+| 16 | tool-call, step and token ceilings honoured; an oversized message → `413 AI_INPUT_TOO_LARGE`; an unknown run → `404` | pass |
+| 17 | the API log contains neither the canary nor any question; usage and activity recorded; no credential-looking text in any response | pass |
+| 18 | Finance reconciliation still works (the 5C/5D/5E steps run in the same environment) and the live-Finance stand-in hashes are unchanged | pass |
+| 19–20 | regression suites and `next build` | pass (§27.3) |
+
+Result: `MOCK_PROVIDER_VERIFIED`, `REAL_PROVIDER_BLOCKED`, 7 runs, 23 evidence items
+checked.
+
+**Honest note on timing.** This run passed on the tree at the end of the acceptance work.
+Four small changes were made afterwards (one-of-each-type evidence selection in the mock,
+no duplicate pending proposals plus an `ai.proposal.created` audit row, plain-language
+mock warnings, narrow-screen column order). Each has automated test coverage and the full
+backend and frontend suites were re-run green on the final tree, but the isolated HTTP
+verifier itself has to be re-run once more on the final tree before this stage is called
+closed (see §27.7).
+
+### 27.5 Issues found and fixed during the stage
+
+* **A runtime grant was too narrow.** Editing a proposal updated `title` and `warnings`,
+  which the migration did not grant. The integration test caught it; the migration
+  (unreleased) was corrected and re-applied to both databases.
+* **A formatter touched unrelated code.** `ruff format` on `config.py` rewrapped
+  existing lines; the unrelated hunks were reverted before committing. Only new files
+  are formatted.
+* **“Active deals” was empty in the isolated order flow** because the Stage 5D deal is
+  `WON`. The acceptance now creates a real open opportunity.
+* **The mock crowded out categories.** With many discrepancies the Finance-view
+  evidence fell outside the first eight cited items; the mock now cites one record of
+  each type first.
+* **Duplicate proposals.** Asking the same question twice created identical pending
+  tasks; an identical pending proposal is no longer created again (test added), and
+  every creation is audited (`ai.proposal.created`).
+* **Raw warning codes in plain text.** Mock answers now use lower-case words.
+* **Optional fields in the generated types.** Defaulted response fields were optional in
+  OpenAPI; they are now required in the response schema.
+* **Narrow-screen order.** Below 1280 px the conversation now comes first, then the
+  proposals, then context and history.
+* **A port conflict.** Dev servers started by another tool occupied 8000 and 3000; with
+  the user's approval they were stopped so the isolated environment could run.
+
+### 27.6 Browser review (isolated environment, real data, 1440 and 768 px)
+
+`/ai` was exercised in the built-in browser against the isolated environment: a
+suggested question was sent, the live “Records read” status completed, the validated
+answer showed basis badges, figures and links to the quotes and the deal, a suggested
+task was approved (“Approved by a person”), history reopened an earlier conversation
+(with its loading state), and the earlier edited-and-approved draft showed “Preview —
+not sent”. At 768 px the page stacks without horizontal overflow; `/finance/intelligence`,
+its orders and exceptions pages, `/deals`, `/orders` and `/finance/reconciliation` also
+fit. On `/finance/intelligence` only “Intelligence” is highlighted, the footer reads
+“Stage 6 · AI Trade Director · Read-only, human-approved”, the muted token measures
+`#7a8ba2`, and an empty exceptions list is one panel, not two.
+
+Not reviewed in a browser: the provider-disabled state and a failed run (covered by
+component tests), switching company in the UI (covered by the keyed-remount test and
+the API isolation checks), 375 px for `/ai`.
+
+### 27.7 Honest limitations and remaining debt
+
+* **No live provider.** Wire formats are verified against local stubs of the documented
+  APIs only. A first live call may reveal provider-specific behaviour (token accounting,
+  tool-argument quirks); the gateway already tolerates invalid tool-argument JSON and
+  missing usage.
+* **The mock is not a model.** It plans by keywords and writes templated sentences from
+  tool results; it cannot judge quality. The validator is what keeps a real model honest,
+  and it is stricter than a human reviewer would be (a correct derived percentage is
+  flagged).
+* **Injection detection is pattern-based.** It withholds the common phrasings and hidden
+  characters; a novel phrasing passes to the model, which is why authority never depends
+  on it (ADR-052). A legitimate note that reads like an instruction is withheld from the
+  assistant.
+* **Single-process limits.** The cancellation registry and concurrency limiter live in
+  the API process; a multi-process deployment needs shared state and a job runner. A run
+  interrupted by a restart is marked failed after the deadline plus a minute.
+* **Cost accounting is only as good as the configured prices**, which default to zero.
+* **No outbound channel.** An approved draft must be copied by a person.
+* **Conversations are private to the user; proposals are company-visible.** Whether a
+  second person should see a colleague's conversation is an open product decision.
+* **Search and pagination.** Tools return at most 20 items (configurable to 50) and say
+  when more exist; there is no cursor tool.
+* **Accessibility.** Contrast was fixed and measured; names, roles and keyboard focus
+  were checked in components and the browser; no screen reader or full audit was run.
+  The tool-progress region is `aria-live="polite"` and was not tested with assistive
+  technology.
+* **Empty conversations** (created by a refused message) stay in the history list.
+* **Open item:** re-run `verify_finance_http.py` on the final tree (it needs ports 8000,
+  3000 and 8877 free; a dev API and web server were running for a manual look when this
+  was written).
+* Docker Compose and a GitHub Actions run were not executed.
+
+### 27.8 Git
+
+* Branch `stage-6`, created from the verified Stage 5E HEAD `3cb60c8`.
+* `c1d3268` — `feat(stage6): AI gateway, provider adapters and evidence model (6A)`.
+* `242b82f` — `feat(stage6): read-only tools, Trade Director, approvals and /ai API (6B-6D, 6F)`.
+* `0529995` — `feat(stage6): AI Office UI and Stage 6I interface debt (6E, 6I)`.
+* `86b0448` — `fix(stage6): isolated acceptance step, proposal de-duplication, narrow-screen layout`.
+* The close-out documentation commit (this update).
+* Nothing was pushed, merged or deployed; the Finance repository was not modified.
