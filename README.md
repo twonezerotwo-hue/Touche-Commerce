@@ -1,7 +1,7 @@
 # TOUCHE COMMERCE
 
 Independent, premium international trade management — **Stages 0–6 completed
-in isolated local acceptance; Stage 7A communications groundwork in progress**.
+in isolated local acceptance; Stage 7A/7B draft-only communications CI verified**.
 Trade operations, Finance evidence and a mock-verified AI Trade Director share the
 same tenant-scoped business services. No external message sending is enabled.
 
@@ -691,22 +691,24 @@ behalf.
 
 ---
 
-## Stage 7A — Communications groundwork (in progress)
+## Stage 7A — Communications groundwork (CI verified)
 
 The /communications workspace lists already stored AI Office correspondence drafts
 for the active company. `GET /api/v1/communications/status` reports EMAIL and
 WHATSAPP_BUSINESS as NOT_CONFIGURED; `GET /api/v1/communications/drafts` reads
 company-scoped AI proposals with `sent=false`. The new `communications.send`
 permission is granted to no existing role. There is no send route, API credential,
-SMTP/WhatsApp connection or delivery attempt. Stage 7A changes were authored on
-GitHub; local PostgreSQL/browser regressions and regenerated OpenAPI clients are
-still pending verification. Do not claim Stage 7 is complete.
+SMTP/WhatsApp connection or delivery attempt. Stage 7A was validated in GitHub Actions (555 backend, 192 frontend) and merged
+in PR #1. A Windows browser run and real provider connection are not verified.
 
 
-## Stage 7B in progress — no-send readiness
+## Stage 7B — no-send readiness (CI verified)
 
 An approved or proposed AI draft can be checked against an operator-entered
 email address or E.164-format WhatsApp number using the read-only preflight
 function. The address is not saved or echoed and the result always blocks
 actual dispatch. Provider connections and outbound delivery are not implemented.
-GitHub CI for this branch has not yet completed; do not rely on a send action.
+Stage 7B passed GitHub Actions workflow 40019149502 (558 backend and 192
+frontend tests), including CSRF and recipient privacy tests, and merged in
+PR #2. Neither email nor WhatsApp sending exists. Local browser and real
+provider acceptance are still unavailable.
