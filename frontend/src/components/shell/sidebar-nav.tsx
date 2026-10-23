@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { localizeNavigation } from "@/lib/i18n/navigation-labels";
 import { resolveActiveHref, type NavGroup } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
@@ -14,11 +16,12 @@ export interface SidebarNavProps {
 
 export function SidebarNav({ group, muted = false }: SidebarNavProps) {
   const pathname = usePathname();
+  const { locale } = useLocale();
   const activeHref = resolveActiveHref(pathname);
 
   return (
     <div className="mb-4 last:mb-0">
-      <p className="eyebrow px-3 pb-2">{group.label}</p>
+      <p className="eyebrow px-3 pb-2">{localizeNavigation(locale, group.label)}</p>
       <ul className="space-y-0.5">
         {group.items.map((item) => {
           const Icon = item.icon;
@@ -32,7 +35,7 @@ export function SidebarNav({ group, muted = false }: SidebarNavProps) {
                   className="flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[12.5px] text-mist-600/85"
                 >
                   <Icon className="size-[15px] shrink-0 text-mist-600/60" aria-hidden />
-                  <span className="flex-1 truncate">{item.label}</span>
+                  <span className="flex-1 truncate">{localizeNavigation(locale, item.label)}</span>
                   <span className="font-mono text-[8.5px] tracking-[0.08em] text-mist-600/70">
                     {item.stage.replace("Stage ", "S")}
                   </span>
@@ -70,7 +73,7 @@ export function SidebarNav({ group, muted = false }: SidebarNavProps) {
                   )}
                   aria-hidden
                 />
-                <span className="flex-1 truncate">{item.label}</span>
+                <span className="flex-1 truncate">{localizeNavigation(locale, item.label)}</span>
                 {active ? (
                   <span className="status-dot bg-accent-400" aria-hidden />
                 ) : (

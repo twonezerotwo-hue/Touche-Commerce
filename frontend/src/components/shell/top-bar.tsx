@@ -5,9 +5,12 @@ import { usePathname } from "next/navigation";
 import { Activity, Building2, ChevronRight, ShieldCheck } from "lucide-react";
 
 import { Avatar } from "@/components/ui/avatar";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { localizeNavigation } from "@/lib/i18n/navigation-labels";
 import { resolveWorkspaceContext } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
+import { LocaleSwitcher } from "./locale-switcher";
 import { MobileNav, type MobileIdentity } from "./mobile-nav";
 
 export interface TopBarProps {
@@ -16,7 +19,10 @@ export interface TopBarProps {
 
 export function TopBar({ identity }: TopBarProps) {
   const pathname = usePathname();
+  const { t, locale } = useLocale();
   const { section, page } = resolveWorkspaceContext(pathname);
+  const translatedSection = localizeNavigation(locale, section);
+  const translatedPage = localizeNavigation(locale, page);
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-ink-950/75 backdrop-blur-xl">
@@ -24,27 +30,28 @@ export function TopBar({ identity }: TopBarProps) {
         <MobileNav identity={identity} />
 
         <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-2 lg:flex">
-          <span className="text-[11px] tracking-[0.02em] text-mist-600">Workspace</span>
+          <span className="text-[11px] tracking-[0.02em] text-mist-600">{t("workspace")}</span>
           <ChevronRight className="size-3 text-mist-600/70" aria-hidden />
           <span className={cn("text-[11px]", page === section ? "text-mist-300" : "text-mist-500")}>
-            {section}
+            {translatedSection}
           </span>
           {page === section ? null : (
             <>
               <ChevronRight className="size-3 text-mist-600/70" aria-hidden />
-              <span className="truncate text-[11px] text-mist-200">{page}</span>
+              <span className="truncate text-[11px] text-mist-200">{translatedPage}</span>
             </>
           )}
         </nav>
 
         <div className="min-w-0 lg:hidden">
-          <p className="truncate text-[12px] text-mist-200">{page}</p>
+          <p className="truncate text-[12px] text-mist-200">{translatedPage}</p>
         </div>
 
         <div className="ml-auto flex items-center gap-2">
+          <LocaleSwitcher />
           <span className="hidden items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 text-[10px] text-mist-500 md:inline-flex">
             <ShieldCheck className="size-3 text-jade-400" aria-hidden />
-            Session verified
+            {t("sessionVerified")}
           </span>
 
           {identity.companyName ? (
@@ -61,8 +68,8 @@ export function TopBar({ identity }: TopBarProps) {
 
           <Link
             href="/status"
-            aria-label="System status"
-            title="System status"
+            aria-label={t("systemStatus")}
+            title={t("systemStatus")}
             className="hidden size-8 items-center justify-center rounded-md text-mist-500 transition-colors hover:bg-white/[0.05] hover:text-mist-200 sm:flex"
           >
             <Activity className="size-3.5" aria-hidden />
@@ -72,7 +79,7 @@ export function TopBar({ identity }: TopBarProps) {
 
           <Link
             href="/account"
-            aria-label="Profile and access"
+            aria-label={t("profileAccess")}
             className="rounded-full transition-opacity hover:opacity-85"
           >
             <Avatar name={identity.displayName} size="sm" />

@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { ArrowUpRight, Menu, X } from "lucide-react";
 
 import { Avatar } from "@/components/ui/avatar";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { localizeNavigation } from "@/lib/i18n/navigation-labels";
 import { NAV_GROUPS, PUBLIC_NAV_ITEMS, resolveActiveHref } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +21,8 @@ export interface MobileIdentity {
 /** Slide-over navigation for screens below the desktop breakpoint. */
 export function MobileNav({ identity }: { identity: MobileIdentity }) {
   const pathname = usePathname();
+  const { t, locale } = useLocale();
+  const translated = (label: string): string => localizeNavigation(locale, label);
   const activeHref = resolveActiveHref(pathname);
   const [open, setOpen] = useState(false);
 
@@ -40,7 +44,7 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
     <div className="lg:hidden">
       <button
         type="button"
-        aria-label="Open navigation"
+        aria-label={t("openNavigation")}
         aria-expanded={open}
         onClick={() => setOpen(true)}
         className="flex size-9 items-center justify-center rounded-md border border-white/10 text-mist-300 transition-colors hover:border-accent-400/40 hover:text-mist-100"
@@ -52,12 +56,12 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
         <div className="fixed inset-0 z-50">
           <button
             type="button"
-            aria-label="Close navigation"
+            aria-label={t("closeNavigation")}
             className="absolute inset-0 bg-ink-950/80 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           />
           <nav
-            aria-label="Mobile primary"
+            aria-label={t("mobilePrimary")}
             className="absolute inset-y-0 left-0 flex w-[300px] max-w-[85vw] flex-col border-r border-white/10 bg-ink-900 shadow-2xl"
           >
             <div className="flex items-start justify-between px-5 pt-6 pb-5">
@@ -76,7 +80,7 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
               </Link>
               <button
                 type="button"
-                aria-label="Close navigation"
+                aria-label={t("closeNavigation")}
                 onClick={() => setOpen(false)}
                 className="flex size-8 items-center justify-center rounded-md text-mist-400 hover:bg-white/5 hover:text-mist-100"
               >
@@ -88,7 +92,7 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
             <div className="flex-1 overflow-y-auto px-3 py-5">
               {NAV_GROUPS.map((group) => (
                 <div key={group.label} className="mb-5">
-                  <p className="eyebrow px-3 pb-2">{group.label}</p>
+                  <p className="eyebrow px-3 pb-2">{translated(group.label)}</p>
                   <ul className="space-y-0.5">
                     {group.items.map((item) => {
                       const Icon = item.icon;
@@ -100,7 +104,7 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
                               className="flex items-center gap-3 rounded-md px-3 py-2 text-[13px] text-mist-600"
                             >
                               <Icon className="size-4 text-mist-600/70" aria-hidden />
-                              <span className="flex-1">{item.label}</span>
+                              <span className="flex-1">{translated(item.label)}</span>
                               <span className="text-[9px] tracking-[0.14em] uppercase text-mist-600/80">
                                 {item.stage}
                               </span>
@@ -126,7 +130,7 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
                               className={cn("size-4", active ? "text-accent-300" : "text-mist-500")}
                               aria-hidden
                             />
-                            <span className="flex-1">{item.label}</span>
+                            <span className="flex-1">{translated(item.label)}</span>
                           </Link>
                         </li>
                       );
@@ -136,7 +140,7 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
               ))}
 
               <div className="mb-2">
-                <p className="eyebrow px-3 pb-2">Platform</p>
+                <p className="eyebrow px-3 pb-2">{t("platform")}</p>
                 {PUBLIC_NAV_ITEMS.map((item) => {
                   const Icon = item.icon;
                   return (
@@ -147,7 +151,7 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
                       className="flex items-center gap-3 rounded-md px-3 py-2 text-[13px] text-mist-300 hover:bg-white/[0.04] hover:text-mist-100"
                     >
                       <Icon className="size-4 text-mist-500" aria-hidden />
-                      <span className="flex-1">{item.label}</span>
+                      <span className="flex-1">{translated(item.label)}</span>
                       <ArrowUpRight className="size-3.5 text-mist-600" aria-hidden />
                     </Link>
                   );
