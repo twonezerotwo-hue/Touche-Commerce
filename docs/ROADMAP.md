@@ -434,7 +434,7 @@ Provider authorization and structured consent history belong to later Stage
 7C milestones, each requiring independent security/production validation.
 
 
-#### Stage 7C2 — Suppression ledger (in progress)
+#### Stage 7C2 — Suppression ledger (CI verified, PR #4 merged)
 
 Introduce an immutable, audited do-not-contact ledger: an administrator can
 block an existing company's CRM contact on either channel without adding
