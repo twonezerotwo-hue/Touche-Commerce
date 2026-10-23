@@ -101,13 +101,6 @@ jobs:
         working-directory: frontend
         run: npm run format:check
 
-      - name: Diagnose 7C2 formatting (temporary)
-        if: failure()
-        working-directory: frontend
-        run: |
-          npx prettier --write "src/app/(app)/communications/page.tsx" "src/components/communications/suppression-panel.tsx"
-          git diff -- "src/app/(app)/communications/page.tsx" "src/components/communications/suppression-panel.tsx"
-
       - name: ESLint
         working-directory: frontend
         run: npm run lint
