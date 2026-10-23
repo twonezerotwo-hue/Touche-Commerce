@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { CommunicationPreflight } from "@/components/communications/preflight";
 import { ApiErrorAlert } from "@/components/finance/api-error-alert";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
@@ -29,6 +30,7 @@ type Draft = {
   draft_kind: string;
   status: "PROPOSED" | "APPROVED" | "REJECTED";
   created_at: string;
+  version: number;
   sent: false;
   source_href: "/ai";
 };
@@ -125,6 +127,13 @@ export default async function CommunicationsPage() {
                       {draft.body}
                     </p>
                     <p className="mt-3 text-xs font-medium text-mist-500">Never transmitted</p>
+                    {status.data.can_review_drafts ? (
+                      <CommunicationPreflight
+                        draftId={draft.id}
+                        draftVersion={draft.version}
+                        csrfToken={state.session.session.csrf_token}
+                      />
+                    ) : null}
                   </li>
                 ))}
               </ul>
