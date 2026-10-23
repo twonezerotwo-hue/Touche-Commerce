@@ -416,9 +416,19 @@ preflight status but no send button. Full delivery remains a separately-approved
 future milestone and requires provider accounts and secure token provisioning.
 
 
-### Stage 7C — Provider authentication and consent (not started)
+### Stage 7C — Provider authentication and consent (partial groundwork: 7C1 in progress)
 
 Per-company Gmail and WhatsApp Business account connections, secure secret
 storage, recipient provenance and consent, scoped send approval distinct from
 AI draft review, explicit outbound transport with idempotent outbox and audited
 delivery evidence. No provider is configured and sending stays disabled.
+
+
+#### Stage 7C1 — CRM recipient matching
+
+Preflight requires a current active-company CRM counterparty match to identify
+the **source record** for the operator-entered address/number. This is not proof
+of contact ownership or permission to send. Both channels still report
+NOT_CONFIGURED, `CONSENT_UNDOCUMENTED` is unavoidable, and sending is disabled.
+Provider authorization and structured consent history belong to later Stage
+7C milestones, each requiring independent security/production validation.
