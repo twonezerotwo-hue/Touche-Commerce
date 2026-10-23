@@ -117,6 +117,7 @@ from app.db.models.trade import (
 )
 
 __all__ = [
+    "SCHEMA",
     "AcceptanceChannel",
     "AiConversation",
     "AiMessage",
@@ -185,7 +186,6 @@ __all__ = [
     "ReviewDecision",
     "RfqStatus",
     "RunStatus",
-    "SCHEMA",
     "SalesOrder",
     "SalesOrderItem",
     "SalesOrderStatus",
