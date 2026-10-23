@@ -1474,7 +1474,7 @@ OAuth implementation, customer consent ledger, browser acceptance or live
 sending verification. All provider connections still report NOT_CONFIGURED.
 
 
-## 29. Stage 7C2 append-only do-not-contact ledger (in progress)
+## 29. Stage 7C2 append-only do-not-contact ledger (CI verified)
 
 An independently authorized administrator creates an immutable block on
 (tenant company, CRM counterparty, channel) via a CSRF-protected,
@@ -1484,6 +1484,8 @@ preflight queries this ledger and returns `RECIPIENT_SUPPRESSED` in addition
 to continuing consent and provider blockers. No opt-in, unblock, provider
 connection, message queue or delivery path exists.
 
-The separate migrations and migration-head tests must pass before this slice
-can be marked verified. Runtime table privileges are SELECT/INSERT only,
+The new migration and CI checks passed in GitHub Actions run `40025166931`:
+565 backend and 192 frontend tests, clean OpenAPI drift. PR #4 merged
+at `5bc7bdc`. Browser and real provider acceptance remain unverified.
+Runtime table privileges are SELECT/INSERT only,
 and the audit event is appended to the existing immutable audit trail.
