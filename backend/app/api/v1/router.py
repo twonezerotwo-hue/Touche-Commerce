@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.routes import (
+    ai,
     auth,
     companies,
     counterparties,
@@ -48,5 +49,7 @@ api_router.include_router(orders.router)
 api_router.include_router(purchase_orders.router)
 api_router.include_router(shipments.router)
 api_router.include_router(documents.router)
+# Stage 6: the AI Office is read-only toward the business and human-approved.
+api_router.include_router(ai.router)
 
 __all__ = ["api_router"]

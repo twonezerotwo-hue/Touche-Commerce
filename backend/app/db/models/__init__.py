@@ -4,6 +4,20 @@ Importing this package registers every model on ``Base.metadata`` so Alembic
 (and tests) see the complete schema.
 """
 
+from app.db.models.ai import (
+    AiConversation,
+    AiMessage,
+    AiProposal,
+    AiRun,
+    AiToolCall,
+    ConversationStatus,
+    MessageRole,
+    ProposalActionType,
+    ProposalKind,
+    ProposalStatus,
+    RunStatus,
+    ToolCallStatus,
+)
 from app.db.models.audit import AuditAction, AuditActorType, AuditOutcome, AuditRecord
 from app.db.models.base import SCHEMA, Base
 from app.db.models.finance import FinanceCompanyMapping, FinanceMappingStatus
@@ -100,6 +114,11 @@ from app.db.models.trade import (
 __all__ = [
     "SCHEMA",
     "AcceptanceChannel",
+    "AiConversation",
+    "AiMessage",
+    "AiProposal",
+    "AiRun",
+    "AiToolCall",
     "AuditAction",
     "AuditActorType",
     "AuditOutcome",
@@ -109,6 +128,7 @@ __all__ = [
     "CompanySettingEntry",
     "CompanySettings",
     "CompanyStatus",
+    "ConversationStatus",
     "CostBasis",
     "CostStage",
     "CostType",
@@ -141,12 +161,16 @@ __all__ = [
     "LoginAttempt",
     "Membership",
     "MembershipStatus",
+    "MessageRole",
     "OrderAmendment",
     "OutboxEvent",
     "PricingCostComponent",
     "PricingScenario",
     "Product",
     "ProductUnit",
+    "ProposalActionType",
+    "ProposalKind",
+    "ProposalStatus",
     "PurchaseOrder",
     "PurchaseOrderItem",
     "PurchaseOrderStatus",
@@ -155,6 +179,7 @@ __all__ = [
     "RecordStatus",
     "ReviewDecision",
     "RfqStatus",
+    "RunStatus",
     "SalesOrder",
     "SalesOrderItem",
     "SalesOrderStatus",
@@ -179,6 +204,7 @@ __all__ = [
     "SupplierRfq",
     "SupplierRfqItem",
     "SupplierRfqRevision",
+    "ToolCallStatus",
     "TrackingSource",
     "TradeDocument",
     "TradeDocumentType",

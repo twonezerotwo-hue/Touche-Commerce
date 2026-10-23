@@ -105,6 +105,19 @@ class AuditAction(StrEnum):
     FINANCE_EVIDENCE_LINKED = "finance.evidence.linked"
     FINANCE_DISCREPANCY_RESOLVED = "finance.discrepancy.resolved"
     FINANCE_RECONCILIATION_REVIEWED = "finance.reconciliation.reviewed"
+    # Stage 6 AI Trade Director. Tool and run events are written with the agent actor
+    # type; ``actor_id`` is the person on whose authority the agent acted.
+    AI_CONVERSATION_CREATED = "ai.conversation.created"
+    AI_RUN_COMPLETED = "ai.run.completed"
+    AI_RUN_FAILED = "ai.run.failed"
+    AI_RUN_CANCELLED = "ai.run.cancelled"
+    AI_TOOL_EXECUTED = "ai.tool.executed"
+    AI_TOOL_DENIED = "ai.tool.denied"
+    AI_ACTION_BLOCKED = "ai.action.blocked"
+    AI_PROPOSAL_CREATED = "ai.proposal.created"
+    AI_PROPOSAL_EDITED = "ai.proposal.edited"
+    AI_PROPOSAL_APPROVED = "ai.proposal.approved"
+    AI_PROPOSAL_REJECTED = "ai.proposal.rejected"
 
 
 _AUDIT_ACTIONS = tuple(action.value for action in AuditAction)

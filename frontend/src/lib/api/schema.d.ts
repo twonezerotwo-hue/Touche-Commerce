@@ -21,6 +21,241 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recent requests with usage and tool counts */
+        get: operations["activity_api_v1_ai_activity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in user's conversations in the active company */
+        get: operations["list_conversations_api_v1_ai_conversations_get"];
+        put?: never;
+        /** Start a conversation */
+        post: operations["create_conversation_api_v1_ai_conversations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/conversations/{conversation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One conversation with its messages and proposals */
+        get: operations["get_conversation_api_v1_ai_conversations__conversation_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/conversations/{conversation_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask the Trade Director
+         * @description Accepted with 202; the model runs in the background. Poll the returned run. Refused with 503 when the AI Office is disabled, 413 for an oversized message, 429 for the per-user rate limit, the daily budget or too many concurrent runs.
+         */
+        post: operations["send_message_api_v1_ai_conversations__conversation_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Drafts and task proposals awaiting a human decision */
+        get: operations["list_proposals_api_v1_ai_proposals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/proposals/{proposal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One proposal */
+        get: operations["get_proposal_api_v1_ai_proposals__proposal_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edit the wording of a pending proposal
+         * @description Requires If-Match. Only wording can change; the target and cited evidence stay as produced. An edited proposal is marked EDITED_BY_USER.
+         */
+        patch: operations["edit_proposal_api_v1_ai_proposals__proposal_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/ai/proposals/{proposal_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve a proposal (a human decision; nothing is sent or posted)
+         * @description Requires If-Match and ``trade.write``. Permissions, state, version and the target record are re-validated here. Supported actions: DRAFT_REVIEW, OPERATOR_TASK. Proposals with unverified figures need ``acknowledge_warnings``.
+         */
+        post: operations["approve_proposal_api_v1_ai_proposals__proposal_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/proposals/{proposal_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a proposal */
+        post: operations["reject_proposal_api_v1_ai_proposals__proposal_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Progress and result of one request */
+        get: operations["get_run_api_v1_ai_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/runs/{run_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a running request */
+        post: operations["cancel_run_api_v1_ai_runs__run_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * AI provider status, limits and today's usage
+         * @description Never returns a credential or the provider URL. ``mode`` says whether answers come from the offline mock, a real provider or nothing (disabled).
+         */
+        get: operations["ai_status_api_v1_ai_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Suggested starting questions */
+        get: operations["ai_suggestions_api_v1_ai_suggestions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The tool registry, approval classes and blocked actions */
+        get: operations["ai_tools_api_v1_ai_tools_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -1672,6 +1907,128 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ActionClassResponse */
+        ActionClassResponse: {
+            /** Description */
+            description: string;
+            /**
+             * Name
+             * @enum {string}
+             */
+            name: "READ_ONLY" | "DRAFT_PROPOSAL" | "REQUIRES_HUMAN_APPROVAL" | "BLOCKED";
+        };
+        /** ActivityResponse */
+        ActivityResponse: {
+            /** Items */
+            items: components["schemas"]["RunResponse"][];
+        };
+        /** AiLimitsResponse */
+        AiLimitsResponse: {
+            /** Max Concurrent Runs */
+            max_concurrent_runs: number;
+            /** Max Model Steps */
+            max_model_steps: number;
+            /** Max Output Tokens */
+            max_output_tokens: number;
+            /** Max Request Tokens */
+            max_request_tokens: number;
+            /** Max Runs Per User Per Minute */
+            max_runs_per_user_per_minute: number;
+            /** Max Tool Calls Per Request */
+            max_tool_calls_per_request: number;
+            /** Max Tool Result Chars */
+            max_tool_result_chars: number;
+            /** Max User Message Chars */
+            max_user_message_chars: number;
+            /** Request Timeout Seconds */
+            request_timeout_seconds: number;
+            /** Run Deadline Seconds */
+            run_deadline_seconds: number;
+        };
+        /** AiStatusResponse */
+        AiStatusResponse: {
+            /**
+             * Accounting Writes Enabled
+             * @default false
+             * @constant
+             */
+            accounting_writes_enabled: false;
+            /** Can Approve */
+            can_approve: boolean;
+            /** Enabled */
+            enabled: boolean;
+            /** External Processing */
+            external_processing: boolean;
+            limits: components["schemas"]["AiLimitsResponse"];
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "DISABLED" | "MOCK" | "REAL";
+            /** Model */
+            model: string | null;
+            /** Notice */
+            notice: string;
+            /** Prompt Version */
+            prompt_version: string;
+            /** Provider */
+            provider: string | null;
+            /**
+             * Read Only Tools
+             * @default true
+             * @constant
+             */
+            read_only_tools: true;
+            /**
+             * Sends Messages
+             * @default false
+             * @constant
+             */
+            sends_messages: false;
+            usage: components["schemas"]["AiUsageResponse"];
+        };
+        /** AiToolListResponse */
+        AiToolListResponse: {
+            /** Blocked Actions */
+            blocked_actions: components["schemas"]["BlockedActionResponse"][];
+            /** Classes */
+            classes: components["schemas"]["ActionClassResponse"][];
+            /** Tools */
+            tools: components["schemas"]["AiToolResponse"][];
+        };
+        /** AiToolResponse */
+        AiToolResponse: {
+            /** Available */
+            available: boolean;
+            /** Description */
+            description: string;
+            /** Name */
+            name: string;
+            /** Parameters */
+            parameters: {
+                [key: string]: unknown;
+            };
+            /** Permission */
+            permission: string;
+            /**
+             * Tool Class
+             * @enum {string}
+             */
+            tool_class: "READ_ONLY" | "DRAFT_PROPOSAL" | "REQUIRES_HUMAN_APPROVAL" | "BLOCKED";
+        };
+        /** AiUsageResponse */
+        AiUsageResponse: {
+            /** Cost Usd Today */
+            cost_usd_today: string;
+            /** Daily Cost Budget Usd */
+            daily_cost_budget_usd: string;
+            /** Daily Token Budget */
+            daily_token_budget: number;
+            /** Runs Today */
+            runs_today: number;
+            /** Tokens Today */
+            tokens_today: number;
+        };
         /** AmendmentLineRequest */
         AmendmentLineRequest: {
             /**
@@ -1694,6 +2051,13 @@ export interface components {
             memberships: components["schemas"]["CompanyAccess"][];
             session: components["schemas"]["SessionView"];
             user: components["schemas"]["SessionUser"];
+        };
+        /** BlockedActionResponse */
+        BlockedActionResponse: {
+            /** Name */
+            name: string;
+            /** Reason */
+            reason: string;
         };
         /** Body_upload_document_api_v1_documents_post */
         Body_upload_document_api_v1_documents_post: {
@@ -1824,6 +2188,48 @@ export interface components {
             label: string;
             /** Satisfied */
             satisfied: boolean;
+        };
+        /** ConversationDetailResponse */
+        ConversationDetailResponse: {
+            conversation: components["schemas"]["ConversationResponse"];
+            /** Messages */
+            messages: components["schemas"]["MessageResponse"][];
+            /** Proposals */
+            proposals: components["schemas"]["ProposalResponse"][];
+        };
+        /** ConversationListResponse */
+        ConversationListResponse: {
+            /** Items */
+            items: components["schemas"]["ConversationResponse"][];
+        };
+        /** ConversationResponse */
+        ConversationResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Prompt Version */
+            prompt_version: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ACTIVE" | "ARCHIVED";
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
         };
         /** CostComparisonResponse */
         CostComparisonResponse: {
@@ -2002,6 +2408,11 @@ export interface components {
             read_only: true;
             /** Reconciliation */
             reconciliation: components["schemas"]["CategoryCountResponse"][];
+        };
+        /** CreateConversationRequest */
+        CreateConversationRequest: {
+            /** Title */
+            title?: string | null;
         };
         /** CurrencyOrderValueResponse */
         CurrencyOrderValueResponse: {
@@ -2604,6 +3015,22 @@ export interface components {
              */
             verification_status: "VERIFIED" | "REJECTED";
         };
+        /** DraftResponse */
+        DraftResponse: {
+            /** Body */
+            body: string;
+            /** Evidence */
+            evidence: string[];
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "RFQ_EMAIL" | "SUPPLIER_FOLLOW_UP" | "CUSTOMER_UPDATE" | "OTHER";
+            /** Title */
+            title: string;
+            /** Warnings */
+            warnings: string[];
+        };
         /**
          * ErrorDetail
          * @description Machine readable error description.
@@ -2833,6 +3260,52 @@ export interface components {
             verification_status: "UNVERIFIED" | "VERIFIED" | "REJECTED";
             /** Verified At */
             verified_at?: string | null;
+        };
+        /** EvidenceResponse */
+        EvidenceResponse: {
+            /** As Of */
+            as_of: string | null;
+            /**
+             * Basis
+             * @enum {string}
+             */
+            basis: "CONFIRMED_SOURCE" | "ESTIMATED" | "INCOMPLETE" | "AI_INFERENCE" | "NOT_AVAILABLE";
+            /** Completeness */
+            completeness: string;
+            /** Entity Id */
+            entity_id: string;
+            /** Entity Type */
+            entity_type: string;
+            /** Facts */
+            facts: {
+                [key: string]: string;
+            };
+            /**
+             * Href
+             * @description Application route of the cited record, computed by the server.
+             */
+            href: string | null;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Reference */
+            reference: string;
+            /** Tool */
+            tool: string;
+            /** Warnings */
+            warnings: string[];
+        };
+        /** FigureResponse */
+        FigureResponse: {
+            /** Currency */
+            currency: string | null;
+            /** Evidence */
+            evidence: string | null;
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
         };
         /** FilterOptionResponse */
         FilterOptionResponse: {
@@ -3371,6 +3844,22 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** FindingResponse */
+        FindingResponse: {
+            /**
+             * Basis
+             * @enum {string}
+             */
+            basis: "CONFIRMED_SOURCE" | "ESTIMATED" | "INCOMPLETE" | "AI_INFERENCE" | "NOT_AVAILABLE";
+            /** Claim */
+            claim: string;
+            /** Evidence */
+            evidence: string[];
+            /** Figures */
+            figures: components["schemas"]["FigureResponse"][];
+            /** Warnings */
+            warnings: string[];
+        };
         /** FulfilmentLineResponse */
         FulfilmentLineResponse: {
             /** Allocated */
@@ -3714,6 +4203,38 @@ export interface components {
             key: string;
             /** Label */
             label: string;
+        };
+        /** MessageResponse */
+        MessageResponse: {
+            /** Content */
+            content: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Evidence */
+            evidence: components["schemas"]["EvidenceResponse"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "USER" | "ASSISTANT";
+            /** Run Id */
+            run_id: string | null;
+            structured: components["schemas"]["StructuredAnswerResponse"] | null;
+        };
+        /** MissingInputResponse */
+        MissingInputResponse: {
+            /** Evidence */
+            evidence: string[];
+            /** Item */
+            item: string;
         };
         /** MoneyTotalResponse */
         MoneyTotalResponse: {
@@ -4576,6 +5097,116 @@ export interface components {
             /** Unit Price */
             unit_price?: number | string | null;
         };
+        /** ProposalDecisionRequest */
+        ProposalDecisionRequest: {
+            /**
+             * Acknowledge Warnings
+             * @default false
+             */
+            acknowledge_warnings: boolean;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** ProposalEditRequest */
+        ProposalEditRequest: {
+            /** Body */
+            body?: string | null;
+            /** Draft Kind */
+            draft_kind?: ("RFQ_EMAIL" | "SUPPLIER_FOLLOW_UP" | "CUSTOMER_UPDATE" | "OTHER") | null;
+            /** Priority */
+            priority?: ("HIGH" | "MEDIUM" | "LOW") | null;
+            /** Rationale */
+            rationale?: string | null;
+            /** Title */
+            title?: string | null;
+        };
+        /** ProposalListResponse */
+        ProposalListResponse: {
+            /** Items */
+            items: components["schemas"]["ProposalResponse"][];
+        };
+        /** ProposalResponse */
+        ProposalResponse: {
+            /**
+             * Action Class
+             * @enum {string}
+             */
+            action_class: "READ_ONLY" | "DRAFT_PROPOSAL" | "REQUIRES_HUMAN_APPROVAL" | "BLOCKED";
+            /**
+             * Action Type
+             * @enum {string}
+             */
+            action_type: "DRAFT_REVIEW" | "OPERATOR_TASK";
+            /**
+             * Conversation Id
+             * Format: uuid
+             */
+            conversation_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Decided At */
+            decided_at: string | null;
+            /** Decided By */
+            decided_by: string | null;
+            /** Decision Notes */
+            decision_notes: string | null;
+            /** Edited */
+            edited: boolean;
+            /**
+             * Effect Summary
+             * @description What approving this proposal does. Never sends, signs, pays or posts.
+             */
+            effect_summary: string;
+            /** Evidence */
+            evidence: components["schemas"]["EvidenceResponse"][];
+            /** Execution Result */
+            execution_result: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "DRAFT" | "TASK";
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "PROPOSED" | "APPROVED" | "REJECTED";
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+            /** Warnings */
+            warnings: string[];
+        };
         /** PurchaseOrderCreateRequest */
         PurchaseOrderCreateRequest: {
             /** Expected Delivery Date */
@@ -4947,6 +5578,25 @@ export interface components {
             status: "ready";
             /** Version */
             version: string;
+        };
+        /** RecommendationResponse */
+        RecommendationResponse: {
+            /** Action */
+            action: string;
+            /** Evidence */
+            evidence: string[];
+            /**
+             * Priority
+             * @enum {string}
+             */
+            priority: "HIGH" | "MEDIUM" | "LOW";
+            /**
+             * Rationale
+             * @default
+             */
+            rationale: string;
+            /** Warnings */
+            warnings: string[];
         };
         /** ReconciliationListResponse */
         ReconciliationListResponse: {
@@ -5599,6 +6249,66 @@ export interface components {
             /** Response Due Date */
             response_due_date?: string | null;
         };
+        /** RunResponse */
+        RunResponse: {
+            /**
+             * Conversation Id
+             * Format: uuid
+             */
+            conversation_id: string;
+            /** Conversation Title */
+            conversation_title: string | null;
+            /** Cost Usd */
+            cost_usd: string;
+            /** Error Code */
+            error_code: string | null;
+            /** Estimated Usage */
+            estimated_usage: boolean;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Input Tokens */
+            input_tokens: number;
+            /** Is External */
+            is_external: boolean;
+            message: components["schemas"]["MessageResponse"] | null;
+            /** Model */
+            model: string;
+            /** Model Steps */
+            model_steps: number;
+            /** Output Tokens */
+            output_tokens: number;
+            /** Prompt Version */
+            prompt_version: string;
+            /** Proposals */
+            proposals: components["schemas"]["ProposalResponse"][];
+            /** Provider */
+            provider: string;
+            /** Provider Calls */
+            provider_calls: number;
+            /** Safety Flags */
+            safety_flags: string[];
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED";
+            /** Tool Call Count */
+            tool_call_count: number;
+            /** Tool Calls */
+            tool_calls: components["schemas"]["ToolCallResponse"][];
+            /** Validation Warnings */
+            validation_warnings: string[];
+        };
         /** SalesOrderItemResponse */
         SalesOrderItemResponse: {
             /** Description */
@@ -6127,6 +6837,16 @@ export interface components {
             /** Reason */
             reason?: string | null;
         };
+        /** SendMessageRequest */
+        SendMessageRequest: {
+            /** Content */
+            content: string;
+        };
+        /** SendMessageResponse */
+        SendMessageResponse: {
+            message: components["schemas"]["MessageResponse"];
+            run: components["schemas"]["RunResponse"];
+        };
         /**
          * SessionUser
          * @description The authenticated actor.
@@ -6631,6 +7351,40 @@ export interface components {
              */
             source_type: "AGING_RECEIVABLE" | "AGING_PAYABLE" | "ACCOUNT" | "SUMMARY";
         };
+        /** StructuredAnswerResponse */
+        StructuredAnswerResponse: {
+            /** Drafts */
+            drafts: components["schemas"]["DraftResponse"][];
+            /** Findings */
+            findings: components["schemas"]["FindingResponse"][];
+            /** Missing Inputs */
+            missing_inputs: components["schemas"]["MissingInputResponse"][];
+            /** Recommendations */
+            recommendations: components["schemas"]["RecommendationResponse"][];
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+            /** Task Proposals */
+            task_proposals: components["schemas"]["TaskProposalResponse"][];
+            /** Warnings */
+            warnings: string[];
+        };
+        /** SuggestionListResponse */
+        SuggestionListResponse: {
+            /** Items */
+            items: components["schemas"]["SuggestionResponse"][];
+        };
+        /** SuggestionResponse */
+        SuggestionResponse: {
+            /** Id */
+            id: string;
+            /** Prompt */
+            prompt: string;
+            /** Title */
+            title: string;
+        };
         /** SupplierQuoteCreateRequest */
         SupplierQuoteCreateRequest: {
             /**
@@ -7004,6 +7758,67 @@ export interface components {
             /** Reason */
             reason: string;
         };
+        /** TaskProposalResponse */
+        TaskProposalResponse: {
+            /** Evidence */
+            evidence: string[];
+            /**
+             * Priority
+             * @enum {string}
+             */
+            priority: "HIGH" | "MEDIUM" | "LOW";
+            /**
+             * Rationale
+             * @default
+             */
+            rationale: string;
+            target: components["schemas"]["TaskTargetResponse"] | null;
+            /** Title */
+            title: string;
+            /** Warnings */
+            warnings: string[];
+        };
+        /** TaskTargetResponse */
+        TaskTargetResponse: {
+            /** Entity Id */
+            entity_id: string;
+            /** Entity Type */
+            entity_type: string;
+        };
+        /** ToolCallResponse */
+        ToolCallResponse: {
+            /** Arguments */
+            arguments: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Duration Ms */
+            duration_ms: number;
+            /** Error Code */
+            error_code: string | null;
+            /** Evidence Ids */
+            evidence_ids: string[];
+            /** Ordinal */
+            ordinal: number;
+            /** Result Chars */
+            result_chars: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "OK" | "DENIED" | "INVALID" | "ERROR" | "LIMITED";
+            /**
+             * Tool Class
+             * @enum {string}
+             */
+            tool_class: "READ_ONLY" | "DRAFT_PROPOSAL" | "REQUIRES_HUMAN_APPROVAL" | "BLOCKED";
+            /** Tool Name */
+            tool_name: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -7044,6 +7859,540 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
+                };
+            };
+        };
+    };
+    activity_api_v1_ai_activity_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityResponse"];
+                };
+            };
+        };
+    };
+    list_conversations_api_v1_ai_conversations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationListResponse"];
+                };
+            };
+        };
+    };
+    create_conversation_api_v1_ai_conversations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateConversationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_conversation_api_v1_ai_conversations__conversation_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationDetailResponse"];
+                };
+            };
+            /** @description Not your conversation. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_message_api_v1_ai_conversations__conversation_id__messages_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendMessageRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendMessageResponse"];
+                };
+            };
+            /** @description Message too large. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Rate limit or budget reached. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description AI Office disabled. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_proposals_api_v1_ai_proposals_get: {
+        parameters: {
+            query?: {
+                proposal_status?: ("PROPOSED" | "APPROVED" | "REJECTED") | null;
+                conversation_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_proposal_api_v1_ai_proposals__proposal_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_proposal_api_v1_ai_proposals__proposal_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+            };
+            path: {
+                proposal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposalEditRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalResponse"];
+                };
+            };
+            /** @description Not pending, or stale version. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description If-Match is required. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    approve_proposal_api_v1_ai_proposals__proposal_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+            };
+            path: {
+                proposal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposalDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalResponse"];
+                };
+            };
+            /** @description Already decided, stale or unsupported. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description If-Match is required. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reject_proposal_api_v1_ai_proposals__proposal_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+            };
+            path: {
+                proposal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposalDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalResponse"];
+                };
+            };
+            /** @description Already decided or stale. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_run_api_v1_ai_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunResponse"];
+                };
+            };
+            /** @description Not your run. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_run_api_v1_ai_runs__run_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunResponse"];
+                };
+            };
+            /** @description The run is not running. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ai_status_api_v1_ai_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiStatusResponse"];
+                };
+            };
+        };
+    };
+    ai_suggestions_api_v1_ai_suggestions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionListResponse"];
+                };
+            };
+        };
+    };
+    ai_tools_api_v1_ai_tools_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiToolListResponse"];
                 };
             };
         };

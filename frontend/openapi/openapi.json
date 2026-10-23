@@ -1,6 +1,310 @@
 {
   "components": {
     "schemas": {
+      "ActionClassResponse": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "enum": [
+              "READ_ONLY",
+              "DRAFT_PROPOSAL",
+              "REQUIRES_HUMAN_APPROVAL",
+              "BLOCKED"
+            ],
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "description"
+        ],
+        "title": "ActionClassResponse",
+        "type": "object"
+      },
+      "ActivityResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RunResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ActivityResponse",
+        "type": "object"
+      },
+      "AiLimitsResponse": {
+        "properties": {
+          "max_concurrent_runs": {
+            "title": "Max Concurrent Runs",
+            "type": "integer"
+          },
+          "max_model_steps": {
+            "title": "Max Model Steps",
+            "type": "integer"
+          },
+          "max_output_tokens": {
+            "title": "Max Output Tokens",
+            "type": "integer"
+          },
+          "max_request_tokens": {
+            "title": "Max Request Tokens",
+            "type": "integer"
+          },
+          "max_runs_per_user_per_minute": {
+            "title": "Max Runs Per User Per Minute",
+            "type": "integer"
+          },
+          "max_tool_calls_per_request": {
+            "title": "Max Tool Calls Per Request",
+            "type": "integer"
+          },
+          "max_tool_result_chars": {
+            "title": "Max Tool Result Chars",
+            "type": "integer"
+          },
+          "max_user_message_chars": {
+            "title": "Max User Message Chars",
+            "type": "integer"
+          },
+          "request_timeout_seconds": {
+            "title": "Request Timeout Seconds",
+            "type": "number"
+          },
+          "run_deadline_seconds": {
+            "title": "Run Deadline Seconds",
+            "type": "number"
+          }
+        },
+        "required": [
+          "max_model_steps",
+          "max_tool_calls_per_request",
+          "max_output_tokens",
+          "max_request_tokens",
+          "max_user_message_chars",
+          "max_tool_result_chars",
+          "max_concurrent_runs",
+          "max_runs_per_user_per_minute",
+          "request_timeout_seconds",
+          "run_deadline_seconds"
+        ],
+        "title": "AiLimitsResponse",
+        "type": "object"
+      },
+      "AiStatusResponse": {
+        "properties": {
+          "accounting_writes_enabled": {
+            "const": false,
+            "default": false,
+            "title": "Accounting Writes Enabled",
+            "type": "boolean"
+          },
+          "can_approve": {
+            "title": "Can Approve",
+            "type": "boolean"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "external_processing": {
+            "title": "External Processing",
+            "type": "boolean"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/AiLimitsResponse"
+          },
+          "mode": {
+            "enum": [
+              "DISABLED",
+              "MOCK",
+              "REAL"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "notice": {
+            "title": "Notice",
+            "type": "string"
+          },
+          "prompt_version": {
+            "title": "Prompt Version",
+            "type": "string"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "read_only_tools": {
+            "const": true,
+            "default": true,
+            "title": "Read Only Tools",
+            "type": "boolean"
+          },
+          "sends_messages": {
+            "const": false,
+            "default": false,
+            "title": "Sends Messages",
+            "type": "boolean"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/AiUsageResponse"
+          }
+        },
+        "required": [
+          "enabled",
+          "mode",
+          "provider",
+          "model",
+          "external_processing",
+          "prompt_version",
+          "limits",
+          "usage",
+          "notice",
+          "can_approve",
+          "read_only_tools",
+          "accounting_writes_enabled",
+          "sends_messages"
+        ],
+        "title": "AiStatusResponse",
+        "type": "object"
+      },
+      "AiToolListResponse": {
+        "properties": {
+          "blocked_actions": {
+            "items": {
+              "$ref": "#/components/schemas/BlockedActionResponse"
+            },
+            "title": "Blocked Actions",
+            "type": "array"
+          },
+          "classes": {
+            "items": {
+              "$ref": "#/components/schemas/ActionClassResponse"
+            },
+            "title": "Classes",
+            "type": "array"
+          },
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/AiToolResponse"
+            },
+            "title": "Tools",
+            "type": "array"
+          }
+        },
+        "required": [
+          "tools",
+          "blocked_actions",
+          "classes"
+        ],
+        "title": "AiToolListResponse",
+        "type": "object"
+      },
+      "AiToolResponse": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "title": "Parameters",
+            "type": "object"
+          },
+          "permission": {
+            "title": "Permission",
+            "type": "string"
+          },
+          "tool_class": {
+            "enum": [
+              "READ_ONLY",
+              "DRAFT_PROPOSAL",
+              "REQUIRES_HUMAN_APPROVAL",
+              "BLOCKED"
+            ],
+            "title": "Tool Class",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "tool_class",
+          "permission",
+          "available",
+          "parameters"
+        ],
+        "title": "AiToolResponse",
+        "type": "object"
+      },
+      "AiUsageResponse": {
+        "properties": {
+          "cost_usd_today": {
+            "title": "Cost Usd Today",
+            "type": "string"
+          },
+          "daily_cost_budget_usd": {
+            "title": "Daily Cost Budget Usd",
+            "type": "string"
+          },
+          "daily_token_budget": {
+            "title": "Daily Token Budget",
+            "type": "integer"
+          },
+          "runs_today": {
+            "title": "Runs Today",
+            "type": "integer"
+          },
+          "tokens_today": {
+            "title": "Tokens Today",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tokens_today",
+          "cost_usd_today",
+          "runs_today",
+          "daily_token_budget",
+          "daily_cost_budget_usd"
+        ],
+        "title": "AiUsageResponse",
+        "type": "object"
+      },
       "AmendmentLineRequest": {
         "additionalProperties": false,
         "properties": {
@@ -53,6 +357,24 @@
           "memberships"
         ],
         "title": "AuthSessionResponse",
+        "type": "object"
+      },
+      "BlockedActionResponse": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "reason"
+        ],
+        "title": "BlockedActionResponse",
         "type": "object"
       },
       "Body_upload_document_api_v1_documents_post": {
@@ -334,6 +656,100 @@
           "detail"
         ],
         "title": "CompletionCheckResponse",
+        "type": "object"
+      },
+      "ConversationDetailResponse": {
+        "properties": {
+          "conversation": {
+            "$ref": "#/components/schemas/ConversationResponse"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/MessageResponse"
+            },
+            "title": "Messages",
+            "type": "array"
+          },
+          "proposals": {
+            "items": {
+              "$ref": "#/components/schemas/ProposalResponse"
+            },
+            "title": "Proposals",
+            "type": "array"
+          }
+        },
+        "required": [
+          "conversation",
+          "messages",
+          "proposals"
+        ],
+        "title": "ConversationDetailResponse",
+        "type": "object"
+      },
+      "ConversationListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ConversationResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ConversationListResponse",
+        "type": "object"
+      },
+      "ConversationResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "prompt_version": {
+            "title": "Prompt Version",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ACTIVE",
+              "ARCHIVED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "status",
+          "prompt_version",
+          "created_at",
+          "updated_at",
+          "version"
+        ],
+        "title": "ConversationResponse",
         "type": "object"
       },
       "CostComparisonResponse": {
@@ -865,6 +1281,25 @@
           "calculation_version"
         ],
         "title": "CoverageResponse",
+        "type": "object"
+      },
+      "CreateConversationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "CreateConversationRequest",
         "type": "object"
       },
       "CurrencyOrderValueResponse": {
@@ -2382,6 +2817,51 @@
         "title": "DocumentVerifyRequest",
         "type": "object"
       },
+      "DraftResponse": {
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "RFQ_EMAIL",
+              "SUPPLIER_FOLLOW_UP",
+              "CUSTOMER_UPDATE",
+              "OTHER"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "title",
+          "body",
+          "evidence",
+          "warnings"
+        ],
+        "title": "DraftResponse",
+        "type": "object"
+      },
       "ErrorDetail": {
         "description": "Machine readable error description.",
         "properties": {
@@ -2869,6 +3349,144 @@
           "created_at"
         ],
         "title": "EvidenceReferenceResponse",
+        "type": "object"
+      },
+      "EvidenceResponse": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "basis": {
+            "enum": [
+              "CONFIRMED_SOURCE",
+              "ESTIMATED",
+              "INCOMPLETE",
+              "AI_INFERENCE",
+              "NOT_AVAILABLE"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "completeness": {
+            "title": "Completeness",
+            "type": "string"
+          },
+          "entity_id": {
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "entity_type": {
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "facts": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Facts",
+            "type": "object"
+          },
+          "href": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Application route of the cited record, computed by the server.",
+            "title": "Href"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "reference": {
+            "title": "Reference",
+            "type": "string"
+          },
+          "tool": {
+            "title": "Tool",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "entity_type",
+          "entity_id",
+          "reference",
+          "label",
+          "basis",
+          "as_of",
+          "completeness",
+          "facts",
+          "warnings",
+          "tool",
+          "href"
+        ],
+        "title": "EvidenceResponse",
+        "type": "object"
+      },
+      "FigureResponse": {
+        "properties": {
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "value",
+          "currency",
+          "evidence"
+        ],
+        "title": "FigureResponse",
         "type": "object"
       },
       "FilterOptionResponse": {
@@ -4197,6 +4815,55 @@
         "title": "FinancialExceptionResponse",
         "type": "object"
       },
+      "FindingResponse": {
+        "properties": {
+          "basis": {
+            "enum": [
+              "CONFIRMED_SOURCE",
+              "ESTIMATED",
+              "INCOMPLETE",
+              "AI_INFERENCE",
+              "NOT_AVAILABLE"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "claim": {
+            "title": "Claim",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "figures": {
+            "items": {
+              "$ref": "#/components/schemas/FigureResponse"
+            },
+            "title": "Figures",
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "claim",
+          "basis",
+          "evidence",
+          "figures",
+          "warnings"
+        ],
+        "title": "FindingResponse",
+        "type": "object"
+      },
       "FulfilmentLineResponse": {
         "properties": {
           "allocated": {
@@ -4891,6 +5558,93 @@
           "count"
         ],
         "title": "MarginBucketResponse",
+        "type": "object"
+      },
+      "MessageResponse": {
+        "properties": {
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceResponse"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "USER",
+              "ASSISTANT"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "structured": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StructuredAnswerResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "content",
+          "structured",
+          "evidence",
+          "run_id",
+          "created_at"
+        ],
+        "title": "MessageResponse",
+        "type": "object"
+      },
+      "MissingInputResponse": {
+        "properties": {
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "item": {
+            "title": "Item",
+            "type": "string"
+          }
+        },
+        "required": [
+          "item",
+          "evidence"
+        ],
+        "title": "MissingInputResponse",
         "type": "object"
       },
       "MoneyTotalResponse": {
@@ -7316,6 +8070,299 @@
         "title": "ProductUpdateRequest",
         "type": "object"
       },
+      "ProposalDecisionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "acknowledge_warnings": {
+            "default": false,
+            "title": "Acknowledge Warnings",
+            "type": "boolean"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "title": "ProposalDecisionRequest",
+        "type": "object"
+      },
+      "ProposalEditRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "anyOf": [
+              {
+                "maxLength": 6000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "draft_kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "RFQ_EMAIL",
+                  "SUPPLIER_FOLLOW_UP",
+                  "CUSTOMER_UPDATE",
+                  "OTHER"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Kind"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "enum": [
+                  "HIGH",
+                  "MEDIUM",
+                  "LOW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "rationale": {
+            "anyOf": [
+              {
+                "maxLength": 1200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rationale"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "ProposalEditRequest",
+        "type": "object"
+      },
+      "ProposalListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProposalResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ProposalListResponse",
+        "type": "object"
+      },
+      "ProposalResponse": {
+        "properties": {
+          "action_class": {
+            "enum": [
+              "READ_ONLY",
+              "DRAFT_PROPOSAL",
+              "REQUIRES_HUMAN_APPROVAL",
+              "BLOCKED"
+            ],
+            "title": "Action Class",
+            "type": "string"
+          },
+          "action_type": {
+            "enum": [
+              "DRAFT_REVIEW",
+              "OPERATOR_TASK"
+            ],
+            "title": "Action Type",
+            "type": "string"
+          },
+          "conversation_id": {
+            "format": "uuid",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "format": "uuid",
+            "title": "Created By",
+            "type": "string"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "decided_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided By"
+          },
+          "decision_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Notes"
+          },
+          "edited": {
+            "title": "Edited",
+            "type": "boolean"
+          },
+          "effect_summary": {
+            "description": "What approving this proposal does. Never sends, signs, pays or posts.",
+            "title": "Effect Summary",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceResponse"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "execution_result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Result"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "DRAFT",
+              "TASK"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PROPOSED",
+              "APPROVED",
+              "REJECTED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "conversation_id",
+          "run_id",
+          "kind",
+          "action_type",
+          "action_class",
+          "title",
+          "payload",
+          "edited",
+          "evidence",
+          "warnings",
+          "status",
+          "created_by",
+          "decided_by",
+          "decided_at",
+          "decision_notes",
+          "execution_result",
+          "effect_summary",
+          "created_at",
+          "updated_at",
+          "version"
+        ],
+        "title": "ProposalResponse",
+        "type": "object"
+      },
       "PurchaseOrderCreateRequest": {
         "additionalProperties": false,
         "properties": {
@@ -8378,6 +9425,51 @@
           "checks"
         ],
         "title": "ReadinessResponse",
+        "type": "object"
+      },
+      "RecommendationResponse": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "priority": {
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "title": "Priority",
+            "type": "string"
+          },
+          "rationale": {
+            "default": "",
+            "title": "Rationale",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "action",
+          "priority",
+          "rationale",
+          "evidence",
+          "warnings"
+        ],
+        "title": "RecommendationResponse",
         "type": "object"
       },
       "ReconciliationListResponse": {
@@ -9983,6 +11075,178 @@
         "title": "RfqUpdateRequest",
         "type": "object"
       },
+      "RunResponse": {
+        "properties": {
+          "conversation_id": {
+            "format": "uuid",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "conversation_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Title"
+          },
+          "cost_usd": {
+            "title": "Cost Usd",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "estimated_usage": {
+            "title": "Estimated Usage",
+            "type": "boolean"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "input_tokens": {
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "is_external": {
+            "title": "Is External",
+            "type": "boolean"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MessageResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "model_steps": {
+            "title": "Model Steps",
+            "type": "integer"
+          },
+          "output_tokens": {
+            "title": "Output Tokens",
+            "type": "integer"
+          },
+          "prompt_version": {
+            "title": "Prompt Version",
+            "type": "string"
+          },
+          "proposals": {
+            "items": {
+              "$ref": "#/components/schemas/ProposalResponse"
+            },
+            "title": "Proposals",
+            "type": "array"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "provider_calls": {
+            "title": "Provider Calls",
+            "type": "integer"
+          },
+          "safety_flags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safety Flags",
+            "type": "array"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "RUNNING",
+              "COMPLETED",
+              "FAILED",
+              "CANCELLED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tool_call_count": {
+            "title": "Tool Call Count",
+            "type": "integer"
+          },
+          "tool_calls": {
+            "items": {
+              "$ref": "#/components/schemas/ToolCallResponse"
+            },
+            "title": "Tool Calls",
+            "type": "array"
+          },
+          "validation_warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Validation Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "conversation_id",
+          "conversation_title",
+          "status",
+          "provider",
+          "model",
+          "prompt_version",
+          "is_external",
+          "input_tokens",
+          "output_tokens",
+          "estimated_usage",
+          "cost_usd",
+          "model_steps",
+          "tool_call_count",
+          "provider_calls",
+          "error_code",
+          "validation_warnings",
+          "safety_flags",
+          "started_at",
+          "finished_at",
+          "tool_calls",
+          "message",
+          "proposals"
+        ],
+        "title": "RunResponse",
+        "type": "object"
+      },
       "SalesOrderItemResponse": {
         "properties": {
           "description": {
@@ -11206,6 +12470,38 @@
           }
         },
         "title": "SalesQuoteWithdrawRequest",
+        "type": "object"
+      },
+      "SendMessageRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "title": "SendMessageRequest",
+        "type": "object"
+      },
+      "SendMessageResponse": {
+        "properties": {
+          "message": {
+            "$ref": "#/components/schemas/MessageResponse"
+          },
+          "run": {
+            "$ref": "#/components/schemas/RunResponse"
+          }
+        },
+        "required": [
+          "run",
+          "message"
+        ],
+        "title": "SendMessageResponse",
         "type": "object"
       },
       "SessionUser": {
@@ -12667,6 +13963,107 @@
         "title": "SourceReferenceResponse",
         "type": "object"
       },
+      "StructuredAnswerResponse": {
+        "properties": {
+          "drafts": {
+            "items": {
+              "$ref": "#/components/schemas/DraftResponse"
+            },
+            "title": "Drafts",
+            "type": "array"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingResponse"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "missing_inputs": {
+            "items": {
+              "$ref": "#/components/schemas/MissingInputResponse"
+            },
+            "title": "Missing Inputs",
+            "type": "array"
+          },
+          "recommendations": {
+            "items": {
+              "$ref": "#/components/schemas/RecommendationResponse"
+            },
+            "title": "Recommendations",
+            "type": "array"
+          },
+          "summary": {
+            "default": "",
+            "title": "Summary",
+            "type": "string"
+          },
+          "task_proposals": {
+            "items": {
+              "$ref": "#/components/schemas/TaskProposalResponse"
+            },
+            "title": "Task Proposals",
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "summary",
+          "findings",
+          "recommendations",
+          "missing_inputs",
+          "drafts",
+          "task_proposals",
+          "warnings"
+        ],
+        "title": "StructuredAnswerResponse",
+        "type": "object"
+      },
+      "SuggestionListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SuggestionResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "SuggestionListResponse",
+        "type": "object"
+      },
+      "SuggestionResponse": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "prompt"
+        ],
+        "title": "SuggestionResponse",
+        "type": "object"
+      },
       "SupplierQuoteCreateRequest": {
         "additionalProperties": false,
         "properties": {
@@ -13608,6 +15005,163 @@
         "title": "SupplierQuoteWithdrawRequest",
         "type": "object"
       },
+      "TaskProposalResponse": {
+        "properties": {
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "priority": {
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "title": "Priority",
+            "type": "string"
+          },
+          "rationale": {
+            "default": "",
+            "title": "Rationale",
+            "type": "string"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskTargetResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "title",
+          "rationale",
+          "priority",
+          "target",
+          "evidence",
+          "warnings"
+        ],
+        "title": "TaskProposalResponse",
+        "type": "object"
+      },
+      "TaskTargetResponse": {
+        "properties": {
+          "entity_id": {
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "entity_type": {
+            "title": "Entity Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_type",
+          "entity_id"
+        ],
+        "title": "TaskTargetResponse",
+        "type": "object"
+      },
+      "ToolCallResponse": {
+        "properties": {
+          "arguments": {
+            "additionalProperties": true,
+            "title": "Arguments",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "result_chars": {
+            "title": "Result Chars",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "OK",
+              "DENIED",
+              "INVALID",
+              "ERROR",
+              "LIMITED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tool_class": {
+            "enum": [
+              "READ_ONLY",
+              "DRAFT_PROPOSAL",
+              "REQUIRES_HUMAN_APPROVAL",
+              "BLOCKED"
+            ],
+            "title": "Tool Class",
+            "type": "string"
+          },
+          "tool_name": {
+            "title": "Tool Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ordinal",
+          "tool_name",
+          "tool_class",
+          "status",
+          "arguments",
+          "evidence_ids",
+          "result_chars",
+          "duration_ms",
+          "error_code",
+          "created_at"
+        ],
+        "title": "ToolCallResponse",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -13679,6 +15233,765 @@
         "summary": "Service descriptor",
         "tags": [
           "meta"
+        ]
+      }
+    },
+    "/api/v1/ai/activity": {
+      "get": {
+        "operationId": "activity_api_v1_ai_activity_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Recent requests with usage and tool counts",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/ai/conversations": {
+      "get": {
+        "operationId": "list_conversations_api_v1_ai_conversations_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "The signed-in user's conversations in the active company",
+        "tags": [
+          "ai"
+        ]
+      },
+      "post": {
+        "operationId": "create_conversation_api_v1_ai_conversations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConversationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start a conversation",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/ai/conversations/{conversation_id}": {
+      "get": {
+        "operationId": "get_conversation_api_v1_ai_conversations__conversation_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not your conversation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "One conversation with its messages and proposals",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/ai/conversations/{conversation_id}/messages": {
+      "post": {
+        "description": "Accepted with 202; the model runs in the background. Poll the returned run. Refused with 503 when the AI Office is disabled, 413 for an oversized message, 429 for the per-user rate limit, the daily budget or too many concurrent runs.",
+        "operationId": "send_message_api_v1_ai_conversations__conversation_id__messages_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendMessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Message too large."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Rate limit or budget reached."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "AI Office disabled."
+          }
+        },
+        "summary": "Ask the Trade Director",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/ai/proposals": {
+      "get": {
+        "operationId": "list_proposals_api_v1_ai_proposals_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "proposal_status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "PROPOSED",
+                    "APPROVED",
+                    "REJECTED"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Proposal Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "conversation_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Drafts and task proposals awaiting a human decision",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/ai/proposals/{proposal_id}": {
+      "get": {
+        "operationId": "get_proposal_api_v1_ai_proposals__proposal_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "One proposal",
+        "tags": [
+          "ai"
+        ]
+      },
+      "patch": {
+        "description": "Requires If-Match. Only wording can change; the target and cited evidence stay as produced. An edited proposal is marked EDITED_BY_USER.",
+        "operationId": "edit_proposal_api_v1_ai_proposals__proposal_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-Match"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposalEditRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not pending, or stale version."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "If-Match is required."
+          }
+        },
+        "summary": "Edit the wording of a pending proposal",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/ai/proposals/{proposal_id}/approve": {
+      "post": {
+        "description": "Requires If-Match and ``trade.write``. Permissions, state, version and the target record are re-validated here. Supported actions: DRAFT_REVIEW, OPERATOR_TASK. Proposals with unverified figures need ``acknowledge_warnings``.",
+        "operationId": "approve_proposal_api_v1_ai_proposals__proposal_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-Match"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposalDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Already decided, stale or unsupported."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "If-Match is required."
+          }
+        },
+        "summary": "Approve a proposal (a human decision; nothing is sent or posted)",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/ai/proposals/{proposal_id}/reject": {
+      "post": {
+        "operationId": "reject_proposal_api_v1_ai_proposals__proposal_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-Match"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposalDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Already decided or stale."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reject a proposal",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/ai/runs/{run_id}": {
+      "get": {
+        "operationId": "get_run_api_v1_ai_runs__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not your run."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Progress and result of one request",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/ai/runs/{run_id}/cancel": {
+      "post": {
+        "operationId": "cancel_run_api_v1_ai_runs__run_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The run is not running."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel a running request",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/ai/status": {
+      "get": {
+        "description": "Never returns a credential or the provider URL. ``mode`` says whether answers come from the offline mock, a real provider or nothing (disabled).",
+        "operationId": "ai_status_api_v1_ai_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "AI provider status, limits and today's usage",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/ai/suggestions": {
+      "get": {
+        "operationId": "ai_suggestions_api_v1_ai_suggestions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Suggested starting questions",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/ai/tools": {
+      "get": {
+        "operationId": "ai_tools_api_v1_ai_tools_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiToolListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "The tool registry, approval classes and blocked actions",
+        "tags": [
+          "ai"
         ]
       }
     },
@@ -22131,6 +24444,10 @@
     {
       "description": "Stage 5C authenticated read-only Finance connector. Every call requires a Commerce session, an active company, company.view and an explicit tenant-scoped Finance company mapping.",
       "name": "finance"
+    },
+    {
+      "description": "Stage 6 AI Trade Director. Read-only tools over existing services, evidence-cited structured answers, human-approved proposals. It never sends, signs, pays, posts or accepts anything.",
+      "name": "ai"
     }
   ]
 }

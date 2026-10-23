@@ -132,6 +132,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "an explicit tenant-scoped Finance company mapping."
                 ),
             },
+            {
+                "name": "ai",
+                "description": (
+                    "Stage 6 AI Trade Director. Read-only tools over existing services, "
+                    "evidence-cited structured answers, human-approved proposals. It never "
+                    "sends, signs, pays, posts or accepts anything."
+                ),
+            },
         ],
     )
 
