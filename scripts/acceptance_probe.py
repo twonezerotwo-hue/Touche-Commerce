@@ -17,7 +17,7 @@ from dataclasses import asdict, dataclass
 from typing import Literal
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
-from urllib.request import HTTPRedirectHandler, Request, build_opener
+from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 Mode = Literal["local", "lan"]
 
@@ -88,7 +88,7 @@ def read_status(url: str, timeout: float) -> int:
     """Make a bounded GET, without redirects, credentials or response logging."""
 
     request = Request(url, headers={"Cache-Control": "no-store", "Accept": "text/html, application/json"})
-    opener = build_opener(NoRedirect)
+    opener = build_opener(ProxyHandler({}), NoRedirect)
     try:
         with opener.open(request, timeout=timeout) as response:
             return response.status
