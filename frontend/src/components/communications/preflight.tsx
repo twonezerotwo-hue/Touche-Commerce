@@ -18,8 +18,10 @@ const EXPLANATIONS: Record<string, string> = {
   CHANNEL_NOT_CONFIGURED: "The email or WhatsApp connection is not configured.",
   SEND_PERMISSION_UNAVAILABLE: "No role is currently allowed to send messages.",
   RECIPIENT_INVALID: "The recipient format is invalid for the selected channel.",
-  CRM_RECIPIENT_MISMATCH: "No active selected CRM counterparty contains this exact address or E.164 number.",
-  CONSENT_UNDOCUMENTED: "There is no verified permission or consent record for this recipient and channel.",
+  CRM_RECIPIENT_MISMATCH:
+    "No active selected CRM counterparty contains this exact address or E.164 number.",
+  CONSENT_UNDOCUMENTED:
+    "There is no verified permission or consent record for this recipient and channel.",
 };
 
 export function CommunicationPreflight({
@@ -146,7 +148,8 @@ export function CommunicationPreflight({
             {checking ? "Checking…" : "Check blockers"}
           </Button>
           <p className="text-xs text-mist-500">
-            This check compares the address with the selected CRM record; matching is not consent. Nothing is saved or sent.
+            This check compares the address with the selected CRM record; matching is not consent.
+            Nothing is saved or sent.
           </p>
           {error ? <Alert variant="warning">{error}</Alert> : null}
           {result ? (
