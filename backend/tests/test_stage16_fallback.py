@@ -124,7 +124,8 @@ def test_factory_wires_only_opt_in_loopback_fallback() -> None:
     assert provider.local.is_external is False
     assert provider.local.model == "qwen3:8b"
     assert provider.primary.is_external is True
-    assert build_provider(valid_settings(ai_local_fallback_enabled=False)).name == "openai_compatible"
+    no_fallback = build_provider(valid_settings(ai_local_fallback_enabled=False))
+    assert no_fallback.name == "openai_compatible"
 
 
 @pytest.mark.parametrize(
