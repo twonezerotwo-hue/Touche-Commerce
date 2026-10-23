@@ -128,7 +128,9 @@ export function CommunicationPreflight({
             <Alert variant="info" title="Sending blocked">
               <ul className="list-disc space-y-1 pl-4">
                 {result.blockers.map((code) => (
-                  <li key={code}>{EXPLANATIONS[code] ?? "An unresolved delivery requirement remains."}</li>
+                  <li key={code}>
+                    {EXPLANATIONS[code] ?? "An unresolved delivery requirement remains."}
+                  </li>
                 ))}
               </ul>
             </Alert>
