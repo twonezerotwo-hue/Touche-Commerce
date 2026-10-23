@@ -1,9 +1,9 @@
 # TOUCHE COMMERCE — Progress
 
 **Last updated:** 2026-10-23 (local)
-**Current stage:** Stage 5D — evidence-based financial reconciliation (implemented and isolated-HTTP verified locally)
-**Current milestone:** 5D — 379 backend tests, 102 frontend tests, `ISOLATED_HTTP_VERIFIED`
-**Stage 5:** IN_PROGRESS (Stage 5A/5B/5C/5D implemented; Stage 5E not started)
+**Current stage:** Stage 5E — read-only financial intelligence (implemented and isolated-HTTP verified locally)
+**Current milestone:** 5E — 402 backend tests, 140 frontend tests, `ISOLATED_HTTP_VERIFIED`
+**Stage 5:** IN_PROGRESS (Stage 5A/5B/5C/5D/5E implemented; no further milestone started)
 
 Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
 `FAILED`. Nothing is marked `PASSED` without an executed command in this file.
@@ -38,7 +38,8 @@ Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
 | Sourcing, landed cost, FX snapshots, sales quotes | PASSED | Stage 3 — §21 |
 | Sales orders, procurement, shipments, trade documents | PASSED | Stage 4 — §22 |
 | Finance read-only connector (Stage 5C) | PASSED | §24 — 20 connector + 18 API tests, isolated HTTP |
-| Financial reconciliation | NOT_STARTED | Stage 5D |
+| Financial reconciliation (Stage 5D) | PASSED | §25 — evidence runs, review, discrepancies; isolated HTTP |
+| Financial intelligence (Stage 5E) | PASSED | §26 — 402 backend / 140 frontend tests; isolated HTTP, browser not used |
 | Accounting, payments, external integrations, AI assistants | NOT_STARTED | no accounting write path exists |
 
 > This table records the **Stage 0** baseline. Stage 1A results are in
@@ -1664,3 +1665,159 @@ E03740DA624522EA9AC4869D3ADDDFB008C96DC7D2A78759CE760D810B0FA51E
 * Nothing was pushed, merged or deployed; the Finance repository was not
   modified.
 
+
+---
+
+## 26. Stage 5E — read-only financial intelligence
+
+### 26.1 Scope and boundary
+
+Stage 5E turns facts Commerce already holds into an operational profitability
+analysis. It reads accepted sales orders, the accepted quote and its pricing
+scenario with stored FX snapshots, purchase orders, shipment costs and the Stage 5D
+runs, evidence and discrepancies. It does **not** call Finance, create a
+migration, write any row (apart from one `finance.read` audit row per CSV export)
+or compute an actual profit. Finance remains the financial source of truth.
+
+**Branch:** `stage-5e`, from the verified Stage 5D HEAD `2be76ce`.
+**Migration:** none (head stays `0009_reconciliation`).
+**Calculation version:** `stage5e-1.0.0`.
+
+### 26.2 Delivered
+
+* A pure, I/O-free calculation module keeping two bases apart: `ESTIMATED`
+  (accepted value minus the Stage 3 landed-cost scenario, recoverable
+  `VAT_CASHFLOW` excluded) and `COMMITTED`/`DOCUMENTED` (accepted value minus
+  committed purchase orders and shipment costs recorded as `INCURRED` or
+  `DOCUMENTED`). `QUOTED`/`ESTIMATED` shipment costs are forecasts and never enter
+  the documented basis. There is deliberately no `actual_profit` field.
+* Seven `GET` endpoints under `/api/v1/finance/intelligence` (`summary`, `orders`,
+  `orders/{id}`, `cost-variance`, `coverage`, `exceptions`, `export`), all behind
+  `company.view`, `no-store`, with `read_only=true` and
+  `accounting_writes_enabled=false`. See API_CONTRACTS §12.
+* Four premium screens in the Stage 5C/5D design language:
+  `/finance/intelligence`, `/finance/intelligence/orders`,
+  `/finance/intelligence/orders/[id]`, `/finance/intelligence/exceptions`, plus a
+  CSV export button. Five CSS/SVG charts (no new dependency) with a legend, a table
+  view and a keyboard/hover tooltip; series colours were checked with the dataviz
+  validator against the real panel surface.
+* The same-origin proxy now also forwards `content-disposition` and
+  `x-content-type-options`, so the export keeps its file name and `nosniff`.
+* `backend/scripts/verify_finance_http.py` gained a Stage 5E step.
+
+### 26.3 Automated results
+
+| Command | Result |
+| ------- | ------ |
+| `pytest` (backend, run alone against the isolated test database) | **402 passed**, 0 failed, 0 skipped |
+| new pure calculation tests | **18 passed** (incl. the CSV loss regression) |
+| new intelligence API tests | **5 passed** (live PostgreSQL, real order) |
+| `ruff check app tests` / `ruff check scripts/verify_finance_http.py` | passed |
+| `mypy app` | passed (109 source files) |
+| `npm test -- --run` | **140 passed / 22 files** (102 earlier + 38 new) |
+| `npm run lint` · `typecheck` · `format:check` | passed |
+| `npm run build` | passed; the four new routes are listed |
+| `scripts\generate-api-types.ps1 -Check` | passed after the contract commit (7 paths and 28 schemas added; nothing removed or changed) |
+
+`ruff format --check` is not enforced repo-wide (64 older files differ); only the
+files touched by this stage are formatted. The inherited `alembic check` drift
+noted in §25.3 was not re-run: no model or migration changed.
+
+### 26.4 Isolated HTTP acceptance
+
+`backend/scripts/verify_finance_http.py` now continues from the Stage 5D order:
+100 kg sold for `250.00` USD, a `160.00` USD approved purchase order, a `40.00` USD
+freight estimate, 10 kg shipped and `20.00` USD of freight incurred. The expected
+figures are derived from those inputs, not from the code under test. Synthetic
+Finance runs on `127.0.0.1:8877`, Commerce on the isolated test database, and the
+screens are rendered by Next.js from the live API.
+
+```text
+verification                                   ISOLATED_HTTP_VERIFIED
+sales_value / estimated_landed_cost            250.00 / 200.00
+estimated_gross_profit / margin_pct            50.00 / 20.00
+committed_purchase_cost                        160.00
+documented_operational_cost                    20.00
+committed_profit_withheld_while_partly_shipped true
+actual_profit_available                        false
+cost_variance_orders / excluded                0 / 1
+open_exceptions before -> after resolution     3 -> 2
+trader_resolution                              FORBIDDEN
+export_rows                                    1
+export_via_proxy_keeps_filename_and_nosniff    true
+frontend_routes                                dashboard, orders, variance,
+                                               order_detail, exceptions
+cross_tenant_isolated                          true
+write_route_rejected                           405
+credentials_in_responses                       false
+finance_db_unchanged / workbook_unchanged      true / true
+```
+
+Also checked: filters (`EUR`, `BROKERAGE`, a reversed date range, an unknown order),
+a reviewer resolving an exception from the enriched queue, the empty-status
+filter, malformed filters on the dashboard, the reviewer/trader hints on the
+exceptions screen, and another company seeing no order, count, exception, export
+row or screen.
+
+Live source hashes, read only, identical before and after the run (and to §25.4):
+
+```text
+C:\ai-excel\veri\finans.db
+C9BA0EB7EC82F1DE50105F1E0019CA695B48843319B7E1D2184296632EF52BE1
+
+C:\Users\twone\OneDrive\Desktop\Touche\Touche Holding - AI Ready Finans Yönetim Sistemi.xlsx
+E03740DA624522EA9AC4869D3ADDDFB008C96DC7D2A78759CE760D810B0FA51E
+```
+
+The live Finance application was **not** started.
+
+### 26.5 Issues found and fixed during the stage
+
+| Finding | Found by | Resolution |
+| ------- | -------- | ---------- |
+| The five API tests failed at a fixture helper: two `GET` calls omitted the `/api/v1` prefix, so no endpoint had been exercised. A local constant named `ORDERS` also shadowed the imported one. | first full backend run, ruff `F811` | prefixes via the shared constants; import aliased to `SALES_ORDERS` |
+| CSV export prefixed every value that starts with `-`, including negative amounts, so a loss (`-50.00`) became text (`'-50.00`). | code review of the export route, then a runnable check | formula escaping now applies to text columns only; regression test added |
+| A metric with nothing to show carried the kind the API names for it (`COMMITTED`) beside “Not available”. | the first isolated run (an assertion of mine was also wrong) | the card shows `UNAVAILABLE` when it has no figure; test added; backend contract unchanged (ADR-047) |
+| Six `UniqueViolation` errors in one backend run. | two suites sharing `touche_commerce_test` | not defects; suites must run one at a time against the test database |
+
+The first isolated run failed on the committed-profit assertion before the third
+fix above; the recorded result is from the second, clean run.
+
+### 26.6 Honest limitations
+
+* Verification is isolated and HTTP/SSR level. **No browser was used**; chart
+  geometry, tooltips and overflow have not been looked at on a rendered page.
+* The isolated order is a single USD order. Multi-currency behaviour is proven by
+  the pure and API tests (`test_currency_totals_are_never_mixed`, the currency
+  isolation API test), not by the isolated run.
+* The analysis never reads Finance. Finance data reaches it only through Stage 5D
+  runs and evidence, so its freshness is the freshness of the latest run.
+* A single analysis covers at most 5000 orders and 731 days; beyond that the API
+  answers `400 BAD_REQUEST` and the export button shows the refusal. The orders
+  screen also requests the summary for its filter options, so the backend analyses
+  twice per page; a lightweight filter-options endpoint is the remedy if it is slow.
+* The summary metrics keep a fixed `classification` (the metric's kind) even when
+  `available` is false; `available` is the authority. The screens compensate; the
+  contract is unchanged.
+* Export is available to every role with `company.view` (ADR-046), including
+  viewers, and is audited. Whether profitability should need a narrower capability
+  is an open product decision.
+* No saved views, scheduled reports or custom sorting; lists are newest first.
+* Actual profit and document-supported margin stay unavailable: Finance exposes no
+  transaction-level invoice or payment source.
+* The sidebar highlights “Finance” on every `/finance/*` route (prefix match,
+  unchanged since Stage 5D).
+* Docker Compose, a GitHub Actions run and a browser run were not executed.
+* No migration, so there is no downgrade consideration for this stage.
+
+### 26.7 Git
+
+* Branch `stage-5e`, created from the verified Stage 5D HEAD `2be76ce`.
+* `15c0028` — `feat(stage5e): add read-only financial intelligence backend`.
+* `cb25759` — `feat(stage5e): regenerate OpenAPI contract and TypeScript types`.
+* `e0b723e` — `feat(stage5e): add financial intelligence workspace`.
+* `b2e5d19` — `fix(stage5e): label a figure-less metric UNAVAILABLE`.
+* `dd4e458` — `test(stage5e): add financial intelligence to the isolated HTTP verifier`.
+* The documentation commit containing this section.
+* Nothing was pushed, merged or deployed; the Finance repository was not
+  modified.

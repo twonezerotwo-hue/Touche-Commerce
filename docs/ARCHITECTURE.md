@@ -1252,3 +1252,79 @@ rejects cross-tenant access and leaves the Finance hashes unchanged. Level:
 
 See `docs/STAGE5D_RECONCILIATION.md` for the complete model and limitations.
 
+---
+
+## 25. Stage 5E — read-only financial intelligence
+
+### 25.1 Data flow and boundary
+
+Stage 5E is a pure read model. It adds no table, no migration and no Finance call:
+
+```text
+sales order ── accepted quote ── pricing scenario ── FX snapshots
+     │               (Stage 3/4 facts, tenant-scoped, RLS)
+     ├── purchase orders ── shipment costs (with provenance stage)
+     └── Stage 5D runs ── evidence ── discrepancies
+                    │
+                    ▼
+   intelligence_calculations.py   pure, no I/O, stage5e-1.0.0
+                    ▼
+   intelligence.py (service)      loads facts, applies filters, aggregates per currency
+                    ▼
+   presenters_intelligence.py → /api/v1/finance/intelligence/*   (GET, company.view)
+                    ▼
+   Next.js server components      /finance/intelligence, …/orders, …/orders/[id], …/exceptions
+```
+
+Finance reaches the analysis only through the evidence and discrepancies Stage 5D
+already stored. Finance remains the financial source of truth (ADR-038).
+
+### 25.2 Two bases, never blended
+
+| Basis | Formula | Classification |
+| ----- | ------- | -------------- |
+| Estimated | accepted value − Stage 3 landed-cost scenario (recoverable `VAT_CASHFLOW` excluded) | `ESTIMATED` |
+| Committed / documented | accepted value − committed purchase orders − shipment costs at `INCURRED`/`DOCUMENTED` | `COMMITTED` / `DOCUMENTED` |
+
+Committed purchase orders are approved-or-later (`APPROVED`, `RECORDED_SENT`,
+`SUPPLIER_CONFIRMED`, `IN_FULFILLMENT`, `RECEIVED`); a draft purchase order blocks
+the committed basis and a cancelled one is ignored. `QUOTED`/`ESTIMATED` shipment
+costs and the pricing scenario never enter the documented basis. A part-shipped
+order withholds its committed profit. A cost in another currency is used only
+through a stored FX snapshot; without one the figure is unavailable. There is
+intentionally no `actual_profit`.
+
+### 25.3 Currencies, limits and unavailable values
+
+All totals are grouped by currency; there is no cross-currency amount. `None` means
+unavailable and is never rendered or exported as zero. One analysis is bounded to
+5000 orders and 731 days so a request cannot load an unbounded fact set; beyond that
+the API refuses with `400 BAD_REQUEST`. Nothing is cached or persisted, so each
+request reflects the current facts. The orders screen asks for the summary as well
+as the list (the list endpoints do not return filter options), which doubles the
+analysis per page view.
+
+### 25.4 API and UI
+
+Seven `GET` endpoints, all behind `company.view`, all `no-store`; see
+API_CONTRACTS §12. The CSV export is audited (`finance.read`) and escapes formula
+prefixes in text columns only. The UI follows the Stage 5C/5D conventions
+(server-rendered pages through `serverGet`, GET filter forms, generated OpenAPI
+types). Charts are CSS/SVG with no new dependency: one scale per currency, a legend
+for two series, a table view and a keyboard/hover tooltip. The two series colours
+(`#3987e5`, `#d95926`) were validated against the real panel surface because the
+theme's accent/cyan pair fails the normal-vision separation floor. Status colours
+are used only for completeness states and always carry a label. The export button
+fetches the file so a refusal is shown on the page, and the same-origin proxy
+forwards `content-disposition` and `x-content-type-options` for it.
+
+### 25.5 Verification
+
+Backend `402 passed`; frontend `140 passed / 22 files`; ruff, mypy, ESLint,
+Prettier, typecheck and `next build` pass. The isolated harness reuses the real
+Stage 5D order and checks the figures against values derived from its inputs
+(estimated profit `50.00` at `20.00%`, committed profit withheld while part-shipped),
+the exception queue and its permission, the CSV through the API and the proxy, the
+rendered screens, tenant isolation and unchanged Finance hashes. Level:
+`ISOLATED_HTTP_VERIFIED`; no browser and no live Finance (PROGRESS §26).
+

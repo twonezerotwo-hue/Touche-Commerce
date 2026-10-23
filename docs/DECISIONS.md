@@ -1163,3 +1163,100 @@ reconciliation. A new financial role requires a new ADR/matrix change.
 **Verification.** Permission assertion and API negative tests; runtime grant and
 RLS tests; `has_table_privilege(...,'DELETE') = false` on all five tables.
 
+---
+
+## ADR-045 — Profitability is reported on separate bases and there is no actual profit
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 5E)
+
+**Decision.** The analysis keeps two bases apart and never blends them. `ESTIMATED`:
+accepted order value minus the Stage 3 landed-cost scenario, with recoverable
+`VAT_CASHFLOW` excluded because it is not an expense. `COMMITTED`/`DOCUMENTED`:
+accepted value minus committed purchase orders (approved or later) and shipment costs
+recorded as `INCURRED` or `DOCUMENTED`. `QUOTED`/`ESTIMATED` shipment costs and the
+pricing scenario are forecasts and never enter the documented basis. A part-shipped
+order withholds its committed profit. Currencies are never summed and a cost in
+another currency is used only through a stored FX snapshot. No `actual_profit` field
+exists; its classification is always `UNAVAILABLE`. Every response carries the
+`calculation_version` (`stage5e-1.0.0`).
+
+**Reasoning.** An estimate, a commitment and a recognised result answer different
+questions; adding them would produce a number nobody can audit. Actual profit needs
+transaction-level invoices and payments, and Finance exposes none (ADR-038). Showing
+a committed profit for an order that has shipped 10% would claim a result that has
+not happened.
+
+**Consequences.** Many orders show “Not available” for the committed basis until they
+are fully shipped and costed. Changing a rule requires a new calculation version, not a
+silent edit. If Finance later exposes invoices and payments, an actual-profit basis
+needs its own ADR.
+
+**Verification.** `test_intelligence_calculations.py` (VAT exclusion, quoted costs,
+partial fulfilment, multiple purchase orders, currency mismatch, missing or exact FX,
+zero and negative margins, cancelled orders, currency totals never mixed);
+isolated HTTP acceptance (estimated `50.00` at `20.00%`, committed profit withheld
+while part-shipped, no actual-profit field or column).
+
+---
+
+## ADR-046 — The profitability export is an audited, formula-safe operational file
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 5E) · permission scope open for review
+
+**Decision.** `GET /api/v1/finance/intelligence/export` returns a CSV under the same
+`company.view` permission as every other financial read. Every row carries its
+currency, completeness, reconciliation status and calculation version, and every file
+carries an analysis label and a notice that it is not a statutory statement. Each
+export writes one `finance.read` audit row. Text columns beginning with `=`, `+`,
+`-`, `@`, a tab or a carriage return are prefixed with `'`; numeric columns are never
+prefixed. The browser downloads the file with `fetch` so a refusal (for example more
+than 5000 orders) is shown on the page, and the same-origin proxy forwards
+`content-disposition` and `x-content-type-options` so the file keeps its name and
+`nosniff`.
+
+**Reasoning.** Spreadsheet formula injection is a real risk for user-controlled text
+such as customer names, but escaping a number turns a loss (`-50.00`) into text and
+silently corrupts the figure that matters most. A plain link would save an error
+response as a file. Using the existing read permission avoids inventing a role
+during this stage.
+
+**Consequences.** A viewer can export all profitability for the company. That is
+consistent with what the same role can already read on screen but is a product
+decision worth revisiting; a narrower capability needs a new ADR and a permission
+matrix change. The 5000-order cap makes a very broad export a refusal, not a truncated
+file.
+
+**Verification.** `test_export_is_operational_authorised_and_formula_safe` (headers,
+notice, audit row, other-company export empty, escaping), the pure regression
+`test_csv_export_keeps_a_loss_numeric_and_escapes_only_text`, the proxy header test,
+the frontend export tests (success, refusal, unreachable API) and the isolated CSV
+through the API and the proxy.
+
+---
+
+## ADR-047 — “Unavailable” is a state in the contract and on the screen
+
+**Status:** ACCEPTED · IMPLEMENTED (Stage 5E)
+
+**Decision.** In the API, a missing figure is `null` or `available=false`, never zero,
+and a summary metric's `classification` names the metric's kind (it stays, for example,
+`COMMITTED` even when there is no figure); `available` and the value lists are the
+authority. On the screens, money and percentages are listed one line per currency, a
+metric with nothing to show reads “Not available” and wears the `UNAVAILABLE` badge,
+and “Actual profit” is always shown as unavailable. Chart series colours are chosen
+with the dataviz validator against the real surface, status colours are reserved for
+completeness states and always carry a label, and each chart offers a table view.
+
+**Reasoning.** A kind label beside “Not available” reads as a claim the data does not
+support; the isolated run on a part-shipped order exposed exactly that. The API label
+is useful metadata and changing it is a contract change, so the presentation layer is
+the right place to be conservative.
+
+**Consequences.** Clients must read `available`, not the kind label, before showing a
+figure. If the API later reports `UNAVAILABLE` itself, the screens need no change.
+
+**Verification.** `intelligence.test.ts` (`metricLines` per currency, unavailable →
+no lines), `intelligence.test.tsx` (per-currency card, “Not available” without zero,
+no kind badge on a figure-less metric, chart legend and table view), and the isolated
+HTTP run on the part-shipped order.
+

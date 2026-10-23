@@ -289,7 +289,31 @@ hashes. See `docs/STAGE5D_RECONCILIATION.md`.
 transfers, automatic journals, AI Trade Director, Gmail/WhatsApp automation and
 E-YAY integration.
 
-### Stage 5E — next safe milestone (not started)
+### Stage 5E — read-only financial intelligence ✅ (implemented 2026-10-23)
+
+**Delivered:** a pure profitability engine (`stage5e-1.0.0`) that keeps an
+`ESTIMATED` basis (accepted value minus the Stage 3 landed-cost scenario, recoverable
+VAT excluded) apart from a `COMMITTED`/`DOCUMENTED` basis (committed purchase orders
+plus `INCURRED`/`DOCUMENTED` shipment costs); seven read-only
+`/api/v1/finance/intelligence/*` endpoints (summary, orders, order drill-down, cost
+variance, coverage, exceptions, CSV export) behind `company.view`; and four premium
+screens — `/finance/intelligence`, `/finance/intelligence/orders`,
+`/finance/intelligence/orders/[id]`, `/finance/intelligence/exceptions` — with five
+per-currency charts and an audited, formula-safe CSV export. No migration, no
+Finance call and no `actual_profit` field exist.
+
+**Verification:** backend `402 passed`, frontend `140 passed` across 22 files,
+`ISOLATED_HTTP_VERIFIED` over a real accepted order (estimated profit `50.00` at
+`20.00%`, committed profit withheld while the order is part-shipped, exception
+resolution gated by `finance.reconcile`, CSV through the proxy, cross-tenant
+isolation, unchanged live Finance hashes). See `docs/PROGRESS.md` §26.
+
+**Explicitly not implemented:** actual profit, document-supported margin, saved or
+scheduled reports, Finance writes, invoices, payments, journals, AI Trade Director,
+Gmail/WhatsApp automation and E-YAY integration. No browser-level visual check has
+been performed.
+
+### Next safe milestone (not started)
 
 Any further work must remain read-only unless separately authorised. A live
 Finance read verification requires an approved startup plan that accepts or

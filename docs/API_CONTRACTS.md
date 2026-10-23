@@ -984,6 +984,13 @@ specified in `docs/STAGE5_FINANCE_DISCOVERY.md` §8 and are **not** callable yet
 | `GET` | `/api/v1/finance/summary` | 5C | Implemented |
 | `GET` | `/api/v1/finance/accounts` | 5C | Implemented |
 | `GET` | `/api/v1/finance/aging` | 5C | Implemented |
+| `GET` | `/api/v1/finance/intelligence/summary` | 5E | Implemented (read-only analysis) |
+| `GET` | `/api/v1/finance/intelligence/orders` | 5E | Implemented |
+| `GET` | `/api/v1/finance/intelligence/orders/{id}` | 5E | Implemented |
+| `GET` | `/api/v1/finance/intelligence/cost-variance` | 5E | Implemented |
+| `GET` | `/api/v1/finance/intelligence/coverage` | 5E | Implemented |
+| `GET` | `/api/v1/finance/intelligence/exceptions` | 5E | Implemented |
+| `GET` | `/api/v1/finance/intelligence/export` | 5E | Implemented (CSV, audited) |
 
 Reserved endpoints do not exist in the running service; requesting them returns
 `404 NOT_FOUND`. They are listed so the frontend and future integrations share a
@@ -1117,4 +1124,94 @@ unlinked run cannot be verified.
 
 No endpoint writes a journal, invoice, payment or Finance record. Full domain
 and acceptance evidence: `docs/STAGE5D_RECONCILIATION.md`.
+
+---
+
+## 12. Stage 5E — financial intelligence
+
+Operational profitability analysis over facts Commerce already holds. It never
+calls Finance and never writes an accounting entry.
+
+### 12.1 Authorization and guarantees
+
+All seven operations are `GET`s behind `company.view`, the established financial
+read permission; Stage 5E adds no permission. A write-shaped request to any of
+these paths returns `405`. Responses carry `Cache-Control: no-store` and
+`Vary: Cookie`. Analytical responses carry `calculation_version`
+(`stage5e-1.0.0`), `read_only=true` and `accounting_writes_enabled=false`; the
+summary and the order drill-down also carry `statutory_statements=false`. Money
+and percentages are decimal strings.
+
+### 12.2 Filters
+
+Shared by `summary`, `orders`, `cost-variance`, `coverage` and `export`:
+
+| Query | Meaning |
+| ----- | ------- |
+| `from`, `to` | confirmation-date window; `to` defaults to today, `from` to `to` − 364 days |
+| `currency` | three letters, upper-cased; filters orders, never converts |
+| `fulfilment_model`, `order_status` | enum values from `filter_options` |
+| `customer_id`, `supplier_id` | UUIDs from `filter_options` |
+| `reconciliation_status` | a Stage 5D run status, or `NONE` |
+| `completeness` | `COMPLETE`, `PARTIAL`, `MISSING` or `UNAVAILABLE` |
+
+One analysis covers at most 731 days and 5000 orders.
+
+### 12.3 Endpoints
+
+| Method | Path | Notes |
+| ------ | ---- | ----- |
+| `GET` | `/api/v1/finance/intelligence/summary` | `metrics[]` per currency, `monthly_commitments`, `cost_comparison`, `margin_distribution`, `discrepancy_categories`, `completeness`, up to 8 `review_orders`, `filter_options` |
+| `GET` | `/api/v1/finance/intelligence/orders?limit=&offset=` | order profitability rows, newest confirmation first; `total`, `limit`, `offset` |
+| `GET` | `/api/v1/finance/intelligence/orders/{id}` | accepted quote, purchase orders, shipment costs, cost lines, FX assumptions, `checks`, `limitations`, Stage 5D `runs`, `evidence` and `discrepancies` |
+| `GET` | `/api/v1/finance/intelligence/cost-variance?limit=&offset=` | only orders whose estimate and documented basis are both complete; `excluded_order_count` |
+| `GET` | `/api/v1/finance/intelligence/coverage` | estimate, committed-basis, reconciliation and missing-input counts |
+| `GET` | `/api/v1/finance/intelligence/exceptions?status=&severity=&code=&currency=&order_id=&from=&to=&limit=&offset=` | Stage 5D discrepancies enriched with the order; `status` defaults to `OPEN`, an empty `status` means every status |
+| `GET` | `/api/v1/finance/intelligence/export` | CSV, see §12.5 |
+
+Resolving an exception stays `POST /api/v1/finance/discrepancies/{id}/resolve`
+(§11) and needs `finance.reconcile`.
+
+### 12.4 Semantics clients must respect
+
+* Amounts are per currency and never summed across currencies. A missing or
+  unavailable figure is `null` (or `available=false`), never `0`.
+* Two bases are kept apart. `ESTIMATED`: accepted value minus the Stage 3 landed-cost
+  scenario, recoverable `VAT_CASHFLOW` excluded. `COMMITTED`/`DOCUMENTED`: accepted
+  value minus committed purchase orders and shipment costs recorded as `INCURRED` or
+  `DOCUMENTED`. `QUOTED`/`ESTIMATED` shipment costs are forecasts and never enter
+  the documented basis.
+* A part-shipped order has `committed_gross_profit=null`, `committed_status=PARTIAL`
+  and `PARTIAL_FULFILMENT` in `missing_components`. A cancelled order has no current
+  profitability.
+* There is no `actual_profit` field; `classifications.actual_profit` is
+  `UNAVAILABLE`.
+* A summary metric's `classification` names the metric's kind (for example
+  `COMMITTED`) and is fixed. `available` and the `money`/`percentages`/`count`
+  values are authoritative; a client must not present a kind label as a figure.
+
+### 12.5 CSV export
+
+`Content-Type: text/csv; charset=utf-8`, `Content-Disposition: attachment;
+filename="touche-operational-financial-analysis-YYYYMMDD.csv"`,
+`X-Content-Type-Options: nosniff`, `Cache-Control: no-store`. One row per order with
+`record_type=OPERATIONAL_ANALYSIS_ORDER`, an `analysis_label`, an `analysis_notice`
+stating it is not a statutory statement, the `calculation_version`, the currency,
+completeness and reconciliation status on every row, and no actual-profit column.
+Text columns whose value starts with `=`, `+`, `-`, `@`, a tab or a carriage return
+are prefixed with `'`; numeric columns are never prefixed, so a loss stays a number
+(`-50.00`). Each export writes one `finance.read` audit row
+(`resource_type=operational_financial_analysis`) with the format, row count and
+filters. The browser calls the same path through the same-origin proxy, which
+forwards `content-disposition` and `x-content-type-options`.
+
+### 12.6 Errors
+
+| Code | HTTP | Meaning |
+| ---- | ---- | ------- |
+| `BAD_REQUEST` | 400 | `from` later than `to`, range over 731 days, more than 5000 orders in scope, unknown `reconciliation_status` or `completeness` |
+| `VALIDATION_ERROR` | 422 | malformed value (currency not three letters, invalid UUID or date) |
+| `NOT_FOUND` | 404 | the order does not exist in the active company (another company's order looks identical) |
+| `UNAUTHORIZED` / `FORBIDDEN` | 401 / 403 | no session, no active company, or no `company.view` |
+| `METHOD_NOT_ALLOWED` | 405 | any non-`GET` request |
 

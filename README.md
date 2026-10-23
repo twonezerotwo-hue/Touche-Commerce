@@ -1,7 +1,9 @@
 # TOUCHE COMMERCE
 
-Independent, premium international trade management — **Stage 4: sales orders,
-procurement, logistics and trade documents**.
+Independent, premium international trade management — **Stage 5E: read-only
+financial intelligence** on top of the Stage 4 execution chain (sales orders,
+procurement, logistics and trade documents) and the read-only TOUCHE FINANCE
+connector.
 
 A Next.js 16 web application, a FastAPI service and PostgreSQL 17 with real
 health probes, structured logging, a standard error contract, a typed OpenAPI
@@ -15,6 +17,10 @@ a private trade-document register.
 > agents**. `WON` happens only when an order is created, dispatch and delivery
 > require recorded evidence, and drafts are labelled DRAFT. Nothing is
 > fabricated.
+>
+> Stage 5 adds read-only Finance connectivity, evidence-based reconciliation and an
+> operational profitability analysis. Finance stays the financial source of truth;
+> Commerce still posts no accounting entry, invoice or payment.
 
 ---
 
@@ -28,9 +34,11 @@ a private trade-document register.
 | Execution API + screens (orders, purchase orders, shipments, documents) | ✅ verified at API/integration/SSR level |
 | PostgreSQL 17 + migrations `0001_foundation` … `0009_reconciliation` | ✅ verified |
 | `/api/v1/health/live` · `/api/v1/health/ready` | ✅ 200 |
-| Backend tests (unit + live DB incl. RLS matrix) | ✅ 317 passed |
-| Frontend tests / lint / typecheck / build | ✅ 88 passed, clean |
+| Backend tests (unit + live DB incl. RLS matrix) | ✅ 402 passed |
+| Frontend tests / lint / typecheck / build | ✅ 140 passed, clean |
 | Finance read-only connector (`/api/v1/finance/*`) | ✅ Stage 5C; isolated HTTP PASS |
+| Evidence reconciliation (`/finance/reconciliation`) | ✅ Stage 5D; isolated HTTP PASS |
+| Financial intelligence (`/api/v1/finance/intelligence/*`, `/finance/intelligence`) | ✅ Stage 5E; isolated HTTP PASS, no browser |
 | Live identity verification (`scripts\verify-identity.ps1`) | ✅ 31 checks passed |
 | Live trade workflow (`scripts\verify-trade.ps1`) | ✅ 39 checks passed |
 | Live sourcing workflow (`scripts\verify-sourcing.ps1`) | ✅ 53 checks passed |
@@ -326,7 +334,7 @@ database. A development database cannot be truncated by a test run.
 
 * `docs/ARCHITECTURE.md` — system structure, data model, tenancy, RLS, sessions.
 * `docs/API_CONTRACTS.md` — envelopes, auth/session contracts, error codes.
-* `docs/DECISIONS.md` — 37 binding ADRs with verification evidence.
+* `docs/DECISIONS.md` — 48 binding ADRs with verification evidence.
 * `docs/ROADMAP.md` — Stage 0 → Stage 6 with exit criteria.
 * `docs/PROGRESS.md` — executed commands, real test results, blockers, next task.
 
@@ -456,7 +464,8 @@ live carrier tracking.
 Not implemented, by design: invoices, payments, ledger postings, outbox delivery
 to Finance, counterparty auto-matching and reconciliation writes. The Stage 5B
 read-only Finance contract has since been implemented and is consumed by the
-Stage 5C connector below; Stage 5D reconciliation is still not started.
+Stage 5C connector below; Stage 5D reconciliation and Stage 5E analysis were
+delivered afterwards (see their sections).
 
 Reproduce the read-only proof:
 
@@ -545,3 +554,58 @@ cross-tenant isolation, all four screens and unchanged Finance hashes. See
 journals, actual-profit calculation, document-supported margin, AI Trade
 Director, Gmail/WhatsApp automation and E-YAY integration.
 
+
+---
+
+## Stage 5E acceptance — read-only financial intelligence
+
+**Commerce migration:** none (the head stays `0009_reconciliation`).
+
+Stage 5E reports order profitability from facts Commerce already holds — accepted
+orders, the accepted quote and its pricing scenario, purchase orders, shipment
+costs and the Stage 5D evidence. It never calls Finance and never writes an
+accounting entry. Two bases are kept apart, always per currency:
+
+* **Estimated** — accepted value minus the Stage 3 landed-cost scenario (recoverable
+  VAT excluded).
+* **Committed / documented** — accepted value minus approved purchase orders and
+  shipment costs recorded as incurred or documented. A part-shipped order does not
+  report a committed profit.
+
+An unavailable figure reads “Not available”, never `0`, and there is no actual-profit
+field: Finance exposes no transaction-level invoice or payment source.
+
+New screens:
+
+```text
+GET /finance/intelligence                 dashboard: KPIs, five charts, coverage, orders to review
+GET /finance/intelligence/orders          profitability list, "All orders" and "Cost variance"
+GET /finance/intelligence/orders/[id]     bases, checks, limitations, costs, FX, POs, evidence
+GET /finance/intelligence/exceptions      Stage 5D discrepancies with the affected order
+```
+
+New API surface (all `GET`, `company.view`, `no-store`):
+
+```text
+/api/v1/finance/intelligence/summary
+/api/v1/finance/intelligence/orders[/{sales_order_id}]
+/api/v1/finance/intelligence/cost-variance
+/api/v1/finance/intelligence/coverage
+/api/v1/finance/intelligence/exceptions
+/api/v1/finance/intelligence/export        CSV, audited, formula-safe text columns
+```
+
+**Verification:** backend `402 passed`; frontend `140 passed` across 22 files; ruff,
+mypy, ESLint, Prettier, typecheck and `next build` pass; `ISOLATED_HTTP_VERIFIED`
+with a real accepted order (estimated profit `50.00` at `20.00%`, committed profit
+withheld while part-shipped, unauthorized resolution refused, CSV through the proxy,
+all four screens rendered, cross-tenant isolation, unchanged live Finance hashes).
+Reproduce with `backend\.venv\Scripts\python.exe backend\scripts\verify_finance_http.py`.
+See `docs/PROGRESS.md` §26.
+
+**Not verified:** no browser run (chart geometry and tooltips have not been looked at
+on a rendered page), no live Finance run, Docker Compose and GitHub Actions.
+
+**Not implemented:** actual profit, document-supported margin, saved or scheduled
+reports, Finance writes, invoices, payments, bank transfers, journals, AI Trade
+Director, Gmail/WhatsApp automation and E-YAY integration.
