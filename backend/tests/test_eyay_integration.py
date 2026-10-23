@@ -103,7 +103,15 @@ def test_unsafe_or_stale_e_yay_never_produces_market_signals(
 def test_invalid_payload_or_unavailable_e_yay_fails_closed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(eyay, "_source_get", lambda *a, **k: {"paper_safe": True, "no_execution": True} if k["path"].endswith("health") else {"regime_label": "HACK"})
+    monkeypatch.setattr(
+        eyay,
+        "_source_get",
+        lambda *a, **k: (
+            {"paper_safe": True, "no_execution": True}
+            if k["path"].endswith("health")
+            else {"regime_label": "HACK"}
+        ),
+    )
     unavailable = market_preview(enabled=True, base_url="http://127.0.0.1:9000")
     assert unavailable.integration_state == "UNAVAILABLE"
     assert unavailable.assets == []
