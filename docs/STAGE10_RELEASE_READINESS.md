@@ -1,6 +1,8 @@
 # Stage 10 — Release readiness, not automatic production authorisation
 
-**Status:** CI verification pending. Stage 9 local launcher was merged at
+**Status:** CI_VERIFIED (GitHub Actions `40030032968`: 585 backend, 192 frontend,
+4/4 jobs passed; PR #8 merged as `4ff5518`). Local/browser and production
+acceptance remain BLOCKED. Stage 9 local launcher was merged at
 `40a69d8`; no remote access to the owner's Windows desktop was used.
 
 ## What Stage 10 can prove in GitHub Actions
@@ -11,9 +13,10 @@ It runs without accounts, real credentials, Windows local services, DNS or
 external APIs. Automated unit tests verify that missing prerequisites fail
 closed and that a successful source check **never** claims production readiness.
 
-Full CI must additionally pass PostgreSQL migrations, backend pytest, Ruff,
-mypy app, frontend lint/format/typecheck/Vitest/build, OpenAPI drift and Windows
-PowerShell syntax parsing before Stage 10's **CI milestone** can close.
+All CI checks passed on the Stage 10 PR: PostgreSQL migrations,
+585 backend pytest tests, Ruff, mypy app, 192 frontend Vitest tests,
+frontend lint/format/typecheck/build, OpenAPI drift and Windows PowerShell
+syntax parsing. This closes only the repository-side **CI milestone**.
 
 ## Running locally
 
