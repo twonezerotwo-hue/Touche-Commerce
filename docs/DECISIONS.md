@@ -1537,3 +1537,28 @@ No transport, token, webhooks, sending or financial writes. No changes to
 192 frontend, OpenAPI). Regex regression fixed in `ac3c4ad`; PR #3 merged
 at `7624c33`. Local Windows browser, provider and real consent verification
 remain outstanding.
+
+
+---
+
+## ADR-057 — Contact suppression is append-only and independent of consent
+
+**Status:** ACCEPTED / Stage 7C2 IN PROGRESS
+
+Outbound communication risk must be reducible independently of any future
+approval or provider connection. Commerce stores a permanent per-company CRM
+contact/channel block in `communication_suppression`, without addresses,
+message bodies or provider tokens. Its RLS and composite FK prevent tenant
+cross-linking. The application grants INSERT+SELECT only and cannot lift a
+suppression; duplicate commands preserve the first row. All successful
+new blocks are audited within the same idempotent transaction, including the
+actor and reason but no direct contact data.
+
+`communications.suppress` is available to an authenticated company admin
+only; `communications.send` stays unassigned. A suppressed contact produces
+an additional preflight blocker. CRM provenance and suppression never assert
+opt-in, independent ownership or legal basis; explicit consent evidence and
+compliant suppression lifting require separate ADRs, tests and controls.
+Real provider connections and live sending remain disabled.
+
+**Validation:** not claimed before GitHub Actions finishes.
