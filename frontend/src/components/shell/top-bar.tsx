@@ -6,6 +6,7 @@ import { Activity, Building2, ChevronRight, ShieldCheck } from "lucide-react";
 
 import { Avatar } from "@/components/ui/avatar";
 import { useLocale } from "@/lib/i18n/locale-provider";
+import { localizeNavigation } from "@/lib/i18n/navigation-labels";
 import { resolveWorkspaceContext } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
@@ -18,7 +19,7 @@ export interface TopBarProps {
 
 export function TopBar({ identity }: TopBarProps) {
   const pathname = usePathname();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const { section, page } = resolveWorkspaceContext(pathname);
 
   return (
@@ -30,12 +31,12 @@ export function TopBar({ identity }: TopBarProps) {
           <span className="text-[11px] tracking-[0.02em] text-mist-600">{t("workspace")}</span>
           <ChevronRight className="size-3 text-mist-600/70" aria-hidden />
           <span className={cn("text-[11px]", page === section ? "text-mist-300" : "text-mist-500")}>
-            {section}
+            {localizeNavigation(locale, section)}
           </span>
           {page === section ? null : (
             <>
               <ChevronRight className="size-3 text-mist-600/70" aria-hidden />
-              <span className="truncate text-[11px] text-mist-200">{page}</span>
+              <span className="truncate text-[11px] text-mist-200">{localizeNavigation(locale, page)}</span>
             </>
           )}
         </nav>
