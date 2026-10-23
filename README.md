@@ -701,3 +701,12 @@ permission is granted to no existing role. There is no send route, API credentia
 SMTP/WhatsApp connection or delivery attempt. Stage 7A changes were authored on
 GitHub; local PostgreSQL/browser regressions and regenerated OpenAPI clients are
 still pending verification. Do not claim Stage 7 is complete.
+
+
+## Stage 7B in progress — no-send readiness
+
+An approved or proposed AI draft can be checked against an operator-entered
+email address or E.164-format WhatsApp number using the read-only preflight
+function. The address is not saved or echoed and the result always blocks
+actual dispatch. Provider connections and outbound delivery are not implemented.
+GitHub CI for this branch has not yet completed; do not rely on a send action.
