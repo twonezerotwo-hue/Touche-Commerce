@@ -78,7 +78,11 @@ def list_communication_drafts(
         ).all()
         items = []
         for proposal in rows[:limit]:
-            payload = proposal.edited_payload if proposal.edited_payload is not None else proposal.payload
+            payload = (
+                proposal.edited_payload
+                if proposal.edited_payload is not None
+                else proposal.payload
+            )
             items.append(
                 CommunicationDraftResponse(
                     id=proposal.id,
