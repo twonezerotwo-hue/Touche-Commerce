@@ -674,8 +674,7 @@ refused, no prompt text in the API log, no business row changed). A real-browser
 of `/ai` covered the thread, evidence links, tool progress, proposal approval, history
 loading, the 768 px layout and the Stage 6I fixes. Reproduce with
 `backend\.venv\Scripts\python.exe backend\scripts\verify_finance_http.py` (needs ports
-8000/3000/8877 free). The final re-run on the last tree is still open (PROGRESS §27.7).
-See `docs/PROGRESS.md` §27.
+8000/3000/8877 free). See `docs/PROGRESS.md` §27.
 
 **Stage 6I interface debt:** muted text now meets WCAG AA (`mist-500` `#8190a6`,
 `mist-600` `#7a8ba2`), the sidebar highlights only the most specific entry, the footer

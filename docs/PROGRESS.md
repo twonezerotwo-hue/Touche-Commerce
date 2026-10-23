@@ -1975,13 +1975,16 @@ Stage 5D order, then drives the API through real sessions and the Next.js proxy.
 Result: `MOCK_PROVIDER_VERIFIED`, `REAL_PROVIDER_BLOCKED`, 7 runs, 23 evidence items
 checked.
 
-**Honest note on timing.** This run passed on the tree at the end of the acceptance work.
-Four small changes were made afterwards (one-of-each-type evidence selection in the mock,
-no duplicate pending proposals plus an `ai.proposal.created` audit row, plain-language
-mock warnings, narrow-screen column order). Each has automated test coverage and the full
-backend and frontend suites were re-run green on the final tree, but the isolated HTTP
-verifier itself has to be re-run once more on the final tree before this stage is called
-closed (see §27.7).
+**Final-tree re-run.** The verifier first passed before four small changes (one-of-each-type
+evidence selection in the mock, no duplicate pending proposals plus an
+`ai.proposal.created` audit row, plain-language mock warnings, narrow-screen column
+order). It was run again on the final tree (HEAD `71a810f`, clean working tree) and
+passed in full: `ISOLATED_HTTP_VERIFIED` with the Stage 6 step `MOCK_PROVIDER_VERIFIED`,
+`REAL_PROVIDER_BLOCKED`, 7 runs, 23 evidence items checked, draft `sent=false`, business
+rows unchanged, cross-company blocked, unauthorised approval `FORBIDDEN`, oversized
+message `AI_INPUT_TOO_LARGE`, hostile record withheld (`INJECTION:INSTRUCTION_OVERRIDE`,
+`ROLE_IMPERSONATION`, `ACTION_DIRECTIVE`, `SECRET_REQUEST`), unchanged Finance database
+and workbook hashes, Stage 5D run `VERIFIED`.
 
 ### 27.5 Issues found and fixed during the stage
 
@@ -2052,9 +2055,6 @@ the API isolation checks), 375 px for `/ai`.
   The tool-progress region is `aria-live="polite"` and was not tested with assistive
   technology.
 * **Empty conversations** (created by a refused message) stay in the history list.
-* **Open item:** re-run `verify_finance_http.py` on the final tree (it needs ports 8000,
-  3000 and 8877 free; a dev API and web server were running for a manual look when this
-  was written).
 * Docker Compose and a GitHub Actions run were not executed.
 
 ### 27.8 Git
