@@ -1582,3 +1582,22 @@ financial posts, user positions, RFQ/order changes, or AI action rights result.
 
 The E-YAY connector's existence is not proof of a running source or accurate
 forecasts. CI fixture tests and an isolated real-HTTP check are distinct gates.
+
+
+---
+
+## ADR-059 — Local launch must refuse unsafe implicit setup
+
+**Status:** ACCEPTED, CI PENDING.
+
+An operator may start an already provisioned Commerce workstation with a
+single local PowerShell script; it must not infer, create or overwrite secrets,
+install or reset PostgreSQL automatically, silently invoke migrations or take
+control of occupied ports. Backend and frontend stay on loopback, in visible
+terminals with positive health checks. Migration runs only when explicitly
+requested by switch after taking responsibility for a tested backup.
+
+The verification script must fail if UI dependencies are missing rather than
+skip their tests and report a false pass. Linux CI tests the code; Windows CI
+parses native scripts. Windows physical-runtime and backup/restore proofs
+remain separate gates.
