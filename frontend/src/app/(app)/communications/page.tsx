@@ -64,10 +64,7 @@ export default async function CommunicationsPage() {
         <ApiErrorAlert title="Communications unavailable" failure={status} />
       ) : (
         <>
-          <section
-            className="grid gap-4 md:grid-cols-2"
-            aria-label="Channel availability"
-          >
+          <section className="grid gap-4 md:grid-cols-2" aria-label="Channel availability">
             {status.data.channels.map((channel) => (
               <div
                 key={channel.channel}
@@ -80,8 +77,8 @@ export default async function CommunicationsPage() {
                   <Badge variant="outline">Not connected</Badge>
                 </div>
                 <p className="mt-3 text-sm text-mist-500">
-                  Sending is disabled. No external provider credentials or
-                  conversation data are used.
+                  Sending is disabled. No external provider credentials or conversation data are
+                  used.
                 </p>
               </div>
             ))}
@@ -89,12 +86,10 @@ export default async function CommunicationsPage() {
           <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-white">
-                  Prepared correspondence
-                </h2>
+                <h2 className="text-lg font-semibold text-white">Prepared correspondence</h2>
                 <p className="mt-1 text-sm text-mist-500">
-                  Existing AI Office drafts are shown for the selected company.
-                  Approval means reviewed, not sent.
+                  Existing AI Office drafts are shown for the selected company. Approval means
+                  reviewed, not sent.
                 </p>
               </div>
               <Link
@@ -110,34 +105,26 @@ export default async function CommunicationsPage() {
               </div>
             ) : drafts.data.items.length === 0 ? (
               <p className="mt-5 text-sm text-mist-500">
-                No correspondence drafts yet. Create a supplier follow-up or RFQ
-                draft in the AI Office.
+                No correspondence drafts yet. Create a supplier follow-up or RFQ draft in the AI
+                Office.
               </p>
             ) : (
               <ul className="mt-5 space-y-3">
                 {drafts.data.items.map((draft) => (
-                  <li
-                    key={draft.id}
-                    className="rounded-xl border border-white/10 bg-black/10 p-4"
-                  >
+                  <li key={draft.id} className="rounded-xl border border-white/10 bg-black/10 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <h3 className="font-medium text-white">{draft.title}</h3>
                       <Badge variant="outline">
-                        {draft.status === "APPROVED"
-                          ? "Reviewed · Not sent"
-                          : draft.status}
+                        {draft.status === "APPROVED" ? "Reviewed · Not sent" : draft.status}
                       </Badge>
                     </div>
                     <p className="mt-1 text-xs text-mist-500">
-                      {draft.draft_kind} ·{" "}
-                      {new Date(draft.created_at).toLocaleDateString("en-GB")}
+                      {draft.draft_kind} · {new Date(draft.created_at).toLocaleDateString("en-GB")}
                     </p>
                     <p className="mt-3 whitespace-pre-wrap break-words text-sm text-mist-500">
                       {draft.body}
                     </p>
-                    <p className="mt-3 text-xs font-medium text-mist-500">
-                      Never transmitted
-                    </p>
+                    <p className="mt-3 text-xs font-medium text-mist-500">Never transmitted</p>
                   </li>
                 ))}
               </ul>
