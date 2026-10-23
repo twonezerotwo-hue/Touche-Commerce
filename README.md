@@ -725,10 +725,11 @@ PR #3. Contact control, consent records, live providers and messaging are
 still unavailable.
 
 
-### Stage 7C2 — administrator do-not-contact ledger (in progress)
+### Stage 7C2 — administrator do-not-contact ledger (CI verified)
 
 The Communications workspace offers company administrators an irreversible
 per-contact, per-channel suppression registry. Records do not contain phone
 numbers or email addresses, and no user or AI obtains send permission.
-The new PostgreSQL migration and API require isolated test execution before
-this branch can be merged; do not use live providers or Finance data.
+The isolated GitHub Actions PostgreSQL migration and API tests passed (565
+backend, 192 frontend) and PR #4 merged. No real provider, contact consent
+or live sending has been verified; do not use live providers or Finance data.
