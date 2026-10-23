@@ -15,7 +15,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Literal
 
-from openpyxl import load_workbook
+from openpyxl import load_workbook  # type: ignore[import-untyped]
 from pydantic import ValidationError
 
 from app.api.v1.schemas.trade import CounterpartyCreateRequest, ProductCreateRequest
@@ -151,7 +151,7 @@ def _csv_rows(data: bytes) -> list[list[object]]:
         raise ImportPreviewError("CSV must be UTF-8 encoded") from exc
     try:
         source = csv.reader(io.StringIO(text, newline=""), strict=True)
-        result = []
+        result: list[list[object]] = []
         for index, row in enumerate(source):
             if index > MAX_ROWS:
                 raise ImportPreviewError("More than 500 rows are not permitted")
