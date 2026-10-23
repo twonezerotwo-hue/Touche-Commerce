@@ -23,6 +23,7 @@ class CommunicationsStatusResponse(CommunicationsModel):
     mode: Literal["DRAFT_ONLY"] = "DRAFT_ONLY"
     external_sending_enabled: Literal[False] = False
     can_review_drafts: bool
+    can_manage_suppressions: bool = False
     send_permission: Literal["communications.send"] = "communications.send"
     channels: list[ChannelStatus] = Field(default_factory=list)
 
