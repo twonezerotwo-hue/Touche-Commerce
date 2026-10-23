@@ -98,6 +98,14 @@ jobs:
         working-directory: frontend
         run: npm run format:check
 
+      # Temporary diagnostic: output exact formatter patch, without changing the repo.
+      - name: Diagnose Prettier diff
+        if: failure()
+        working-directory: frontend
+        run: |
+          npx prettier --write "src/app/(app)/communications/page.tsx"
+          git diff -- "src/app/(app)/communications/page.tsx"
+
       - name: ESLint
         working-directory: frontend
         run: npm run lint
