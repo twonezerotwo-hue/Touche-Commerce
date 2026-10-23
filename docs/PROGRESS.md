@@ -1,8 +1,8 @@
 # TOUCHE COMMERCE — Progress
 
 **Last updated:** 2026-10-23 (local)
-**Current stage:** Stage 7B — recipient-safe preflight (CI verified and merged)
-**Current milestone:** 7B — no-send channel/recipient readiness and UI preview
+**Current stage:** Stage 7C1 — CRM recipient provenance (IN_PROGRESS; CI pending)
+**Current milestone:** 7C1 — active-tenant CRM contact match; consent still undocumented
 **Stage 6:** PASSED on Stage 6 local reported evidence (551 backend / 192 frontend, mock provider)
 **Stage 7A:** PASSED in GitHub CI (555 backend / 192 frontend, OpenAPI current; PR #1 merged); Windows browser acceptance not run
 **Stage 7B:** PASSED in GitHub CI (558 backend / 192 frontend, OpenAPI current; PR #2 merged); live providers and Windows browser acceptance not verified
@@ -2116,3 +2116,32 @@ verification was performed.
 independent send approval, verified recipient association, immutable intent, queue
 and idempotency, audit, webhook authenticity, delivery reconciliation and per-tenant
 isolation. No live external calls or Finance writes.
+
+
+---
+
+## 30. Stage 7C1 — CRM recipient provenance, NOT provider authentication (IN_PROGRESS)
+
+Branch: `stage-7c`, based on Stage 7B docs HEAD `f44f405`.
+
+* Preflight accepts optional `counterparty_id` with the operator-entered recipient.
+* A private service compares the recipient with **one active counterparty
+  in the authenticated active company**, applying PostgreSQL company RLS.
+  It never returns, logs, saves, or sends a recipient address.
+* Missing, archived, cross-company, or nonmatching CRM sources yield
+  `CRM_RECIPIENT_MISMATCH`.
+* Matching CRM data is not independently verified ownership or consent;
+  `CONSENT_UNDOCUMENTED` is always emitted. `sendable=false` remains invariant.
+* Communications UI lists up to 50 active CRM counterparties by name as
+  provenance selectors and never displays their contact addresses.
+* No OAuth, token store, Gmail/WhatsApp provider credentials, send endpoint,
+  scheduled job, money handling, or Finance integration change.
+
+**Verification pending:** authored integration tests for positive email/E.164
+CRM matches, missing/wrong/archived entries and always-missing consent.
+Full GitHub CI, contract regeneration and browser acceptance not yet verified.
+Stage 7C1 is not complete until these pass.
+
+**Future Stage 7C:** verified contact control, independently audited
+channel-specific consent evidence, opt-out/suppression, authorized provider
+connection setup, revocation, dedicated send approval and delivery executor.
