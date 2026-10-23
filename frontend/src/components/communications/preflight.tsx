@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useState, type FormEvent } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,7 @@ export function CommunicationPreflight({
   const [result, setResult] = useState<PreflightResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function check(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+  async function check(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     setResult(null);
     setError(null);
