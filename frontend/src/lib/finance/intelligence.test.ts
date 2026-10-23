@@ -6,6 +6,7 @@ import {
   exportFilename,
   groupByCurrency,
   hasActiveFilters,
+  isNegative,
   humanize,
   intelligenceQuery,
   maxAbs,
@@ -128,14 +129,50 @@ describe("metricLines", () => {
     expect(metricLines(metric({ kind: "PERCENT", percentage: "12.50" }))[0]).toEqual({
       currency: null,
       text: "12.50%",
+      negative: false,
     });
   });
 
   it("renders a count and treats a missing count as unavailable", () => {
     expect(metricLines(metric({ kind: "COUNT", count: 0 }))).toEqual([
-      { currency: null, text: "0" },
+      { currency: null, text: "0", negative: false },
     ]);
     expect(metricLines(metric({ kind: "COUNT", count: null }))).toEqual([]);
+  });
+
+  it("flags a loss on its line so the card can tint it", () => {
+    const money = metricLines(
+      metric({
+        money: [
+          { currency: "USD", amount: "-1234.50" },
+          { currency: "EUR", amount: "10.00" },
+        ],
+      }),
+    );
+    expect(money.map((line) => line.negative)).toEqual([true, false]);
+    expect(money[0].text).toContain("-");
+
+    const percent = metricLines(
+      metric({
+        kind: "PERCENT",
+        percentages: [
+          { currency: "USD", value: "-12.50" },
+          { currency: "EUR", value: "21.75" },
+        ],
+      }),
+    );
+    expect(percent.map((line) => line.negative)).toEqual([true, false]);
+  });
+});
+
+describe("isNegative", () => {
+  it("is true only for a parsable value below zero", () => {
+    expect(isNegative("-0.01")).toBe(true);
+    expect(isNegative("0.00")).toBe(false);
+    expect(isNegative("12.50")).toBe(false);
+    expect(isNegative(null)).toBe(false);
+    expect(isNegative(undefined)).toBe(false);
+    expect(isNegative("not a number")).toBe(false);
   });
 });
 

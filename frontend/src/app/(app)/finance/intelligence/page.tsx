@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ApiErrorAlert } from "@/components/finance/api-error-alert";
 import { ExportCsvButton } from "@/components/finance/export-csv-button";
 import {
+  ChartGrid,
   CompletenessBar,
   CostComparisonChart,
   MarginDistributionChart,
@@ -113,7 +114,7 @@ export default async function FinancialIntelligencePage({
 
       <MetricGrid metrics={summary.metrics} />
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <ChartGrid>
         <MonthlyCommitmentsChart rows={summary.monthly_commitments} />
         <CostComparisonChart rows={summary.cost_comparison} />
         <MarginDistributionChart buckets={summary.margin_distribution} />
@@ -124,9 +125,9 @@ export default async function FinancialIntelligencePage({
           emptyTitle="No open exceptions"
           columnLabel="Open"
         />
-      </div>
+      </ChartGrid>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <ChartGrid>
         <CompletenessBar
           title="Order completeness"
           description="How much of each order's cost picture is documented."
@@ -164,7 +165,7 @@ export default async function FinancialIntelligencePage({
             columnLabel="Orders"
           />
         ) : null}
-      </div>
+      </ChartGrid>
       {!coverageResult.ok ? (
         <ApiErrorAlert title="Coverage unavailable" failure={coverageResult} />
       ) : null}

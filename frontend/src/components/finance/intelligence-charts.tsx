@@ -1,6 +1,5 @@
 import * as React from "react";
 
-import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -124,13 +123,30 @@ function ChartPanel({
   );
 }
 
+/**
+ * Inline empty state. It is plain text rather than `EmptyState`, which is itself a
+ * panel: inside a chart panel that rendered as a box within a box.
+ */
 function ChartEmpty({ title }: { title: string }) {
   return (
-    <EmptyState
-      className="border-0 bg-transparent py-6 shadow-none"
-      title={title}
-      description="No orders in the selected range have data for this view."
-    />
+    <div className="px-4 py-8 text-center">
+      <p className="font-display text-[16px] text-mist-200">{title}</p>
+      <p className="mt-1 text-[11px] text-mist-500">
+        No orders in the selected range have data for this view.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Grid for chart panels: one column below xl, two from xl. An odd last panel spans
+ * both columns instead of sitting alone in half a row.
+ */
+export function ChartGrid({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 xl:[&>*:last-child:nth-child(odd)]:col-span-2">
+      {children}
+    </div>
   );
 }
 
@@ -378,7 +394,7 @@ export function MarginDistributionChart({ buckets }: { buckets: readonly MarginB
         <ChartEmpty title="No margin data" />
       ) : (
         <div className="flex h-32 items-end gap-3" role="list">
-          {buckets.map((bucket) => (
+          {buckets.map((bucket, index) => (
             <div
               key={bucket.key}
               role="listitem"
@@ -386,7 +402,7 @@ export function MarginDistributionChart({ buckets }: { buckets: readonly MarginB
               aria-label={`${bucket.label}: ${bucket.count} order${bucket.count === 1 ? "" : "s"}`}
               className="group relative flex h-full min-w-8 flex-1 flex-col justify-end rounded outline-none focus-visible:ring-1 focus-visible:ring-accent-400"
             >
-              <Tip>
+              <Tip align={tooltipAlign(index, buckets.length)}>
                 <span className="block text-mist-100">{bucket.label}</span>
                 <span className="block">
                   {bucket.count} order{bucket.count === 1 ? "" : "s"}
@@ -464,7 +480,12 @@ export function RankedCountChart({
               aria-label={`${humanize(item.key)}: ${item.count}`}
               className="group relative grid grid-cols-[minmax(0,1fr)_2fr_auto] items-center gap-3 rounded outline-none focus-visible:ring-1 focus-visible:ring-accent-400"
             >
-              <span className="truncate text-[10.5px] text-mist-400">{humanize(item.key)}</span>
+              <span
+                className="line-clamp-2 text-[10.5px] leading-tight break-words text-mist-400"
+                title={humanize(item.key)}
+              >
+                {humanize(item.key)}
+              </span>
               <span className="h-2 rounded-[3px] bg-white/[0.05]">
                 <span
                   className={cn("block h-2 rounded-r-[4px]", SERIES.one.bar)}
@@ -526,9 +547,10 @@ export function CompletenessBar({
             {counts
               .filter((item) => item.count > 0)
               .map((item) => (
+                // min-w-1: a small share must stay visible (the legend still carries the count).
                 <div
                   key={item.status}
-                  className={cn("h-full", STATUS_BAR[item.status])}
+                  className={cn("h-full min-w-1", STATUS_BAR[item.status])}
                   style={{ width: `${(item.count / total) * 100}%` }}
                 />
               ))}

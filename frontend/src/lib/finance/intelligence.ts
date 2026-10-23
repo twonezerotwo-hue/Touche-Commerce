@@ -136,10 +136,18 @@ export function completenessTone(
   }
 }
 
+/** True for a decimal string below zero; a missing or unparsable value is not a loss. */
+export function isNegative(value: string | null | undefined): boolean {
+  const parsed = Number.parseFloat(value ?? "");
+  return Number.isFinite(parsed) && parsed < 0;
+}
+
 export interface MetricLine {
   /** Currency the line is denominated in; null for counts. */
   currency: string | null;
   text: string;
+  /** Below zero (a loss); the text keeps its minus sign, colour only reinforces it. */
+  negative: boolean;
 }
 
 /**
@@ -154,19 +162,29 @@ export function metricLines(metric: IntelligenceMetric): MetricLine[] {
       return metric.money.map((item) => ({
         currency: item.currency,
         text: formatMoney(item.amount, item.currency),
+        negative: isNegative(item.amount),
       }));
     case "PERCENT": {
       if (metric.percentages.length > 0) {
         return metric.percentages.map((item) => ({
           currency: item.currency,
           text: `${item.value}%`,
+          negative: isNegative(item.value),
         }));
       }
-      return metric.percentage ? [{ currency: null, text: `${metric.percentage}%` }] : [];
+      return metric.percentage
+        ? [
+            {
+              currency: null,
+              text: `${metric.percentage}%`,
+              negative: isNegative(metric.percentage),
+            },
+          ]
+        : [];
     }
     default:
       return typeof metric.count === "number"
-        ? [{ currency: null, text: String(metric.count) }]
+        ? [{ currency: null, text: String(metric.count), negative: false }]
         : [];
   }
 }

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ExportCsvButton } from "./export-csv-button";
 import {
+  ChartGrid,
   CompletenessBar,
   CostComparisonChart,
   MarginDistributionChart,
@@ -284,6 +285,28 @@ describe("MetricCard", () => {
     expect(within(card).queryByText("COMMITTED")).not.toBeInTheDocument();
   });
 
+  it("tints a loss and leaves a gain alone, keeping the minus sign in the text", () => {
+    render(
+      <MetricCard
+        metric={metric({
+          key: "estimated_gross_margin",
+          label: "Estimated gross margin",
+          kind: "PERCENT",
+          money: [],
+          percentages: [
+            { currency: "USD", value: "-12.50" },
+            { currency: "EUR", value: "21.75" },
+          ],
+        })}
+      />,
+    );
+    const loss = screen.getByText("-12.50%");
+    expect(loss).toHaveClass("text-crimson-400");
+    const gain = screen.getByText("21.75%");
+    expect(gain).toHaveClass("text-mist-100");
+    expect(gain).not.toHaveClass("text-crimson-400");
+  });
+
   it("never lets a coverage ratio wear the VERIFIED label, even at 0.00%", () => {
     render(
       <MetricCard
@@ -440,6 +463,75 @@ describe("charts", () => {
     }
     expect(screen.getByText("Table view")).toBeInTheDocument();
   });
+
+  it("keeps a tiny completeness share visible instead of sub-pixel", () => {
+    const { container } = render(
+      <CompletenessBar
+        title="Tiny segments"
+        counts={[
+          { status: "COMPLETE", count: 1 },
+          { status: "PARTIAL", count: 1 },
+          { status: "MISSING", count: 0 },
+          { status: "UNAVAILABLE", count: 5000 },
+        ]}
+      />,
+    );
+    const segments = container.querySelectorAll('div[aria-hidden="true"] > div');
+    expect(segments).toHaveLength(3);
+    for (const segment of segments) expect(segment).toHaveClass("min-w-1");
+    expect(screen.getAllByText("5000").length).toBeGreaterThan(0);
+  });
+
+  it("renders an empty chart as plain text, not as a panel inside the panel", () => {
+    const { container } = render(<MonthlyCommitmentsChart rows={[]} />);
+    const panel = container.querySelector("section") as HTMLElement;
+    expect(within(panel).getByText("No monthly commitments")).toBeInTheDocument();
+    expect(panel.querySelectorAll(".panel")).toHaveLength(0);
+  });
+
+  it("gives a category label its full text on hover and two lines before it clips", () => {
+    render(
+      <RankedCountChart
+        title="Exception categories"
+        items={[{ key: "MISSING_FINANCE_REFERENCE", count: 4 }]}
+        emptyTitle="none"
+      />,
+    );
+    const label = screen.getByTitle("MISSING FINANCE REFERENCE");
+    expect(label).toHaveTextContent("MISSING FINANCE REFERENCE");
+    expect(label).toHaveClass("line-clamp-2");
+    expect(label).not.toHaveClass("truncate");
+  });
+
+  it("anchors margin-band tooltips to the edges of the chart", () => {
+    const { container } = render(
+      <MarginDistributionChart
+        buckets={["LOSS", "0-9.99", "10-19.99", "20-29.99", "30+"].map((label) => ({
+          key: label,
+          label,
+          count: 3,
+        }))}
+      />,
+    );
+    const tips = Array.from(container.querySelectorAll('[role="listitem"] > [aria-hidden="true"]'));
+    expect(tips).toHaveLength(5);
+    expect(tips[0]).toHaveClass("left-0");
+    expect(tips[2]).toHaveClass("left-1/2");
+    expect(tips[4]).toHaveClass("right-0");
+  });
+
+  it("lets an odd last panel span both columns instead of sitting alone", () => {
+    const { container } = render(
+      <ChartGrid>
+        <div>one</div>
+        <div>two</div>
+        <div>three</div>
+      </ChartGrid>,
+    );
+    const grid = container.firstElementChild as HTMLElement;
+    expect(grid).toHaveClass("grid-cols-1", "xl:grid-cols-2");
+    expect(grid.className).toContain("xl:[&>*:last-child:nth-child(odd)]:col-span-2");
+  });
 });
 
 describe("IntelligenceOrdersTable", () => {
@@ -453,6 +545,27 @@ describe("IntelligenceOrdersTable", () => {
     expect(screen.getByText("Partial fulfilment")).toBeInTheDocument();
     expect(screen.getByText(/Missing: SHIPMENT COSTS/)).toBeInTheDocument();
     expect(screen.getByText("2 open · 1 blocking")).toBeInTheDocument();
+  });
+
+  it("tints a loss-making margin but not a cost variance, where negative is a saving", () => {
+    const { container } = render(
+      <IntelligenceOrdersTable
+        items={[
+          order({
+            estimated_gross_profit: "-100.00",
+            estimated_gross_margin_pct: "-40.00",
+            cost_variance: "-1.50",
+            cost_variance_pct: "-0.50",
+          }),
+        ]}
+      />,
+    );
+    const tinted = container.querySelectorAll("[data-negative]");
+    expect(tinted).toHaveLength(1);
+    expect(tinted[0]).toHaveTextContent(/-.*100\.00/);
+    expect(tinted[0]).toHaveClass("text-crimson-400");
+    const variance = screen.getByText(/-.*1\.50/);
+    expect(variance).not.toHaveClass("text-crimson-400");
   });
 
   it("shows an empty state for no orders", () => {
@@ -617,6 +730,26 @@ describe("IntelligenceDetail", () => {
     expect(within(tile).queryByText("COMMITTED")).not.toBeInTheDocument();
   });
 
+  it("tints a negative estimated profit and margin on the detail tile", () => {
+    const { rerender } = render(
+      <IntelligenceDetail
+        detail={detail({
+          estimated_gross_profit: "-100.00",
+          estimated_gross_margin_pct: "-40.00",
+        })}
+        csrfToken="csrf"
+        canReview={false}
+      />,
+    );
+    const loss = screen.getByText("Estimated gross profit").closest(".panel") as HTMLElement;
+    expect(loss.querySelectorAll("[data-negative]")).toHaveLength(2);
+    expect(loss).toHaveTextContent("-40.00% margin");
+
+    rerender(<IntelligenceDetail detail={detail()} csrfToken="csrf" canReview={false} />);
+    const gain = screen.getByText("Estimated gross profit").closest(".panel") as HTMLElement;
+    expect(gain.querySelectorAll("[data-negative]")).toHaveLength(0);
+  });
+
   it("marks a non-expense cost line as excluded", () => {
     render(<IntelligenceDetail detail={detail()} csrfToken="csrf" canReview={false} />);
     const row = screen.getByText("VAT CASHFLOW").closest("tr") as HTMLElement;
@@ -655,6 +788,13 @@ describe("IntelligenceFilterBar and Pager", () => {
       "value",
       "variance",
     );
+  });
+
+  it("puts every filter label above its control, dates included", () => {
+    render(<IntelligenceFilterBar action="/finance/intelligence" filters={{}} options={options} />);
+    for (const label of ["From", "To", "Currency", "Completeness"]) {
+      expect(screen.getByText(label)).toHaveClass("block");
+    }
   });
 
   it("pages forward and back while keeping the filters", () => {

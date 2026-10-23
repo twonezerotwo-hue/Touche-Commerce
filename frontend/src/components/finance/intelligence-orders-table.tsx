@@ -12,28 +12,44 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatReconciliationMoney, formatReconciliationPercent } from "@/lib/finance/format";
-import { completenessTone, humanize, type OrderProfitability } from "@/lib/finance/intelligence";
+import {
+  completenessTone,
+  humanize,
+  isNegative,
+  type OrderProfitability,
+} from "@/lib/finance/intelligence";
 
-/** Amount with its percentage; a missing amount is words, never a zero. */
+/**
+ * Amount with its percentage; a missing amount is words, never a zero. `loss` tints a
+ * negative profit or margin (not used for cost variance, where negative is a saving).
+ */
 function AmountCell({
   amount,
   percent,
   currency,
+  loss = false,
 }: {
   amount: string | null | undefined;
   percent?: string | null;
   currency: string;
+  loss?: boolean;
 }) {
   if (amount === null || amount === undefined) {
     return <span className="text-[10.5px] text-mist-600">Not available</span>;
   }
+  const negative = loss && isNegative(amount);
   return (
     <>
-      <span className="font-mono text-[11px] text-mist-200">
+      <span
+        className={`font-mono text-[11px] ${negative ? "text-crimson-400" : "text-mist-200"}`}
+        data-negative={negative || undefined}
+      >
         {formatReconciliationMoney(amount, currency)}
       </span>
       {percent !== undefined ? (
-        <span className="block font-mono text-[10px] text-mist-500">
+        <span
+          className={`block font-mono text-[10px] ${negative ? "text-crimson-400/80" : "text-mist-500"}`}
+        >
           {formatReconciliationPercent(percent)}
         </span>
       ) : null}
@@ -129,6 +145,7 @@ export function IntelligenceOrdersTable({
                 amount={order.estimated_gross_profit}
                 percent={order.estimated_gross_margin_pct}
                 currency={order.currency}
+                loss
               />
             </TableCell>
             <TableCell className="text-right whitespace-nowrap">
@@ -136,6 +153,7 @@ export function IntelligenceOrdersTable({
                 amount={order.committed_gross_profit}
                 percent={order.committed_gross_margin_pct}
                 currency={order.currency}
+                loss
               />
             </TableCell>
             <TableCell className="text-right whitespace-nowrap">

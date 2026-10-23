@@ -7,6 +7,7 @@ import {
   ClassificationBadge,
   ReconciliationStatusBadge,
 } from "@/components/finance/reconciliation-status-badge";
+import { Signed } from "@/components/finance/signed";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -96,31 +97,43 @@ export function IntelligenceDetail({
         />
         <Stat
           label="Estimated gross profit"
-          value={formatReconciliationMoney(order.estimated_gross_profit, currency)}
+          value={
+            <Signed value={order.estimated_gross_profit}>
+              {formatReconciliationMoney(order.estimated_gross_profit, currency)}
+            </Signed>
+          }
           detail={
             <span className="flex flex-wrap items-center gap-2">
               <ClassificationBadge
                 value={kindOf(order.estimated_gross_profit, classes.estimated_gross_profit)}
               />
-              <Margin
-                amount={order.estimated_gross_profit}
-                percent={order.estimated_gross_margin_pct ?? null}
-              />
+              <Signed value={order.estimated_gross_margin_pct}>
+                <Margin
+                  amount={order.estimated_gross_profit}
+                  percent={order.estimated_gross_margin_pct ?? null}
+                />
+              </Signed>
             </span>
           }
         />
         <Stat
           label="Committed gross profit"
-          value={formatReconciliationMoney(order.committed_gross_profit, currency)}
+          value={
+            <Signed value={order.committed_gross_profit}>
+              {formatReconciliationMoney(order.committed_gross_profit, currency)}
+            </Signed>
+          }
           detail={
             <span className="flex flex-wrap items-center gap-2">
               <ClassificationBadge
                 value={kindOf(order.committed_gross_profit, classes.committed_gross_profit)}
               />
-              <Margin
-                amount={order.committed_gross_profit}
-                percent={order.committed_gross_margin_pct ?? null}
-              />
+              <Signed value={order.committed_gross_margin_pct}>
+                <Margin
+                  amount={order.committed_gross_profit}
+                  percent={order.committed_gross_margin_pct ?? null}
+                />
+              </Signed>
             </span>
           }
           tone="amber"

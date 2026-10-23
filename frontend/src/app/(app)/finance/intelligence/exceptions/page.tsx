@@ -123,7 +123,7 @@ export default async function FinancialExceptionsPage({
 
       <form action={BASE} method="get" className="panel flex flex-wrap items-end gap-2 px-4 py-3">
         <div className="space-y-1">
-          <label htmlFor="exception-status" className="eyebrow">
+          <label htmlFor="exception-status" className="eyebrow block">
             Status
           </label>
           <Select
@@ -141,7 +141,7 @@ export default async function FinancialExceptionsPage({
           </Select>
         </div>
         <div className="space-y-1">
-          <label htmlFor="exception-severity" className="eyebrow">
+          <label htmlFor="exception-severity" className="eyebrow block">
             Severity
           </label>
           <Select
@@ -159,7 +159,7 @@ export default async function FinancialExceptionsPage({
           </Select>
         </div>
         <div className="space-y-1">
-          <label htmlFor="exception-code" className="eyebrow">
+          <label htmlFor="exception-code" className="eyebrow block">
             Code
           </label>
           <Select
@@ -177,7 +177,7 @@ export default async function FinancialExceptionsPage({
           </Select>
         </div>
         <div className="space-y-1">
-          <label htmlFor="exception-currency" className="eyebrow">
+          <label htmlFor="exception-currency" className="eyebrow block">
             Currency
           </label>
           <Input
@@ -190,7 +190,7 @@ export default async function FinancialExceptionsPage({
           />
         </div>
         <div className="space-y-1">
-          <label htmlFor="exception-from" className="eyebrow">
+          <label htmlFor="exception-from" className="eyebrow block">
             From
           </label>
           <Input
@@ -202,7 +202,7 @@ export default async function FinancialExceptionsPage({
           />
         </div>
         <div className="space-y-1">
-          <label htmlFor="exception-to" className="eyebrow">
+          <label htmlFor="exception-to" className="eyebrow block">
             To
           </label>
           <Input

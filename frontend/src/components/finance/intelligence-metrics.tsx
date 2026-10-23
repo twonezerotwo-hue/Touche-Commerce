@@ -32,7 +32,11 @@ export function MetricCard({ metric }: { metric: IntelligenceMetric }) {
               key={`${line.currency ?? "count"}-${line.text}`}
               className="flex items-baseline justify-between gap-3"
             >
-              <span className="data-value font-display text-[22px] leading-none text-mist-100">
+              <span
+                className={`data-value font-display text-[22px] leading-none ${
+                  line.negative ? "text-crimson-400" : "text-mist-100"
+                }`}
+              >
                 {line.text}
               </span>
               {line.currency ? (
