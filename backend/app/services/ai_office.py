@@ -534,7 +534,11 @@ class AiOfficeService:
                     day=1, hour=0, minute=0, second=0, microsecond=0
                 )
                 month_cost = session.execute(
-                    select(func.coalesce(func.sum(AiRun.cost_usd), 0)).where(
+                    select(
+                        func.coalesce(
+                            func.sum(AiRun.cost_usd + AiRun.reserved_cost_usd), 0
+                        )
+                    ).where(
                         AiRun.company_id == company_id,
                         AiRun.started_at >= month_start,
                     )
@@ -557,7 +561,7 @@ class AiOfficeService:
                 prompt_version=prompt_version,
                 is_external=is_external,
                 request_id=request_id,
-                cost_usd=reserved_cost_usd,
+                reserved_cost_usd=reserved_cost_usd,
             )
             session.add(run)
             session.flush()
@@ -669,6 +673,7 @@ class AiOfficeService:
             run.output_tokens = finish.output_tokens
             run.estimated_usage = finish.estimated_usage
             run.cost_usd = finish.cost_usd.quantize(_COST_QUANTUM)
+            run.reserved_cost_usd = Decimal("0")
             run.model_steps = finish.model_steps
             run.tool_call_count = finish.tool_call_count
             run.provider_calls = finish.provider_calls
