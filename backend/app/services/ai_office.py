@@ -20,7 +20,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import func, select, text, update
 from sqlalchemy.orm import Session
 
-from app.ai.errors import AIBudgetExceededError, ActionNotSupportedError, ProposalStateError
+from app.ai.errors import ActionNotSupportedError, AIBudgetExceededError, ProposalStateError
 from app.ai.proposals import ACTIONS, BLOCKING_WARNINGS, NewProposal, apply_edit
 from app.ai.tools.registry import ToolClass, ToolExecution, ToolOutcome
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError, VersionConflictError
