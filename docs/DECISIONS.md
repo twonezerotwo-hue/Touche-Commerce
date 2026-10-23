@@ -1455,3 +1455,31 @@ cost budget is only meaningful once prices are set.
 backoff, budget before any data leaves) and `test_ai_api.py` (tool-call, step, token,
 size, daily, rate and concurrency limits; outage, auth failure, timeout; deadline;
 cancellation).
+
+---
+
+## ADR-054 — Communications permission and draft-only boundary
+
+**Status:** ACCEPTED · PARTIALLY IMPLEMENTED (Stage 7A; regression pending)
+
+**Decision.** A dedicated `communications.send` permission is introduced and is
+not granted to any current role. Stage 7A exposes only `GET` endpoints for
+channel status and existing AI Office draft proposals, using the signed-in
+active company and RLS. Both EMAIL and WHATSAPP_BUSINESS report
+`NOT_CONFIGURED`. No outbound transport or send route exists.
+
+**Reason.** Stage 6 draft approval means a human reviewed content; it is not
+consent to dispatch. An AI agent must never acquire outbound rights by being
+able to suggest or approve a proposal. Keeping delivery unavailable removes
+the risk of accidental customer commitments while the later provider-specific
+authorization and audit model is designed.
+
+**Future preconditions.** Explicit recipient and channel verification,
+separate reviewer and sender permissions, a bounded idempotent outbox,
+operator-approved send intent tied to a draft version, webhook authenticity,
+delivery status reconciliation, rate limits, data minimization, and per-tenant
+provider credentials. Every actual send must be audited and tested with an
+isolated provider stub before any real destination is enabled.
+
+**Verification.** Static/API tests authored in Stage 7A; live backend/frontend
+regression and isolated HTTP acceptance remain open. Stage 7A is not PASSED.

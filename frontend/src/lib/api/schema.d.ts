@@ -316,6 +316,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/communications/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Communication Drafts
+         * @description Read existing company-scoped AI drafts; no side effects or external calls.
+         *
+         *     These rows are company-visible by the Stage 6 contract. A human approval
+         *     means 'reviewed', never 'delivered'. Return no address or contact details.
+         */
+        get: operations["list_communication_drafts_api_v1_communications_drafts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/communications/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Communications Status
+         * @description Report actual capabilities, never infer a configured provider.
+         */
+        get: operations["communications_status_api_v1_communications_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/companies": {
         parameters: {
             query?: never;
@@ -2097,6 +2140,115 @@ export interface components {
             count: number;
             /** Key */
             key: string;
+        };
+        /** ChannelStatus */
+        ChannelStatus: {
+            /**
+             * Can Send
+             * @default false
+             * @constant
+             */
+            can_send: false;
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "EMAIL" | "WHATSAPP_BUSINESS";
+            /**
+             * State
+             * @default NOT_CONFIGURED
+             * @constant
+             */
+            state: "NOT_CONFIGURED";
+        };
+        /** CommunicationDraftListResponse */
+        CommunicationDraftListResponse: {
+            /** Items */
+            items: components["schemas"]["CommunicationDraftResponse"][];
+            /**
+             * Source
+             * @default AI_OFFICE
+             * @constant
+             */
+            source: "AI_OFFICE";
+            /**
+             * Truncated
+             * @default false
+             */
+            truncated: boolean;
+        };
+        /** CommunicationDraftResponse */
+        CommunicationDraftResponse: {
+            /** Body */
+            body: string;
+            /**
+             * Conversation Id
+             * Format: uuid
+             */
+            conversation_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Draft Kind */
+            draft_kind: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Sent
+             * @default false
+             * @constant
+             */
+            sent: false;
+            /**
+             * Source Href
+             * @default /ai
+             * @constant
+             */
+            source_href: "/ai";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "PROPOSED" | "APPROVED" | "REJECTED";
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /** CommunicationsStatusResponse */
+        CommunicationsStatusResponse: {
+            /** Can Review Drafts */
+            can_review_drafts: boolean;
+            /** Channels */
+            channels: components["schemas"]["ChannelStatus"][];
+            /**
+             * External Sending Enabled
+             * @default false
+             * @constant
+             */
+            external_sending_enabled: false;
+            /**
+             * Mode
+             * @default DRAFT_ONLY
+             * @constant
+             */
+            mode: "DRAFT_ONLY";
+            /**
+             * Send Permission
+             * @default communications.send
+             * @constant
+             */
+            send_permission: "communications.send";
         };
         /**
          * CompanyAccess
@@ -8520,6 +8672,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_communication_drafts_api_v1_communications_drafts_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunicationDraftListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    communications_status_api_v1_communications_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunicationsStatusResponse"];
                 };
             };
         };

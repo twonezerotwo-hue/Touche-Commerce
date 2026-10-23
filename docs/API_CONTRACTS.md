@@ -1,8 +1,7 @@
 # TOUCHE COMMERCE — API contracts
 
-**Version:** v1 · Stages 0–4 and Stage 5C **implemented** for health,
-authentication, sessions, company selection, trade/sourcing/operations and the
-read-only Finance connector. Stage 5D reconciliation remains design-only.
+**Version:** v1 · Stages 0–6 documented as implemented. Stage 7A communications
+discovery is in progress; local validation and client regeneration remain pending.
 **Source of truth:** `backend/app/api/v1/schemas/*` → `/api/v1/openapi.json` →
 `frontend/src/lib/api/schema.d.ts`.
 
@@ -1320,3 +1319,18 @@ New append-only actions: `ai.conversation.created`, `ai.run.completed`, `ai.run.
 `ai.proposal.rejected`. Tool and run events use `actor_type=agent` with the person on
 whose authority the agent acted as `actor_id`; details hold counts, tool names and
 validated arguments, never prompts or results.
+
+
+---
+
+## 14. Stage 7A — Communications discovery (not yet verified)
+
+| Method | Path | Authorization | Behavior |
+|---|---|---|---|
+| GET | `/communications/status` | `company.view` on active company | `DRAFT_ONLY`, both channels `NOT_CONFIGURED`, `external_sending_enabled=false` |
+| GET | `/communications/drafts?limit=20` | `company.view` on active company | Most recent 1–50 existing Stage 6 DRAFT proposals; company RLS, `sent=false`, `truncated` pagination signal |
+
+There are **no** POST/send/connect/token/webhook endpoints. `communications.send`
+is a reserved permission granted to no current role. AI proposal approval does not
+send a message. New contracts need OpenAPI regeneration, full regression and isolated
+acceptance before Stage 7A can be marked PASSED.

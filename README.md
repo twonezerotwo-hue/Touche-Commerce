@@ -1,9 +1,9 @@
 # TOUCHE COMMERCE
 
-Independent, premium international trade management — **Stage 5E: read-only
-financial intelligence** on top of the Stage 4 execution chain (sales orders,
-procurement, logistics and trade documents) and the read-only TOUCHE FINANCE
-connector.
+Independent, premium international trade management — **Stages 0–6 completed
+in isolated local acceptance; Stage 7A communications groundwork in progress**.
+Trade operations, Finance evidence and a mock-verified AI Trade Director share the
+same tenant-scoped business services. No external message sending is enabled.
 
 A Next.js 16 web application, a FastAPI service and PostgreSQL 17 with real
 health probes, structured logging, a standard error contract, a typed OpenAPI
@@ -687,3 +687,17 @@ focus order and contrast checked only by measurement) is listed in PROGRESS §27
 **Not implemented:** Gmail/WhatsApp, e-mail or message sending, E-YAY, web crawling,
 accounting writes, bank payments, contract signature or any commitment on a person's
 behalf.
+
+
+---
+
+## Stage 7A — Communications groundwork (in progress)
+
+The /communications workspace lists already stored AI Office correspondence drafts
+for the active company. `GET /api/v1/communications/status` reports EMAIL and
+WHATSAPP_BUSINESS as NOT_CONFIGURED; `GET /api/v1/communications/drafts` reads
+company-scoped AI proposals with `sent=false`. The new `communications.send`
+permission is granted to no existing role. There is no send route, API credential,
+SMTP/WhatsApp connection or delivery attempt. Stage 7A changes were authored on
+GitHub; local PostgreSQL/browser regressions and regenerated OpenAPI clients are
+still pending verification. Do not claim Stage 7 is complete.

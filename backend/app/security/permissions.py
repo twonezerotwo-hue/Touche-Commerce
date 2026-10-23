@@ -32,6 +32,8 @@ class Permission(StrEnum):
     MEMBERSHIP_MANAGE = "membership.manage"
     AUDIT_VIEW = "audit.view"
     TRADE_WRITE = "trade.write"
+    # Stage 7A: distinct outbound permission, deliberately granted to no role yet.
+    COMMUNICATIONS_SEND = "communications.send"
     FINANCE_APPROVE = "finance.approve"
     # Stage 5D: a distinct financial-review capability. Admin never inherits it.
     FINANCE_RECONCILE = "finance.reconcile"

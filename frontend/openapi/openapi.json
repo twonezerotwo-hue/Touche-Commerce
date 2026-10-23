@@ -479,6 +479,188 @@
         "title": "CategoryCountResponse",
         "type": "object"
       },
+      "ChannelStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "can_send": {
+            "const": false,
+            "default": false,
+            "title": "Can Send",
+            "type": "boolean"
+          },
+          "channel": {
+            "enum": [
+              "EMAIL",
+              "WHATSAPP_BUSINESS"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
+          "state": {
+            "const": "NOT_CONFIGURED",
+            "default": "NOT_CONFIGURED",
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel",
+          "state",
+          "can_send"
+        ],
+        "title": "ChannelStatus",
+        "type": "object"
+      },
+      "CommunicationDraftListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CommunicationDraftResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "source": {
+            "const": "AI_OFFICE",
+            "default": "AI_OFFICE",
+            "title": "Source",
+            "type": "string"
+          },
+          "truncated": {
+            "default": false,
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "source",
+          "truncated"
+        ],
+        "title": "CommunicationDraftListResponse",
+        "type": "object"
+      },
+      "CommunicationDraftResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "conversation_id": {
+            "format": "uuid",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "draft_kind": {
+            "title": "Draft Kind",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "sent": {
+            "const": false,
+            "default": false,
+            "title": "Sent",
+            "type": "boolean"
+          },
+          "source_href": {
+            "const": "/ai",
+            "default": "/ai",
+            "title": "Source Href",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PROPOSED",
+              "APPROVED",
+              "REJECTED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "conversation_id",
+          "title",
+          "body",
+          "draft_kind",
+          "status",
+          "version",
+          "created_at",
+          "updated_at",
+          "source_href",
+          "sent"
+        ],
+        "title": "CommunicationDraftResponse",
+        "type": "object"
+      },
+      "CommunicationsStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "can_review_drafts": {
+            "title": "Can Review Drafts",
+            "type": "boolean"
+          },
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/ChannelStatus"
+            },
+            "title": "Channels",
+            "type": "array"
+          },
+          "external_sending_enabled": {
+            "const": false,
+            "default": false,
+            "title": "External Sending Enabled",
+            "type": "boolean"
+          },
+          "mode": {
+            "const": "DRAFT_ONLY",
+            "default": "DRAFT_ONLY",
+            "title": "Mode",
+            "type": "string"
+          },
+          "send_permission": {
+            "const": "communications.send",
+            "default": "communications.send",
+            "title": "Send Permission",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "external_sending_enabled",
+          "can_review_drafts",
+          "send_permission",
+          "channels"
+        ],
+        "title": "CommunicationsStatusResponse",
+        "type": "object"
+      },
       "CompanyAccess": {
         "description": "One company the signed-in user may access, with their role there.",
         "properties": {
@@ -16138,6 +16320,74 @@
         "summary": "Current user, active company and memberships",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/v1/communications/drafts": {
+      "get": {
+        "description": "Read existing company-scoped AI drafts; no side effects or external calls.\n\nThese rows are company-visible by the Stage 6 contract. A human approval\nmeans 'reviewed', never 'delivered'. Return no address or contact details.",
+        "operationId": "list_communication_drafts_api_v1_communications_drafts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunicationDraftListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Communication Drafts",
+        "tags": [
+          "communications"
+        ]
+      }
+    },
+    "/api/v1/communications/status": {
+      "get": {
+        "description": "Report actual capabilities, never infer a configured provider.",
+        "operationId": "communications_status_api_v1_communications_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunicationsStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Communications Status",
+        "tags": [
+          "communications"
         ]
       }
     },

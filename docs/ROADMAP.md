@@ -376,11 +376,17 @@ editing an AI proposal.
 
 ---
 
-## Stage 7 — Messaging and external connectors (not started)
+## Stage 7 — Messaging and external connectors (Stage 7A IN_PROGRESS)
 
-Gmail and WhatsApp Business connectors, outbound message logging with actor and
-request id, and any further integrations. Requires its own ADRs, a send permission
-separate from `trade.write`, and human approval of every outbound message.
+**Stage 7A (initial GitHub code, verification pending):** a company-scoped
+communications view of existing AI drafts, a status API that reports unconfigured
+email/WhatsApp channels, and an unassigned `communications.send` permission.
+There is no outbound transport or credential and no claim of verified delivery.
+
+**Next after validation:** real provider authentication, webhook verification,
+distinct operator send authorization, explicit human approval, auditable idempotent
+outbox, delivery status callbacks and tenant-safe message threading. Gmail/WhatsApp
+connections must each be tested independently. No AI proposal may dispatch by itself.
 
 ---
 

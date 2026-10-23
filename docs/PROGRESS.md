@@ -1,9 +1,10 @@
 # TOUCHE COMMERCE — Progress
 
 **Last updated:** 2026-10-23 (local)
-**Current stage:** Stage 5E — read-only financial intelligence (implemented and isolated-HTTP verified locally)
-**Current milestone:** 5E — 402 backend tests, 160 frontend tests, `ISOLATED_HTTP_VERIFIED`, browser-reviewed
-**Stage 5:** IN_PROGRESS (Stage 5A/5B/5C/5D/5E implemented; no further milestone started)
+**Current stage:** Stage 7A — communications groundwork (in progress; not yet locally tested)
+**Current milestone:** 7A — draft discovery API, distinct send permission, draft-only workspace
+**Stage 6:** PASSED on Stage 6 local reported evidence (551 backend / 192 frontend, mock provider)
+**Stage 7A:** IN_PROGRESS (GitHub changes only; no outbound integration and no local test claim)
 
 Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
 `FAILED`. Nothing is marked `PASSED` without an executed command in this file.
@@ -2066,3 +2067,26 @@ the API isolation checks), 375 px for `/ai`.
 * `86b0448` — `fix(stage6): isolated acceptance step, proposal de-duplication, narrow-screen layout`.
 * The close-out documentation commit (this update).
 * Nothing was pushed, merged or deployed; the Finance repository was not modified.
+
+
+---
+
+## 28. Stage 7A — Communications groundwork (IN_PROGRESS)
+
+Base: `stage-6` HEAD `4cf4f86`, fast-forwarded to `main` on GitHub.
+Feature branch: `stage-7a`.
+
+Initial implementation:
+* New `communications.send` capability, explicitly assigned to **no role**.
+* `GET /api/v1/communications/status`: DRAFT_ONLY; email and WhatsApp unconfigured, no sending.
+* `GET /api/v1/communications/drafts`: bounded, tenant-RLS-scoped existing AI draft proposals only.
+* `/communications`: draft listing plus honest channel state, no send buttons.
+* New API tests for permission separation, bounded listing, unsent drafts and missing send endpoint.
+
+**Verification pending:** tests and formatting have not been run in the user's Windows
+PostgreSQL/Next.js environment for this branch. OpenAPI schema/client regeneration,
+full backend/frontend regressions, migration head check, browser and isolated HTTP
+acceptance are required before this milestone may be called PASSED.
+
+**Scope deliberately excluded:** OAuth, SMTP, WhatsApp credentials/webhooks,
+outbound sends, scheduled jobs, accounting writes, live Finance startup.
