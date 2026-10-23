@@ -40,9 +40,9 @@ ALIASES = {
     "stok_kodu": "sku",
     "ürün_kodu": "sku",
     "urun_kodu": "sku",
-    "ürün_adı": "name",
+    "ürün_ad\u0131": "name",
     "urun_adi": "name",
-    "firma_adı": "name",
+    "firma_ad\u0131": "name",
     "firma_adi": "name",
     "birim": "unit",
     "para_birimi": "currency",
@@ -102,7 +102,8 @@ def _check_zip(data: bytes) -> None:
                     raise ImportPreviewError("Spreadsheet member exceeds size limit")
                 if member.file_size and member.file_size / max(1, member.compress_size) > 120:
                     raise ImportPreviewError("Suspicious spreadsheet compression ratio")
-                if not member.filename.startswith(("xl/", "_rels/", "docProps/", "[Content_Types]")):
+                allowed_prefixes = ("xl/", "_rels/", "docProps/", "[Content_Types]")
+                if not member.filename.startswith(allowed_prefixes):
                     raise ImportPreviewError("Unexpected spreadsheet member")
     except (zipfile.BadZipFile, zipfile.LargeZipFile) as exc:
         raise ImportPreviewError("Invalid XLSX archive") from exc
@@ -129,7 +130,8 @@ def _sheet_rows(data: bytes) -> list[list[object]]:
                     if cell.data_type == "f":
                         raise ImportPreviewError("Spreadsheet formulas cannot be imported")
                     value = cell.value
-                    if value is not None and not isinstance(value, (str, int, float, Decimal, bool)):
+                    supported = (str, int, float, Decimal, bool)
+                    if value is not None and not isinstance(value, supported):
                         raise ImportPreviewError("Unsupported cell value type")
                     values.append(value)
                 rows.append(values)
