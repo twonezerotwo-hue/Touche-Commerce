@@ -630,6 +630,18 @@
             "title": "Channel",
             "type": "string"
           },
+          "counterparty_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counterparty Id"
+          },
           "draft_id": {
             "format": "uuid",
             "title": "Draft Id",
@@ -666,7 +678,9 @@
                 "DRAFT_VERSION_MISMATCH",
                 "CHANNEL_NOT_CONFIGURED",
                 "SEND_PERMISSION_UNAVAILABLE",
-                "RECIPIENT_INVALID"
+                "RECIPIENT_INVALID",
+                "CRM_RECIPIENT_MISMATCH",
+                "CONSENT_UNDOCUMENTED"
               ],
               "type": "string"
             },

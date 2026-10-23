@@ -712,3 +712,13 @@ Stage 7B passed GitHub Actions workflow 40019149502 (558 backend and 192
 frontend tests), including CSRF and recipient privacy tests, and merged in
 PR #2. Neither email nor WhatsApp sending exists. Local browser and real
 provider acceptance are still unavailable.
+
+
+### Stage 7C1 — CRM provenance (in progress)
+
+The Communications readiness check allows an active-company CRM counterparty
+to be selected as the purported source of an email/E.164 recipient. It rejects
+unlinked, archived or mismatched contact points, but **never treats matching a
+CRM record as proof of consent**. Provider connections and sending remain
+unavailable; no address or phone is stored by the preflight. The feature is
+on `stage-7c` until CI acceptance is verified.

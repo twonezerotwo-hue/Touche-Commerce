@@ -1351,3 +1351,19 @@ recipient shape without persisting or returning the address. Response has
 CI workflow `40019149502` passed (558 backend, 192 frontend and contract
 drift); PR #2 merged. Provider integration and Windows browser acceptance
 were not run, and the endpoint cannot dispatch a message.
+
+
+### 14.2 Stage 7C1 — CRM source comparison (IN PROGRESS)
+
+`POST /communications/preflight` optionally accepts `counterparty_id` as
+a UUID alongside the previous fields. With an authorized active tenant, the
+server compares a valid recipient email/E.164 phone to the selected **active
+CRM counterparty**. Missing, mismatched, archived and other-company records
+yield the same `CRM_RECIPIENT_MISMATCH` code. There is no recipient address,
+CRM record or contact secret in the response.
+
+`CONSENT_UNDOCUMENTED` is always returned, including on a matching CRM entry;
+a record match does not assert permission, contact ownership or consent.
+The existing `sendable=false`, `external_sending_enabled=false` and
+`recipient_echoed=false` guarantees remain unchanged. No send operation exists.
+Stage 7C1 CI and browser tests remain open.

@@ -1508,3 +1508,29 @@ delivery rights. A later send executor requires a separate ADR and migration.
 192 frontend tests with clean OpenAPI. A missing CSRF dependency was found
 by the new negative test and corrected in `e160815`. PR #2 merged at
 `1140b06`. No live provider or Windows browser verification was performed.
+
+
+---
+
+## ADR-056 — CRM provenance must not be treated as consent
+
+**Status:** ACCEPTED · STAGE 7C1 IN PROGRESS
+
+**Decision:** A communication preflight can reference an existing CRM
+counterparty ID, but the server obtains its company from the authenticated
+session and applies tenant RLS before reading the contact point. A casefolded
+email or exact E.164 phone match only establishes **CRM source consistency**.
+A missing, archived, cross-company, or mismatched record is reported through
+a generic blocker, not through the recipient address or record details.
+
+**No consent claim:** CRM existence and an AI draft approval do not prove the
+recipient has agreed to communication or controls that contact point.
+`CONSENT_UNDOCUMENTED` is always returned while no separately auditable
+channel-specific consent system exists. Independent opt-outs, provider auth,
+approved send intent and delivery remain unimplemented.
+
+**Safety:** No recipient address stored, logged, or echoed by preflight.
+No transport, token, webhooks, sending or financial writes. No changes to
+`communications.send` role assignments.
+
+**Verification:** Stage 7C1 GitHub CI and local browser acceptance pending.

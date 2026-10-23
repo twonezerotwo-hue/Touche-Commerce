@@ -5,6 +5,7 @@ import { ApiErrorAlert } from "@/components/finance/api-error-alert";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
 import { serverGet } from "@/lib/api/server";
+import type { components } from "@/lib/api/schema";
 import { loadSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
@@ -47,16 +48,19 @@ export default async function CommunicationsPage() {
 
   const header = (
     <PageHeader
-      eyebrow="Stage 7A · Communications"
+      eyebrow="Stage 7C · Communications"
       title="Communications"
       description="Review AI-prepared business correspondence. External email and WhatsApp sending are not connected or enabled."
       meta={<Badge variant="secondary">Draft-only · No messages sent</Badge>}
     />
   );
 
-  const [status, drafts] = await Promise.all([
+  const [status, drafts, contacts] = await Promise.all([
     serverGet<CommunicationsStatus>("/communications/status"),
     serverGet<DraftList>("/communications/drafts?limit=20"),
+    serverGet<components["schemas"]["CounterpartyListResponse"]>(
+      "/counterparties?status=active&limit=50",
+    ),
   ]);
 
   return (
@@ -91,7 +95,7 @@ export default async function CommunicationsPage() {
                 <h2 className="text-lg font-semibold text-white">Prepared correspondence</h2>
                 <p className="mt-1 text-sm text-mist-500">
                   Existing AI Office drafts are shown for the selected company. Approval means
-                  reviewed, not sent.
+                  reviewed, not sent. CRM matching is not proof of consent.
                 </p>
               </div>
               <Link
@@ -101,6 +105,16 @@ export default async function CommunicationsPage() {
                 Open AI Office
               </Link>
             </div>
+            {!contacts.ok && status.data.can_review_drafts ? (
+              <p className="mt-3 text-sm text-mist-300">
+                CRM records are unavailable; recipient readiness will remain blocked.
+              </p>
+            ) : null}
+            {contacts.ok && contacts.data.has_more ? (
+              <p className="mt-3 text-sm text-mist-300">
+                Showing the latest 50 active CRM records. Use CRM to locate older contacts.
+              </p>
+            ) : null}
             {!drafts.ok ? (
               <div className="mt-4">
                 <ApiErrorAlert title="Drafts unavailable" failure={drafts} />
@@ -132,6 +146,11 @@ export default async function CommunicationsPage() {
                         draftId={draft.id}
                         draftVersion={draft.version}
                         csrfToken={state.session.session.csrf_token}
+                        counterparties={
+                          contacts.ok
+                            ? contacts.data.items.map((item) => ({ id: item.id, name: item.name }))
+                            : []
+                        }
                       />
                     ) : null}
                   </li>

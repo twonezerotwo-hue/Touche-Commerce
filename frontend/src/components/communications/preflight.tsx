@@ -18,21 +18,28 @@ const EXPLANATIONS: Record<string, string> = {
   CHANNEL_NOT_CONFIGURED: "The email or WhatsApp connection is not configured.",
   SEND_PERMISSION_UNAVAILABLE: "No role is currently allowed to send messages.",
   RECIPIENT_INVALID: "The recipient format is invalid for the selected channel.",
+  CRM_RECIPIENT_MISMATCH:
+    "No active selected CRM counterparty contains this exact address or E.164 number.",
+  CONSENT_UNDOCUMENTED:
+    "There is no verified permission or consent record for this recipient and channel.",
 };
 
 export function CommunicationPreflight({
   draftId,
   draftVersion,
   csrfToken,
+  counterparties,
 }: {
   draftId: string;
   draftVersion: number;
   csrfToken: string;
+  counterparties: { id: string; name: string }[];
 }) {
   const key = useId();
   const [expanded, setExpanded] = useState(false);
   const [channel, setChannel] = useState<Channel>("EMAIL");
   const [recipient, setRecipient] = useState("");
+  const [counterpartyId, setCounterpartyId] = useState("");
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<PreflightResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +64,7 @@ export function CommunicationPreflight({
           draft_version: draftVersion,
           channel,
           recipient,
+          counterparty_id: counterpartyId || null,
         }),
       });
       if (!response.ok) {
@@ -84,6 +92,25 @@ export function CommunicationPreflight({
       </Button>
       {expanded ? (
         <form onSubmit={check} className="mt-3 space-y-3" aria-label="Send readiness preview">
+          <div className="space-y-1">
+            <Label htmlFor={`${key}-counterparty`}>CRM counterparty (source)</Label>
+            <select
+              id={`${key}-counterparty`}
+              value={counterpartyId}
+              onChange={(event) => {
+                setCounterpartyId(event.target.value);
+                setResult(null);
+              }}
+              className="h-10 w-full rounded-md border border-white/10 bg-ink-950/70 px-3 text-[13px] text-mist-100"
+            >
+              <option value="">Select a counterparty</option>
+              {counterparties.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <Label htmlFor={`${key}-channel`}>Channel</Label>
@@ -121,7 +148,8 @@ export function CommunicationPreflight({
             {checking ? "Checking…" : "Check blockers"}
           </Button>
           <p className="text-xs text-mist-500">
-            No email or WhatsApp message can be sent. This form does not save the recipient.
+            This check compares the address with the selected CRM record; matching is not consent.
+            Nothing is saved or sent.
           </p>
           {error ? <Alert variant="warning">{error}</Alert> : null}
           {result ? (

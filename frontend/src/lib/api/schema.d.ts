@@ -2259,6 +2259,8 @@ export interface components {
              * @enum {string}
              */
             channel: "EMAIL" | "WHATSAPP_BUSINESS";
+            /** Counterparty Id */
+            counterparty_id?: string | null;
             /**
              * Draft Id
              * Format: uuid
@@ -2272,7 +2274,7 @@ export interface components {
         /** CommunicationPreflightResponse */
         CommunicationPreflightResponse: {
             /** Blockers */
-            blockers: ("DRAFT_NOT_APPROVED" | "DRAFT_VERSION_MISMATCH" | "CHANNEL_NOT_CONFIGURED" | "SEND_PERMISSION_UNAVAILABLE" | "RECIPIENT_INVALID")[];
+            blockers: ("DRAFT_NOT_APPROVED" | "DRAFT_VERSION_MISMATCH" | "CHANNEL_NOT_CONFIGURED" | "SEND_PERMISSION_UNAVAILABLE" | "RECIPIENT_INVALID" | "CRM_RECIPIENT_MISMATCH" | "CONSENT_UNDOCUMENTED")[];
             /**
              * Channel
              * @enum {string}

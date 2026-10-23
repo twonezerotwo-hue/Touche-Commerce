@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from typing import Any
+from uuid import uuid4
 
 import pytest
 
@@ -141,3 +142,135 @@ def test_send_preflight_requires_csrf_and_trade_permission(
         f"{API}/preflight", json=request, headers=csrf_headers(viewer_csrf)
     )
     assert forbidden.status_code == 403
+
+
+def _create_crm_contact(world: OrderWorld, *, email: str | None = None,
+                        phone: str | None = None) -> dict[str, Any]:
+    fields: dict[str, Any] = {
+        "name": f"Source {uuid4().hex[:10]}",
+        "type": "supplier",
+        "country": "GB",
+    }
+    if email is not None:
+        fields["email"] = email
+    if phone is not None:
+        fields["phone"] = phone
+    res = world.client.post(
+        "/api/v1/counterparties",
+        json=fields,
+        headers={
+            **csrf_headers(world.csrf),
+            "Idempotency-Key": uuid4().hex,
+        },
+    )
+    assert res.status_code == 201, res.text
+    return dict(res.json())
+
+
+def test_preflight_never_conflates_crm_with_consent(
+    world: OrderWorld, install_ai: Callable[..., AIRuntime]
+) -> None:
+    install_ai()
+    run = ask(world.client, world.csrf, "Draft an email to a supplier")
+    draft = next(p for p in run["proposals"] if p["kind"] == "DRAFT")
+    address = "purchasing@example.com"
+    contact = _create_crm_contact(world, email=address)
+    request = {
+        "draft_id": draft["id"],
+        "draft_version": draft["version"],
+        "counterparty_id": contact["id"],
+        "channel": "EMAIL",
+        "recipient": address,
+    }
+    matched = world.client.post(
+        f"{API}/preflight", json=request, headers=csrf_headers(world.csrf)
+    )
+    assert matched.status_code == 200, matched.text
+    blockers = matched.json()["blockers"]
+    assert "CRM_RECIPIENT_MISMATCH" not in blockers
+    assert "CONSENT_UNDOCUMENTED" in blockers
+    assert matched.json()["sendable"] is False
+    assert address not in matched.text
+
+    unknown = world.client.post(
+        f"{API}/preflight",
+        json={**request, "counterparty_id": str(uuid4())},
+        headers=csrf_headers(world.csrf),
+    )
+    assert unknown.status_code == 200, unknown.text
+    assert "CRM_RECIPIENT_MISMATCH" in unknown.json()["blockers"]
+
+    unrelated = world.client.post(
+        f"{API}/preflight",
+        json={**request, "recipient": "other@example.com"},
+        headers=csrf_headers(world.csrf),
+    )
+    assert unrelated.status_code == 200, unrelated.text
+    assert "CRM_RECIPIENT_MISMATCH" in unrelated.json()["blockers"]
+    assert "CONSENT_UNDOCUMENTED" in unrelated.json()["blockers"]
+
+
+def test_preflight_requires_crm_match_for_whatsapp(
+    world: OrderWorld, install_ai: Callable[..., AIRuntime]
+) -> None:
+    install_ai()
+    run = ask(world.client, world.csrf, "Draft a supplier message")
+    draft = next(p for p in run["proposals"] if p["kind"] == "DRAFT")
+    phone = "+36201234567"
+    contact = _create_crm_contact(world, phone=phone)
+    request = {
+        "draft_id": draft["id"],
+        "draft_version": draft["version"],
+        "counterparty_id": contact["id"],
+        "channel": "WHATSAPP_BUSINESS",
+        "recipient": phone,
+    }
+    matched = world.client.post(
+        f"{API}/preflight", json=request, headers=csrf_headers(world.csrf)
+    )
+    assert matched.status_code == 200, matched.text
+    assert "CRM_RECIPIENT_MISMATCH" not in matched.json()["blockers"]
+    assert "CONSENT_UNDOCUMENTED" in matched.json()["blockers"]
+    assert matched.json()["external_sending_enabled"] is False
+
+    missing = world.client.post(
+        f"{API}/preflight",
+        json={**request, "counterparty_id": None},
+        headers=csrf_headers(world.csrf),
+    )
+    assert missing.status_code == 200, missing.text
+    assert "CRM_RECIPIENT_MISMATCH" in missing.json()["blockers"]
+
+
+def test_preflight_never_treats_archived_crm_contact_as_current(
+    world: OrderWorld, install_ai: Callable[..., AIRuntime]
+) -> None:
+    install_ai()
+    run = ask(world.client, world.csrf, "Draft a supplier message")
+    draft = next(p for p in run["proposals"] if p["kind"] == "DRAFT")
+    address = "archive@example.com"
+    contact = _create_crm_contact(world, email=address)
+    patch = world.client.patch(
+        f"/api/v1/counterparties/{contact['id']}",
+        json={"status": "archived"},
+        headers={
+            **csrf_headers(world.csrf),
+            "If-Match": f"\"v{contact['version']}\"",
+            "Idempotency-Key": uuid4().hex,
+        },
+    )
+    assert patch.status_code == 200, patch.text
+    result = world.client.post(
+        f"{API}/preflight",
+        json={
+            "draft_id": draft["id"],
+            "draft_version": draft["version"],
+            "counterparty_id": contact["id"],
+            "channel": "EMAIL",
+            "recipient": address,
+        },
+        headers=csrf_headers(world.csrf),
+    )
+    assert result.status_code == 200, result.text
+    assert "CRM_RECIPIENT_MISMATCH" in result.json()["blockers"]
+    assert result.json()["sendable"] is False
