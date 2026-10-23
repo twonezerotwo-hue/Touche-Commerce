@@ -9,6 +9,7 @@ start-up instead of failing later at request time.
 from __future__ import annotations
 
 import re
+from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -132,7 +133,46 @@ class Settings(BaseSettings):
         default=1_048_576, ge=1_024, le=4_194_304
     )
 
+    # --- AI Office (Stage 6) ------------------------------------------------
+    # Disabled by default. The provider credential stays server-side and is never
+    # returned by any endpoint. A non-mock provider receives commercial data, so
+    # it additionally requires an explicit acknowledgement (ADR-048). The mock
+    # provider is deterministic, offline and allowed in local/test/ci only.
+    ai_enabled: bool = False
+    ai_provider: Literal["mock", "openai_compatible", "anthropic"] = "mock"
+    ai_model: str = Field(default="mock-trade-director-1", min_length=1, max_length=120)
+    ai_base_url: str | None = None
+    ai_api_key: SecretStr | None = None
+    ai_external_processing_acknowledged: bool = False
+    ai_request_timeout_seconds: float = Field(default=30.0, ge=1.0, le=120.0)
+    ai_max_retries: int = Field(default=2, ge=0, le=5)
+    ai_retry_backoff_seconds: float = Field(default=0.5, ge=0.0, le=10.0)
+    ai_max_model_steps: int = Field(default=6, ge=1, le=12)
+    ai_max_tool_calls_per_request: int = Field(default=10, ge=1, le=30)
+    ai_max_output_tokens: int = Field(default=1500, ge=64, le=8192)
+    ai_max_request_tokens: int = Field(default=40_000, ge=1_000, le=400_000)
+    ai_max_context_messages: int = Field(default=12, ge=2, le=50)
+    ai_max_user_message_chars: int = Field(default=4_000, ge=50, le=20_000)
+    ai_max_tool_result_chars: int = Field(default=12_000, ge=500, le=60_000)
+    ai_max_list_items: int = Field(default=20, ge=1, le=50)
+    ai_max_concurrent_runs: int = Field(default=4, ge=1, le=32)
+    ai_max_runs_per_user_per_minute: int = Field(default=6, ge=1, le=120)
+    ai_run_deadline_seconds: float = Field(default=120.0, ge=5.0, le=900.0)
+    ai_daily_token_budget: int = Field(default=500_000, ge=1_000)
+    ai_daily_cost_budget_usd: Decimal = Field(default=Decimal("5.00"), ge=0)
+    ai_price_input_per_million_usd: Decimal = Field(default=Decimal("0"), ge=0)
+    ai_price_output_per_million_usd: Decimal = Field(default=Decimal("0"), ge=0)
+
     # --- Derived helpers ---------------------------------------------------
+    @property
+    def ai_effective_base_url(self) -> str | None:
+        """Provider base URL with the documented default for each adapter."""
+        if self.ai_base_url:
+            return self.ai_base_url.rstrip("/")
+        if self.ai_provider == "anthropic":
+            return "https://api.anthropic.com"
+        return None
+
     @property
     def docs_enabled(self) -> bool:
         """Interactive docs stay available everywhere except production."""
@@ -311,6 +351,7 @@ class Settings(BaseSettings):
         if self.database_pool_size + self.database_pool_max_overflow > 45:
             raise ValueError("database pool size + overflow must stay below 45 connections")
 
+        self._validate_ai()
         if self.environment in _NON_LOCAL_ENVIRONMENTS:
             self._validate_non_local()
         elif self.environment != "test":
@@ -318,6 +359,36 @@ class Settings(BaseSettings):
             # "database not configured" readiness branch.
             self._require_database_url()
         return self
+
+    def _validate_ai(self) -> None:
+        """Refuse an AI configuration that could leak data or credentials."""
+        base = self.ai_effective_base_url
+        if base is not None:
+            parts = urlsplit(base)
+            if parts.scheme not in {"http", "https"} or not parts.hostname:
+                raise ValueError("ai_base_url must be an http(s) URL with a host")
+            if parts.username or parts.password:
+                raise ValueError("ai_base_url must not contain credentials")
+            if parts.query or parts.fragment:
+                raise ValueError("ai_base_url must not contain a query or fragment")
+            loopback = parts.hostname in {"localhost", "127.0.0.1", "::1"}
+            if parts.scheme == "http" and not loopback:
+                raise ValueError("ai_base_url must use https unless it is a loopback address")
+        if not self.ai_enabled:
+            return
+        if self.ai_provider == "mock":
+            if self.environment in _NON_LOCAL_ENVIRONMENTS:
+                raise ValueError("the mock AI provider is not allowed in staging or production")
+            return
+        if self.ai_api_key is None or not self.ai_api_key.get_secret_value().strip():
+            raise ValueError("ai_api_key is required for a real AI provider")
+        if base is None:
+            raise ValueError("ai_base_url is required for the openai_compatible provider")
+        if not self.ai_external_processing_acknowledged:
+            raise ValueError(
+                "a real AI provider receives commercial data: set "
+                "TOUCHE_AI_EXTERNAL_PROCESSING_ACKNOWLEDGED=true only after reviewing ADR-048"
+            )
 
     def _require_database_url(self) -> None:
         if self.database_url is None:
