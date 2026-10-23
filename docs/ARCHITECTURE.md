@@ -1500,3 +1500,15 @@ Paper-safe and no-execution safety gates precede regime parsing. The stable
 serialized response excludes E-YAY's portfolio/paper position objects, bounds
 assets to 20 and rejects stale (>15 minute) snapshots. It is deliberately
 separate from RFQ/order/pricing, Finance ledger, AI actions and email sending.
+
+
+## 31. Stage 9 local availability (in progress)
+
+A top-level `scripts/start-local.ps1` orchestrates the existing non-admin
+local dev scripts. It refuses unconfigured credentials, missing dependencies,
+unavailable 127.0.0.1:5432 or occupied service ports. It does not change DB
+state unless an explicit `-ApplyMigrations` switch is used after a tested
+backup; no remote listener or messaging provider is opened. The existing
+`verify.ps1` now fails when the frontend is absent and aligns mypy application
+coverage with Ubuntu CI. Separate Windows CI parses both scripts; runtime
+and recovery verification still need a physical Windows session.
