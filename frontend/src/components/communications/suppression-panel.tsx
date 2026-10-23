@@ -71,8 +71,8 @@ export function SuppressionPanel({
     <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
       <h2 className="font-semibold text-white">Do-not-contact ledger</h2>
       <p className="mt-2 text-sm text-mist-300">
-        For authorized administrators only. A suppression permanently blocks an
-        existing CRM counterparty on the selected channel. This is not opt-in or consent.
+        For authorized administrators only. A suppression permanently blocks an existing CRM
+        counterparty on the selected channel. This is not opt-in or consent.
       </p>
       <form className="mt-4 space-y-3" onSubmit={record}>
         <div className="grid gap-3 sm:grid-cols-3">
@@ -132,10 +132,15 @@ export function SuppressionPanel({
             onChange={(event) => setConfirmed(event.target.checked)}
             className="mt-1 h-4 w-4 shrink-0"
           />
-          I understand that this is a persistent, append-only communication block,
-          not a reversible preference or a message send.
+          I understand that this is a persistent, append-only communication block, not a reversible
+          preference or a message send.
         </label>
-        <Button type="submit" variant="outline" size="sm" disabled={!confirmed || !counterpartyId || busy}>
+        <Button
+          type="submit"
+          variant="outline"
+          size="sm"
+          disabled={!confirmed || !counterpartyId || busy}
+        >
           {busy ? "Recording…" : "Record permanent suppression"}
         </Button>
       </form>
@@ -148,12 +153,19 @@ export function SuppressionPanel({
         ) : (
           <ul className="mt-2 space-y-2">
             {saved.map((entry) => (
-              <li key={entry.id} className="rounded-lg border border-white/10 p-3 text-xs text-mist-200">
+              <li
+                key={entry.id}
+                className="rounded-lg border border-white/10 p-3 text-xs text-mist-200"
+              >
                 <span className="font-medium text-white">
                   {counterparties.find((x) => x.id === entry.counterparty_id)?.name ??
                     "Previously recorded CRM contact"}
                 </span>
-                {" · "}{entry.channel}{" · "}{entry.reason}{" · BLOCKED"}
+                {" · "}
+                {entry.channel}
+                {" · "}
+                {entry.reason}
+                {" · BLOCKED"}
               </li>
             ))}
           </ul>
