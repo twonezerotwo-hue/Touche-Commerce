@@ -11,6 +11,7 @@ import {
   maxAbs,
   metricLines,
   parseIntelligenceFilters,
+  tooltipAlign,
   type IntelligenceMetric,
 } from "./intelligence";
 
@@ -146,6 +147,36 @@ describe("chart helpers", () => {
     expect(barShare("abc", 100)).toBe(0);
     expect(barShare("10.00", 0)).toBe(0);
     expect(maxAbs(["10.00", "-40.00", null, undefined, "x"])).toBe(40);
+  });
+
+  it("anchors tooltips of marks near either edge to that edge", () => {
+    expect(Array.from({ length: 4 }, (_, i) => tooltipAlign(i, 4))).toEqual([
+      "center",
+      "center",
+      "center",
+      "center",
+    ]);
+    expect(Array.from({ length: 12 }, (_, i) => tooltipAlign(i, 12))).toEqual([
+      "start",
+      "start",
+      "start",
+      "start",
+      "center",
+      "center",
+      "center",
+      "center",
+      "end",
+      "end",
+      "end",
+      "end",
+    ]);
+    expect(Array.from({ length: 5 }, (_, i) => tooltipAlign(i, 5))).toEqual([
+      "start",
+      "start",
+      "center",
+      "end",
+      "end",
+    ]);
   });
 
   it("groups rows by currency in first-seen order", () => {

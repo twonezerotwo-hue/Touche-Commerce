@@ -192,6 +192,17 @@ export function maxAbs(values: ReadonlyArray<string | null | undefined>): number
   return maximum;
 }
 
+export type TooltipAlign = "start" | "center" | "end";
+
+/** Keep a tooltip inside its chart: marks in the first or last third anchor to that edge. */
+export function tooltipAlign(index: number, count: number): TooltipAlign {
+  if (count < 5) return "center";
+  const edge = Math.ceil(count / 3);
+  if (index < edge) return "start";
+  if (index >= count - edge) return "end";
+  return "center";
+}
+
 /** Group rows by currency, preserving first-seen currency order. */
 export function groupByCurrency<T extends { currency: string }>(
   rows: readonly T[],

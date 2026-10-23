@@ -85,12 +85,11 @@ export function IntelligenceOrdersTable({
       <TableHeader>
         <TableRow>
           <TableHead className="pl-4">Order</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="text-right">Sales value</TableHead>
-          <TableHead className="text-right">Estimated margin</TableHead>
-          <TableHead className="text-right">Committed margin</TableHead>
-          <TableHead className="text-right">Documented cost</TableHead>
-          <TableHead className="text-right">Cost variance</TableHead>
+          <TableHead className="text-right whitespace-normal">Sales value</TableHead>
+          <TableHead className="text-right whitespace-normal">Estimated margin</TableHead>
+          <TableHead className="text-right whitespace-normal">Committed margin</TableHead>
+          <TableHead className="text-right whitespace-normal">Documented cost</TableHead>
+          <TableHead className="text-right whitespace-normal">Cost variance</TableHead>
           <TableHead>Completeness</TableHead>
           <TableHead className="pr-4">Reconciliation</TableHead>
         </TableRow>
@@ -98,50 +97,58 @@ export function IntelligenceOrdersTable({
       <TableBody>
         {items.map((order) => (
           <TableRow key={order.sales_order_id}>
-            <TableCell className="pl-4">
+            {/* The order number never breaks at its hyphens, a long customer name is
+                clamped (full text on hover) and the status sits under it, so the row
+                stays short and the figures keep their columns. */}
+            <TableCell className="min-w-[170px] pl-4">
               <Link
                 href={`/finance/intelligence/orders/${order.sales_order_id}`}
-                className="font-mono text-[11.5px] text-accent-200 hover:text-accent-100"
+                className="font-mono text-[11.5px] whitespace-nowrap text-accent-200 hover:text-accent-100"
               >
                 {order.order_number}
               </Link>
-              <span className="block text-[10px] text-mist-600">{order.customer_name}</span>
-            </TableCell>
-            <TableCell>
-              <Badge variant="outline">{humanize(order.status)}</Badge>
-              <span className="mt-1 block text-[10px] text-mist-600">
-                {humanize(order.fulfilment_model)}
+              <span
+                className="mt-0.5 line-clamp-2 max-w-[200px] text-[10px] text-mist-600"
+                title={order.customer_name}
+              >
+                {order.customer_name}
+              </span>
+              <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                <Badge variant="outline">{humanize(order.status)}</Badge>
+                <span className="text-[10px] text-mist-600">
+                  {humanize(order.fulfilment_model)}
+                </span>
               </span>
             </TableCell>
-            <TableCell className="text-right">
+            <TableCell className="text-right whitespace-nowrap">
               <AmountCell amount={order.sales_value} currency={order.currency} />
               <span className="block font-mono text-[10px] text-mist-600">{order.currency}</span>
             </TableCell>
-            <TableCell className="text-right">
+            <TableCell className="text-right whitespace-nowrap">
               <AmountCell
                 amount={order.estimated_gross_profit}
                 percent={order.estimated_gross_margin_pct}
                 currency={order.currency}
               />
             </TableCell>
-            <TableCell className="text-right">
+            <TableCell className="text-right whitespace-nowrap">
               <AmountCell
                 amount={order.committed_gross_profit}
                 percent={order.committed_gross_margin_pct}
                 currency={order.currency}
               />
             </TableCell>
-            <TableCell className="text-right">
+            <TableCell className="text-right whitespace-nowrap">
               <AmountCell amount={order.documented_total_cost} currency={order.currency} />
             </TableCell>
-            <TableCell className="text-right">
+            <TableCell className="text-right whitespace-nowrap">
               <AmountCell
                 amount={order.cost_variance}
                 percent={order.cost_variance_pct}
                 currency={order.currency}
               />
             </TableCell>
-            <TableCell>
+            <TableCell className="min-w-[150px]">
               <Badge variant={completenessTone(order.completeness)}>{order.completeness}</Badge>
               <OrderFlags order={order} />
             </TableCell>

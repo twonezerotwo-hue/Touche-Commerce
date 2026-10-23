@@ -56,6 +56,11 @@ function None({ children }: { children: React.ReactNode }) {
   return <p className="px-5 py-3 text-[11px] text-mist-600">{children}</p>;
 }
 
+/** A badge may only name a kind for a figure that is actually shown. */
+function kindOf(value: string | null | undefined, kind: string | undefined): string {
+  return value === null || value === undefined ? "UNAVAILABLE" : (kind ?? "UNAVAILABLE");
+}
+
 /** Margin percentage next to a profit figure; nothing when the profit itself is unavailable. */
 function Margin({
   amount,
@@ -87,14 +92,16 @@ export function IntelligenceDetail({
         <Stat
           label="Sales value"
           value={formatReconciliationMoney(order.sales_value, currency)}
-          detail={<ClassificationBadge value={classes.sales_value} />}
+          detail={<ClassificationBadge value={kindOf(order.sales_value, classes.sales_value)} />}
         />
         <Stat
           label="Estimated gross profit"
           value={formatReconciliationMoney(order.estimated_gross_profit, currency)}
           detail={
             <span className="flex flex-wrap items-center gap-2">
-              <ClassificationBadge value={classes.estimated_gross_profit} />
+              <ClassificationBadge
+                value={kindOf(order.estimated_gross_profit, classes.estimated_gross_profit)}
+              />
               <Margin
                 amount={order.estimated_gross_profit}
                 percent={order.estimated_gross_margin_pct ?? null}
@@ -107,7 +114,9 @@ export function IntelligenceDetail({
           value={formatReconciliationMoney(order.committed_gross_profit, currency)}
           detail={
             <span className="flex flex-wrap items-center gap-2">
-              <ClassificationBadge value={classes.committed_gross_profit} />
+              <ClassificationBadge
+                value={kindOf(order.committed_gross_profit, classes.committed_gross_profit)}
+              />
               <Margin
                 amount={order.committed_gross_profit}
                 percent={order.committed_gross_margin_pct ?? null}
@@ -117,17 +126,32 @@ export function IntelligenceDetail({
           tone="amber"
         />
         <Stat
-          label="Documented cost"
-          value={formatReconciliationMoney(order.documented_total_cost, currency)}
-          detail={<ClassificationBadge value={classes.documented_operational_cost} />}
+          label="Documented operational cost"
+          value={formatReconciliationMoney(order.documented_operational_cost, currency)}
+          detail={
+            <span className="flex flex-wrap items-center gap-2">
+              <ClassificationBadge
+                value={kindOf(
+                  order.documented_operational_cost,
+                  classes.documented_operational_cost,
+                )}
+              />
+              <span>
+                Total with purchases:{" "}
+                {formatReconciliationMoney(order.documented_total_cost, currency)}
+              </span>
+            </span>
+          }
         />
         <Stat
           label="Cost variance"
           value={formatReconciliationMoney(order.cost_variance, currency)}
           detail={
             <span className="flex flex-wrap items-center gap-2">
-              <ClassificationBadge value={classes.cost_variance} />
-              {formatReconciliationPercent(order.cost_variance_pct ?? null)} of estimate
+              <ClassificationBadge value={kindOf(order.cost_variance, classes.cost_variance)} />
+              {order.cost_variance_pct ? (
+                <span>{formatReconciliationPercent(order.cost_variance_pct)} of estimate</span>
+              ) : null}
             </span>
           }
         />

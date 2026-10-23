@@ -15,12 +15,14 @@ import {
   groupByCurrency,
   humanize,
   maxAbs,
+  tooltipAlign,
   type CategoryCount,
   type Completeness,
   type CompletenessCount,
   type CostComparison,
   type MarginBucket,
   type MonthlyCommitment,
+  type TooltipAlign,
 } from "@/lib/finance/intelligence";
 import { formatMoney } from "@/lib/trade/format";
 import { cn } from "@/lib/utils";
@@ -44,11 +46,28 @@ const STATUS_BAR: Record<Completeness, string> = {
   UNAVAILABLE: "bg-mist-500",
 };
 
-function Tip({ children }: { children: React.ReactNode }) {
+/**
+ * Hover/focus tooltip. `align` keeps it inside its chart for marks near either
+ * edge; `inside` places it over the plot instead of above it, for plots that
+ * scroll horizontally (a scroll container would clip a tooltip above it).
+ */
+function Tip({
+  children,
+  align = "center",
+  inside = false,
+}: {
+  children: React.ReactNode;
+  align?: TooltipAlign;
+  inside?: boolean;
+}) {
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 rounded-md border border-white/10 bg-ink-900 px-2 py-1 text-left text-[10.5px] leading-snug whitespace-nowrap text-mist-200 shadow-lg group-hover:block group-focus-visible:block"
+      className={cn(
+        "pointer-events-none absolute z-10 hidden rounded-md border border-white/10 bg-ink-900 px-2 py-1 text-left text-[10.5px] leading-snug whitespace-nowrap text-mist-200 shadow-lg group-hover:block group-focus-visible:block",
+        inside ? "top-0" : "bottom-full mb-1.5",
+        align === "start" ? "left-0" : align === "end" ? "right-0" : "left-1/2 -translate-x-1/2",
+      )}
     >
       {children}
     </span>
@@ -84,7 +103,9 @@ function ChartPanel({
   className?: string;
 }) {
   return (
-    <section className={cn("panel flex flex-col gap-3 p-4", className)} aria-label={title}>
+    // min-w-0: a grid item otherwise grows to its widest content, so a scrolling plot or
+    // table inside would still widen the whole page instead of scrolling in its panel.
+    <section className={cn("panel flex min-w-0 flex-col gap-3 p-4", className)} aria-label={title}>
       <div>
         <h3 className="eyebrow">{title}</h3>
         {description ? (
@@ -171,45 +192,50 @@ export function MonthlyCommitmentsChart({ rows }: { rows: readonly MonthlyCommit
             return (
               <div key={currency}>
                 <CurrencyLabel currency={currency} />
-                <div className="flex h-32 items-end gap-3" role="list">
-                  {monthRows.map((row) => {
-                    const accepted = barShare(row.accepted_value, maximum);
-                    const committed = barShare(row.purchase_commitments, maximum);
-                    const summary = `${row.month} · ${currency} · accepted ${formatMoney(row.accepted_value, currency)} · commitments ${formatMoney(row.purchase_commitments, currency)} · ${row.order_count} order${row.order_count === 1 ? "" : "s"}`;
-                    return (
-                      <div
-                        key={row.month}
-                        role="listitem"
-                        tabIndex={0}
-                        aria-label={summary}
-                        className="group relative flex h-full min-w-6 flex-1 flex-col justify-end rounded outline-none focus-visible:ring-1 focus-visible:ring-accent-400"
-                      >
-                        <Tip>
-                          <span className="block font-mono text-mist-100">{row.month}</span>
-                          <span className="block">
-                            Accepted {formatMoney(row.accepted_value, currency)}
-                          </span>
-                          <span className="block">
-                            Commitments {formatMoney(row.purchase_commitments, currency)}
-                          </span>
-                          <span className="block text-mist-500">{row.order_count} orders</span>
-                        </Tip>
-                        <div className="flex h-full items-end justify-center gap-0.5">
-                          <div
-                            className={cn("w-3 rounded-t-[4px]", SERIES.one.bar)}
-                            style={{ height: `${accepted > 0 ? Math.max(accepted, 2) : 0}%` }}
-                          />
-                          <div
-                            className={cn("w-3 rounded-t-[4px]", SERIES.two.bar)}
-                            style={{ height: `${committed > 0 ? Math.max(committed, 2) : 0}%` }}
-                          />
+                {/* A year of months is the normal case: the plot scrolls inside its panel
+                    instead of widening the page. */}
+                <div className="overflow-x-auto" data-chart-scroll>
+                  <div className="flex h-36 items-stretch gap-2" role="list">
+                    {monthRows.map((row, index) => {
+                      const accepted = barShare(row.accepted_value, maximum);
+                      const committed = barShare(row.purchase_commitments, maximum);
+                      const orders = `${row.order_count} order${row.order_count === 1 ? "" : "s"}`;
+                      const summary = `${row.month} · ${currency} · accepted ${formatMoney(row.accepted_value, currency)} · commitments ${formatMoney(row.purchase_commitments, currency)} · ${orders}`;
+                      return (
+                        <div
+                          key={row.month}
+                          role="listitem"
+                          tabIndex={0}
+                          aria-label={summary}
+                          className="group relative flex h-full min-w-11 flex-1 flex-col rounded outline-none focus-visible:ring-1 focus-visible:ring-accent-400"
+                        >
+                          <Tip align={tooltipAlign(index, monthRows.length)} inside>
+                            <span className="block font-mono text-mist-100">{row.month}</span>
+                            <span className="block">
+                              Accepted {formatMoney(row.accepted_value, currency)}
+                            </span>
+                            <span className="block">
+                              Commitments {formatMoney(row.purchase_commitments, currency)}
+                            </span>
+                            <span className="block text-mist-500">{orders}</span>
+                          </Tip>
+                          <div className="flex min-h-0 flex-1 items-end justify-center gap-0.5">
+                            <div
+                              className={cn("w-3 rounded-t-[4px]", SERIES.one.bar)}
+                              style={{ height: `${accepted > 0 ? Math.max(accepted, 2) : 0}%` }}
+                            />
+                            <div
+                              className={cn("w-3 rounded-t-[4px]", SERIES.two.bar)}
+                              style={{ height: `${committed > 0 ? Math.max(committed, 2) : 0}%` }}
+                            />
+                          </div>
+                          <p className="mt-1.5 shrink-0 text-center font-mono text-[9.5px] whitespace-nowrap text-mist-500">
+                            {row.month}
+                          </p>
                         </div>
-                        <p className="mt-1.5 text-center font-mono text-[9.5px] text-mist-500">
-                          {row.month}
-                        </p>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             );

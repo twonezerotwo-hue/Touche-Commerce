@@ -8,12 +8,20 @@ import { completenessTone, metricLines, type IntelligenceMetric } from "@/lib/fi
  */
 export function MetricCard({ metric }: { metric: IntelligenceMetric }) {
   const lines = metricLines(metric);
+  const kind =
+    lines.length === 0
+      ? "UNAVAILABLE"
+      : metric.classification === "VERIFIED"
+        ? null
+        : metric.classification;
   return (
     <div className="panel p-4" data-metric={metric.key}>
       <div className="flex items-start justify-between gap-3">
         <p className="eyebrow">{metric.label}</p>
-        {/* The API names a metric's kind; with no figure to show, it must not wear that label. */}
-        <ClassificationBadge value={lines.length === 0 ? "UNAVAILABLE" : metric.classification} />
+        {/* The API names a metric's kind. With no figure to show it must not wear that label,
+            and VERIFIED is a reviewer's decision on one run: a coverage ratio cannot carry it
+            (a 0.00% coverage under a green VERIFIED badge reads as a claim). */}
+        {kind ? <ClassificationBadge value={kind} /> : null}
       </div>
       {lines.length === 0 ? (
         <p className="mt-3 font-display text-[20px] leading-none text-mist-500">Not available</p>

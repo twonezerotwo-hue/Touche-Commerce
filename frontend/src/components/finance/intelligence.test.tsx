@@ -71,6 +71,7 @@ function order(overrides: Partial<OrderProfitability> = {}): OrderProfitability 
     estimated_gross_margin_pct: "32.00",
     committed_gross_profit: null,
     committed_gross_margin_pct: null,
+    documented_operational_cost: "20.00",
     documented_total_cost: null,
     cost_variance: null,
     cost_variance_pct: null,
@@ -82,7 +83,7 @@ function order(overrides: Partial<OrderProfitability> = {}): OrderProfitability 
       sales_value: "DOCUMENTED",
       estimated_gross_profit: "ESTIMATED",
       committed_gross_profit: "UNAVAILABLE",
-      documented_operational_cost: "UNAVAILABLE",
+      documented_operational_cost: "DOCUMENTED",
       cost_variance: "UNAVAILABLE",
       actual_profit: "UNAVAILABLE",
     },
@@ -130,9 +131,9 @@ function exception(overrides: Partial<FinancialException> = {}): FinancialExcept
   };
 }
 
-function detail(): OrderIntelligenceDetail {
+function detail(orderOverrides: Partial<OrderProfitability> = {}): OrderIntelligenceDetail {
   return {
-    order: order(),
+    order: order(orderOverrides),
     quote: {
       quote_id: "quote-1",
       quote_number: "SQ-2610-0001",
@@ -282,6 +283,27 @@ describe("MetricCard", () => {
     expect(within(card).getByText("UNAVAILABLE")).toBeInTheDocument();
     expect(within(card).queryByText("COMMITTED")).not.toBeInTheDocument();
   });
+
+  it("never lets a coverage ratio wear the VERIFIED label, even at 0.00%", () => {
+    render(
+      <MetricCard
+        metric={metric({
+          key: "reconciliation_coverage",
+          label: "Reconciliation coverage",
+          kind: "PERCENT",
+          money: [],
+          percentage: "0.00",
+          classification: "VERIFIED",
+        })}
+      />,
+    );
+    const card = screen
+      .getByText("Reconciliation coverage")
+      .closest("[data-metric]") as HTMLElement;
+    expect(within(card).getByText("0.00%")).toBeInTheDocument();
+    expect(within(card).queryByText("VERIFIED")).not.toBeInTheDocument();
+    expect(within(card).getByText("COMPLETE")).toBeInTheDocument();
+  });
 });
 
 describe("charts", () => {
@@ -312,6 +334,39 @@ describe("charts", () => {
     expect(screen.getByLabelText(/2026-09 · USD · accepted/)).toBeInTheDocument();
     expect(screen.getByLabelText(/2026-09 · EUR · accepted/)).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/350\.00/);
+  });
+
+  it("says '1 order' in the tooltip, not '1 orders'", () => {
+    render(<MonthlyCommitmentsChart rows={monthly} />);
+    expect(screen.getByText("1 order")).toBeInTheDocument();
+    expect(screen.getByText("2 orders")).toBeInTheDocument();
+    expect(screen.queryByText("1 orders")).not.toBeInTheDocument();
+  });
+
+  it("scrolls a year of months inside its panel and anchors edge tooltips to the edge", () => {
+    const months = Array.from({ length: 12 }, (_, index) => ({
+      month: `2026-${String(index + 1).padStart(2, "0")}`,
+      currency: "USD",
+      accepted_value: "1000.00",
+      purchase_commitments: "700.00",
+      order_count: index + 1,
+    }));
+    const { container } = render(<MonthlyCommitmentsChart rows={months} />);
+
+    const scroller = container.querySelector("[data-chart-scroll]") as HTMLElement;
+    expect(scroller).toHaveClass("overflow-x-auto");
+    // The panel is a grid item: without min-w-0 it would grow to the plot's width.
+    expect(container.querySelector("section")).toHaveClass("min-w-0");
+    expect(within(scroller).getAllByRole("listitem")).toHaveLength(12);
+    for (const label of scroller.querySelectorAll('[role="listitem"] > p')) {
+      expect(label).toHaveClass("whitespace-nowrap");
+    }
+
+    const tips = Array.from(scroller.querySelectorAll('[role="listitem"] > [aria-hidden="true"]'));
+    expect(tips[0]).toHaveClass("left-0");
+    expect(tips[11]).toHaveClass("right-0");
+    expect(tips[5]).toHaveClass("left-1/2");
+    for (const tip of tips) expect(tip).toHaveClass("top-0");
   });
 
   it("states emptiness instead of drawing an empty plot", () => {
@@ -404,6 +459,27 @@ describe("IntelligenceOrdersTable", () => {
     render(<IntelligenceOrdersTable items={[]} />);
     expect(screen.getByText("No orders match")).toBeInTheDocument();
   });
+
+  it("keeps the order number whole, clamps a long customer name and folds status into the order cell", () => {
+    const longName = "Anatolian Agricultural Commodities & Dried Fruit Export Trading Company Ltd.";
+    render(<IntelligenceOrdersTable items={[order({ customer_name: longName })]} />);
+
+    const link = screen.getByRole("link", { name: "SO-2610-ABC123" });
+    expect(link).toHaveClass("whitespace-nowrap");
+    const cell = link.closest("td") as HTMLElement;
+    const name = within(cell).getByText(longName);
+    expect(name).toHaveClass("line-clamp-2");
+    expect(name).toHaveAttribute("title", longName);
+    expect(within(cell).getByText("CONFIRMED")).toBeInTheDocument();
+    expect(within(cell).getByText("PURCHASE RESALE")).toBeInTheDocument();
+
+    expect(screen.queryByRole("columnheader", { name: "Status" })).not.toBeInTheDocument();
+    for (const header of screen.getAllByRole("columnheader")) {
+      if (/margin|cost|value|variance/i.test(header.textContent ?? "")) {
+        expect(header).toHaveClass("whitespace-normal");
+      }
+    }
+  });
 });
 
 describe("IntelligenceExceptionsTable", () => {
@@ -438,6 +514,38 @@ describe("IntelligenceExceptionsTable", () => {
     expect(screen.queryByRole("button", { name: "Resolve" })).not.toBeInTheDocument();
     expect(screen.getByText("Linked F-USD-AR-1.")).toBeInTheDocument();
   });
+
+  it("keeps the finding and its resolution control together in one wide column", () => {
+    render(
+      <IntelligenceExceptionsTable
+        items={[exception({ finance_source_reference: "F-USD-AR-1" })]}
+        csrfToken="csrf"
+        canReview
+      />,
+    );
+
+    expect(screen.getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
+      "Order",
+      "Exception",
+      "Finding and resolution",
+    ]);
+    const finding = screen.getByText("No Finance source is linked to this order yet");
+    const cell = finding.closest("td") as HTMLElement;
+    expect(cell).toHaveClass("min-w-[280px]");
+    expect(within(cell).getByRole("button", { name: "Resolve" })).toBeInTheDocument();
+    expect(within(cell).getByText("F-USD-AR-1")).toBeInTheDocument();
+    expect(within(cell).getByRole("link", { name: "Open run" })).toHaveAttribute(
+      "href",
+      `/finance/reconciliation/${RUN_ID}`,
+    );
+
+    const orderCell = screen.getByRole("link", { name: "SO-2610-ABC123" }).closest("td");
+    expect(orderCell).toHaveTextContent("USD");
+    expect(orderCell).toHaveTextContent("22 Oct 2026");
+    const exceptionCell = screen.getByText("MISSING FINANCE REFERENCE").closest("td");
+    expect(exceptionCell).toHaveTextContent("WARNING");
+    expect(exceptionCell).toHaveTextContent("OPEN");
+  });
 });
 
 describe("IntelligenceDetail", () => {
@@ -457,6 +565,56 @@ describe("IntelligenceDetail", () => {
       screen.getByText("No Finance source has been linked to this order."),
     ).toBeInTheDocument();
     expect(screen.getByText("Exceptions for this order")).toBeInTheDocument();
+  });
+
+  it("shows the documented operational cost it has, and the total as unavailable", () => {
+    render(<IntelligenceDetail detail={detail()} csrfToken="csrf" canReview={false} />);
+    const tile = screen.getByText("Documented operational cost").closest(".panel") as HTMLElement;
+    expect(tile).toHaveTextContent(/20\.00/);
+    expect(within(tile).getByText("DOCUMENTED")).toBeInTheDocument();
+    expect(tile).toHaveTextContent("Total with purchases: Not available");
+    expect(screen.queryByText("Documented cost")).not.toBeInTheDocument();
+  });
+
+  it("never writes 'Not available of estimate' and shows a variance percentage only when it exists", () => {
+    const { rerender } = render(
+      <IntelligenceDetail detail={detail()} csrfToken="csrf" canReview={false} />,
+    );
+    const empty = screen.getByText("Cost variance").closest(".panel") as HTMLElement;
+    expect(empty).toHaveTextContent("Not available");
+    expect(empty).not.toHaveTextContent("of estimate");
+
+    rerender(
+      <IntelligenceDetail
+        detail={detail({
+          cost_variance: "-1.50",
+          cost_variance_pct: "-0.73",
+          classifications: { ...order().classifications, cost_variance: "ESTIMATED" },
+        })}
+        csrfToken="csrf"
+        canReview={false}
+      />,
+    );
+    const filled = screen.getByText("Cost variance").closest(".panel") as HTMLElement;
+    expect(filled).toHaveTextContent("-0.73% of estimate");
+    expect(within(filled).getByText("ESTIMATED")).toBeInTheDocument();
+  });
+
+  it("never lets a badge name a kind for a figure that is not shown", () => {
+    render(
+      <IntelligenceDetail
+        detail={detail({
+          committed_gross_profit: null,
+          classifications: { ...order().classifications, committed_gross_profit: "COMMITTED" },
+        })}
+        csrfToken="csrf"
+        canReview={false}
+      />,
+    );
+    const tile = screen.getByText("Committed gross profit").closest(".panel") as HTMLElement;
+    expect(tile).toHaveTextContent("Not available");
+    expect(within(tile).getByText("UNAVAILABLE")).toBeInTheDocument();
+    expect(within(tile).queryByText("COMMITTED")).not.toBeInTheDocument();
   });
 
   it("marks a non-expense cost line as excluded", () => {
