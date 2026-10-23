@@ -1,11 +1,11 @@
 # TOUCHE COMMERCE — Progress
 
 **Last updated:** 2026-10-23 (local)
-**Current stage:** Stage 7B — recipient-safe preflight (in progress)
+**Current stage:** Stage 7B — recipient-safe preflight (CI verified and merged)
 **Current milestone:** 7B — no-send channel/recipient readiness and UI preview
 **Stage 6:** PASSED on Stage 6 local reported evidence (551 backend / 192 frontend, mock provider)
 **Stage 7A:** PASSED in GitHub CI (555 backend / 192 frontend, OpenAPI current; PR #1 merged); Windows browser acceptance not run
-**Stage 7B:** IN_PROGRESS (CI verification pending; outbound sending disabled)
+**Stage 7B:** PASSED in GitHub CI (558 backend / 192 frontend, OpenAPI current; PR #2 merged); live providers and Windows browser acceptance not verified
 
 Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
 `FAILED`. Nothing is marked `PASSED` without an executed command in this file.
@@ -2093,7 +2093,7 @@ acceptance are required before this milestone may be called PASSED.
 outbound sends, scheduled jobs, accounting writes, live Finance startup.
 
 
-## 29. Stage 7B — Preflight for messaging (IN_PROGRESS)
+## 29. Stage 7B — Preflight for messaging (CI VERIFIED)
 
 Branch `stage-7b` starts from Stage 7A merge commit `1db9b73`.
 Only an authorized trader may POST `/api/v1/communications/preflight` with an
@@ -2105,8 +2105,12 @@ configured nor the separate `communications.send` permission is granted.
 Recipients are not persisted, echoed or delivered. The Communications UI presents
 readiness blockers but has no send button or transport capability.
 
-**Verification:** new backend tests authored; GitHub Actions and generated contract
-drift remain pending for this branch. Do not mark Stage 7B PASSED until checks pass.
+**Verification:** GitHub Actions workflow run `40019149502` PASSED (backend 558,
+frontend 192, Ruff, mypy application source, Prettier, ESLint, TypeScript,
+Next.js production build and OpenAPI drift). The new negative test exposed a
+missing CSRF check, fixed in `e160815`. Stage 7B PR #2 merged into `main` at
+`1140b06`. This acceptance is CI-only; no Windows browser or live provider
+verification was performed.
 
 **Open future work:** provider-specific OAuth/keys and lifecycle, revocation,
 independent send approval, verified recipient association, immutable intent, queue
