@@ -2,8 +2,8 @@
 
 **Scope delivered:** a typed EN/TR message catalog, browser-persisted language
 setting, accessible language selector in the authenticated top bar, translation
-of core top-bar labels and mobile navigation controls, tests for catalog
-coverage.
+of core top-bar labels, existing navigation groups/items and breadcrumbs,
+mobile navigation controls, and tests for catalog and navigation coverage.
 
 The preferred language is stored only in the browser as
 `localStorage["touche.commerce.locale"]` and may differ across devices. It
@@ -12,7 +12,7 @@ language stays English; `useSyncExternalStore` applies the saved choice after
 hydration and updates `html.lang`. No auth, session, database or API behavior
 changes are introduced.
 
-**Not done:** full translations of menus, forms, validations, pricing tables,
+**Not done:** full translations of page content, forms, validations, pricing tables,
 business reports, backend error messages, generated documents, emails, PDF
 templates or locale-aware server rendering. Future slices must translate these
 without changing stable stored identifiers, currency codes, original quotation
@@ -22,6 +22,7 @@ as fully bilingual product acceptance.
 ## Tests and acceptance
 
 - Catalog EN/TR key parity and nonempty output.
+- All current navigation items/groups have Turkish presentation labels (stable routes unchanged).
 - Existing frontend lint, typecheck, Vitest suite and Next.js build in CI.
 - Actual browser: switch EN -> TR, inspect labeled top-bar controls, refresh,
   verify preference persists; switch back to EN; inspect screen reader labels
