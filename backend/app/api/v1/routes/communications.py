@@ -10,18 +10,17 @@ import re
 from typing import Annotated
 
 from email_validator import EmailNotValidError, validate_email
-
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import select
 
 from app.api.deps import get_database
 from app.api.security import active_company_id, require_company_permission
 from app.api.v1.schemas.communications import (
-    CommunicationPreflightRequest,
-    CommunicationPreflightResponse,
     ChannelStatus,
     CommunicationDraftListResponse,
     CommunicationDraftResponse,
+    CommunicationPreflightRequest,
+    CommunicationPreflightResponse,
     CommunicationsStatusResponse,
     PreflightBlocker,
 )
