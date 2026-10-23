@@ -1334,3 +1334,18 @@ There are **no** POST/send/connect/token/webhook endpoints. `communications.send
 is a reserved permission granted to no current role. AI proposal approval does not
 send a message. New contracts need OpenAPI regeneration, full regression and isolated
 acceptance before Stage 7A can be marked PASSED.
+
+
+### 14.1 Stage 7B — recipient readiness, not delivery (unverified)
+
+`POST /communications/preflight` requires an active Commerce session, CSRF,
+`trade.write` permission and body `{draft_id, draft_version, channel, recipient}`.
+The server checks draft/company RLS, version, human review and channel-specific
+recipient shape without persisting or returning the address. Response has
+`draft_id`, `channel`, `sendable=false`, `external_sending_enabled=false`,
+`recipient_echoed=false` and `blockers` using only:
+`DRAFT_NOT_APPROVED`, `DRAFT_VERSION_MISMATCH`,
+`RECIPIENT_INVALID`, `CHANNEL_NOT_CONFIGURED`,
+`SEND_PERMISSION_UNAVAILABLE`. No message can be sent or queued.
+
+No backend/frontend acceptance is yet claimed for Stage 7B.
