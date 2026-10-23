@@ -7,6 +7,7 @@ import { ArrowUpRight, Menu, X } from "lucide-react";
 
 import { Avatar } from "@/components/ui/avatar";
 import { useLocale } from "@/lib/i18n/locale-provider";
+import { localizeNavigation } from "@/lib/i18n/navigation-labels";
 import { NAV_GROUPS, PUBLIC_NAV_ITEMS, resolveActiveHref } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +21,7 @@ export interface MobileIdentity {
 /** Slide-over navigation for screens below the desktop breakpoint. */
 export function MobileNav({ identity }: { identity: MobileIdentity }) {
   const pathname = usePathname();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const activeHref = resolveActiveHref(pathname);
   const [open, setOpen] = useState(false);
 
@@ -90,7 +91,7 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
             <div className="flex-1 overflow-y-auto px-3 py-5">
               {NAV_GROUPS.map((group) => (
                 <div key={group.label} className="mb-5">
-                  <p className="eyebrow px-3 pb-2">{group.label}</p>
+                  <p className="eyebrow px-3 pb-2">{localizeNavigation(locale, group.label)}</p>
                   <ul className="space-y-0.5">
                     {group.items.map((item) => {
                       const Icon = item.icon;
@@ -102,7 +103,7 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
                               className="flex items-center gap-3 rounded-md px-3 py-2 text-[13px] text-mist-600"
                             >
                               <Icon className="size-4 text-mist-600/70" aria-hidden />
-                              <span className="flex-1">{item.label}</span>
+                              <span className="flex-1">{localizeNavigation(locale, item.label)}</span>
                               <span className="text-[9px] tracking-[0.14em] uppercase text-mist-600/80">
                                 {item.stage}
                               </span>
@@ -128,7 +129,7 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
                               className={cn("size-4", active ? "text-accent-300" : "text-mist-500")}
                               aria-hidden
                             />
-                            <span className="flex-1">{item.label}</span>
+                            <span className="flex-1">{localizeNavigation(locale, item.label)}</span>
                           </Link>
                         </li>
                       );
@@ -149,7 +150,7 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
                       className="flex items-center gap-3 rounded-md px-3 py-2 text-[13px] text-mist-300 hover:bg-white/[0.04] hover:text-mist-100"
                     >
                       <Icon className="size-4 text-mist-500" aria-hidden />
-                      <span className="flex-1">{item.label}</span>
+                      <span className="flex-1">{localizeNavigation(locale, item.label)}</span>
                       <ArrowUpRight className="size-3.5 text-mist-600" aria-hidden />
                     </Link>
                   );
