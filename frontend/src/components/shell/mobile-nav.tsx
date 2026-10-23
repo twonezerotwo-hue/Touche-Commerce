@@ -103,7 +103,9 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
                               className="flex items-center gap-3 rounded-md px-3 py-2 text-[13px] text-mist-600"
                             >
                               <Icon className="size-4 text-mist-600/70" aria-hidden />
-                              <span className="flex-1">{localizeNavigation(locale, item.label)}</span>
+                              <span className="flex-1">
+                                {localizeNavigation(locale, item.label)}
+                              </span>
                               <span className="text-[9px] tracking-[0.14em] uppercase text-mist-600/80">
                                 {item.stage}
                               </span>
@@ -129,7 +131,9 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
                               className={cn("size-4", active ? "text-accent-300" : "text-mist-500")}
                               aria-hidden
                             />
-                            <span className="flex-1">{localizeNavigation(locale, item.label)}</span>
+                            <span className="flex-1">
+                              {localizeNavigation(locale, item.label)}
+                            </span>
                           </Link>
                         </li>
                       );
@@ -150,7 +154,9 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
                       className="flex items-center gap-3 rounded-md px-3 py-2 text-[13px] text-mist-300 hover:bg-white/[0.04] hover:text-mist-100"
                     >
                       <Icon className="size-4 text-mist-500" aria-hidden />
-                      <span className="flex-1">{localizeNavigation(locale, item.label)}</span>
+                      <span className="flex-1">
+                        {localizeNavigation(locale, item.label)}
+                      </span>
                       <ArrowUpRight className="size-3.5 text-mist-600" aria-hidden />
                     </Link>
                   );
