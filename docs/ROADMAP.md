@@ -474,3 +474,23 @@ processes and checks API/login readiness. Separate verification fails closed
 on missing frontend dependencies, and Windows GitHub CI parses the scripts.
 This is **local development availability**, not remote production deployment,
 24/7 uptime, TLS endpoint validation, successful backups or disaster recovery.
+
+
+---
+
+## Stage 9 — Safe local startup (GitHub CI verified; actual workstation untested)
+
+The fail-closed PowerShell launcher and verification script passed CI,
+including a Windows syntax parse job; PR #7 merged at `40a69d8`. Actual local
+PostgreSQL startup, browser operation and backups still require executing on
+the target machine.
+
+## Stage 10 — Evidence-based final acceptance (in progress)
+
+Implement a non-invasive static release gate plus regression tests, track
+what can be verified in GitHub Actions, and preserve a separate, blocked
+production readiness state until live Windows/browser, data restoration,
+network TLS/ACL, monitoring and provider verification are completed.
+`docs/STAGE10_RELEASE_READINESS.md` is the acceptance matrix. No CLI argument
+is allowed to fabricate external-source, financial, delivery or production
+validation.
