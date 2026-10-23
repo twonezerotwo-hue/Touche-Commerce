@@ -415,13 +415,12 @@ class Settings(BaseSettings):
             return
         if self.environment == "production" and not self.ai_monthly_cost_cap_enabled:
             raise ValueError("real production AI requires ai_monthly_cost_cap_enabled")
-        if self.ai_monthly_cost_cap_enabled:
-            if (
-                self.ai_monthly_cost_cap_usd <= 0
-                or self.ai_price_input_per_million_usd <= 0
-                or self.ai_price_output_per_million_usd <= 0
-            ):
-                raise ValueError("monthly AI cap requires positive cap and token prices")
+        if self.ai_monthly_cost_cap_enabled and (
+            self.ai_monthly_cost_cap_usd <= 0
+            or self.ai_price_input_per_million_usd <= 0
+            or self.ai_price_output_per_million_usd <= 0
+        ):
+            raise ValueError("monthly AI cap requires positive cap and token prices")
         if self.ai_api_key is None or not self.ai_api_key.get_secret_value().strip():
             raise ValueError("ai_api_key is required for a real AI provider")
         if base is None:
