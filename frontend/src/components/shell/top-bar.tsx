@@ -21,6 +21,8 @@ export function TopBar({ identity }: TopBarProps) {
   const pathname = usePathname();
   const { t, locale } = useLocale();
   const { section, page } = resolveWorkspaceContext(pathname);
+  const translatedSection = localizeNavigation(locale, section);
+  const translatedPage = localizeNavigation(locale, page);
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-ink-950/75 backdrop-blur-xl">
@@ -31,22 +33,18 @@ export function TopBar({ identity }: TopBarProps) {
           <span className="text-[11px] tracking-[0.02em] text-mist-600">{t("workspace")}</span>
           <ChevronRight className="size-3 text-mist-600/70" aria-hidden />
           <span className={cn("text-[11px]", page === section ? "text-mist-300" : "text-mist-500")}>
-            {localizeNavigation(locale, section)}
+            {translatedSection}
           </span>
           {page === section ? null : (
             <>
               <ChevronRight className="size-3 text-mist-600/70" aria-hidden />
-              <span className="truncate text-[11px] text-mist-200">
-                {localizeNavigation(locale, page)}
-              </span>
+              <span className="truncate text-[11px] text-mist-200">{translatedPage}</span>
             </>
           )}
         </nav>
 
         <div className="min-w-0 lg:hidden">
-          <p className="truncate text-[12px] text-mist-200">
-            {localizeNavigation(locale, page)}
-          </p>
+          <p className="truncate text-[12px] text-mist-200">{translatedPage}</p>
         </div>
 
         <div className="ml-auto flex items-center gap-2">
