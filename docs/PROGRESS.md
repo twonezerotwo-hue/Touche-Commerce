@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-23 (local)
 **Current stage:** Stage 9 — safe local startup and CI (IN_PROGRESS; CI pending)
-**Current milestone:** Stage 9 GitHub CI verified and merged; Stage 10 gate/tests pending
+**Current milestone:** Stage 10 GitHub Actions 40030032968 PASS (585 backend / 192 frontend; 4/4 CI jobs)
 **Stage 6:** PASSED on Stage 6 local reported evidence (551 backend / 192 frontend, mock provider)
 **Stage 7A:** PASSED in GitHub CI (555 backend / 192 frontend, OpenAPI current; PR #1 merged); Windows browser acceptance not run
 **Stage 7B:** PASSED in GitHub CI (558 backend / 192 frontend, PR #2 merged)
@@ -2228,7 +2228,7 @@ HTTP acceptance run starts the actual E-YAY local runtime in an approved sandbox
 
 ---
 
-## 34. Stage 10 — Release-readiness contract (IN_PROGRESS)
+## 34. Stage 10 — Release-readiness contract (CI VERIFIED)
 
 Stage 9's CI suite passed (backend, frontend, contract and Windows PowerShell
 AST syntax) and PR #7 merged at `40a69d8`. This does not prove the local
@@ -2242,5 +2242,10 @@ production targets deliberately fail closed until evidence that static CI
 cannot provide is gathered separately. See
 `docs/STAGE10_RELEASE_READINESS.md` for actual acceptance conditions.
 
-GitHub CI status for Stage 10 remains pending until checked. No live Finance
-data, provider accounts or financial operations have been touched.
+**GitHub CI evidence:** workflow `40030032968` passed all four jobs:
+585 backend tests (including new release-gate tests), 192 frontend tests,
+PostgreSQL/Alembic, Ruff, mypy app, lint, Prettier, typecheck, Next.js build,
+OpenAPI drift, and Windows PowerShell parsing. PR #8 merged as `4ff5518`.
+This milestone verifies source/CI checks only: LOCAL_ACCEPTED and
+PRODUCTION_APPROVED remain BLOCKED pending external evidence. No live Finance
+data, provider accounts or financial operations were touched.
