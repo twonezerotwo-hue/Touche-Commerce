@@ -103,3 +103,23 @@ class SuppressionResponse(CommunicationsModel):
 class SuppressionListResponse(CommunicationsModel):
     items: list[SuppressionResponse]
     truncated: bool = False
+
+
+class ProviderRequirement(CommunicationsModel):
+    channel: Literal["EMAIL", "WHATSAPP_BUSINESS"]
+    provider: Literal["GOOGLE_GMAIL_API", "META_WHATSAPP_CLOUD_API"]
+    connection_state: Literal["NOT_CONFIGURED"] = "NOT_CONFIGURED"
+    credential_storage: Literal["SERVER_SIDE_ONLY"] = "SERVER_SIDE_ONLY"
+    requires_oauth_or_business_verification: Literal[True] = True
+    requires_verified_consent: Literal[True] = True
+    requires_independent_human_approval: Literal[True] = True
+    requires_audited_delivery: Literal[True] = True
+    transport_enabled: Literal[False] = False
+
+
+class ProviderRequirementsResponse(CommunicationsModel):
+    readiness: Literal["BLOCKED"] = "BLOCKED"
+    live_provider_verified: Literal[False] = False
+    human_send_approval_available: Literal[False] = False
+    sending_enabled: Literal[False] = False
+    providers: list[ProviderRequirement] = Field(default_factory=list)
