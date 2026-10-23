@@ -1371,7 +1371,7 @@ and PR #3 merged. No interactive browser or actual provider/consent evidence
 verification was performed.
 
 
-### 14.3 Stage 7C2 — Suppression registry (CI validation pending)
+### 14.3 Stage 7C2 — Suppression registry (CI verified)
 
 `GET /communications/suppressions?limit=50` requires the new
 `communications.suppress` capability, currently assigned only to company
@@ -1385,6 +1385,11 @@ reason: CONTACT_REQUEST|COMPLIANCE_REVIEW|IMPORTED_BLOCK}`. Returns 201 on
 new block, 200 if the company/contact/channel already has a block, or
 idempotent replay. The first recorded block is never edited; every new
 block and audit row commit atomically. No DELETE, PUT, opt-in or send endpoint.
+
+GitHub Actions run `40025166931` passed with 565 backend tests,
+192 frontend tests, migration execution and generated contract drift check.
+PR #4 merged at `5bc7bdc`. Windows browser and live provider validation
+are still pending.
 
 Preflight adds `RECIPIENT_SUPPRESSED` where a matching company contact
 and channel have been blocked; `CONSENT_UNDOCUMENTED` remains unconditional
