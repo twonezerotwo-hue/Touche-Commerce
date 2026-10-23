@@ -376,7 +376,7 @@ editing an AI proposal.
 
 ---
 
-## Stage 7 — Messaging and external connectors (Stage 7A IN_PROGRESS)
+## Stage 7 — Messaging and external connectors (Stage 7A merged; Stage 7B IN_PROGRESS)
 
 **Stage 7A (initial GitHub code, verification pending):** a company-scoped
 communications view of existing AI drafts, a status API that reports unconfigured
@@ -405,3 +405,12 @@ Each stage may depend on earlier stages only. Business modules never reach
 around the API layer into another module's tables; they call services. AI and
 integration adapters call the same services as the UI, with the same
 permission checks and the same audit trail.
+
+
+### Stage 7B — Safe recipient preflight (under development)
+
+A bounded POST endpoint checks an operator-entered recipient, the latest reviewed
+AI draft and selected channel, without retaining the address. It returns exact
+blockers and can **never** authorize or perform sending. User interface shows
+preflight status but no send button. Full delivery remains a separately-approved
+future milestone and requires provider accounts and secure token provisioning.
