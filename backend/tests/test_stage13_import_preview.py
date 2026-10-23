@@ -26,11 +26,11 @@ def xlsx_bytes(header: list[str], rows: list[list[object]]) -> bytes:
 
 def test_product_csv_preview_preserves_decimal_and_never_commits() -> None:
     content = (
-        "sku,name,unit,currency,unit_price\n"
-        "ABC-01,Aluminium bar,kg,USD,1250.1234\n"
-        "ABC-01,Duplicate,kg,USD,1240.0000\n"
-        "ABC-02,Wrong unit,t,EUR,10\n"
-    ).encode()
+        b"sku,name,unit,currency,unit_price\n"
+        b"ABC-01,Aluminium bar,kg,USD,1250.1234\n"
+        b"ABC-01,Duplicate,kg,USD,1240.0000\n"
+        b"ABC-02,Wrong unit,t,EUR,10\n"
+    )
     preview = preview_import("products.csv", content, kind="products")
     assert preview.committed is False
     assert preview.total_rows == 3
@@ -43,7 +43,7 @@ def test_product_csv_preview_preserves_decimal_and_never_commits() -> None:
 
 def test_turkish_csv_headers_and_bom_are_supported() -> None:
     content = (
-        "\ufefffirma_adı,firma_türü,ülke,e_posta\n"
+        "\ufefffirma_ad\u0131,firma_türü,ülke,e_posta\n"
         "Örnek Ltd,supplier,TR,hi@example.com\n"
     ).encode()
     preview = preview_import("firmalar.csv", content, kind="counterparties")
@@ -116,7 +116,7 @@ def test_duplicate_headers_from_alias_are_rejected() -> None:
     with pytest.raises(ImportPreviewError, match="Duplicate normalized"):
         preview_import(
             "products.csv",
-            "sku,name,ürün_adı,unit,currency,unit_price\na,b,b,kg,EUR,1\n".encode(),
+            "sku,name,ürün_ad\u0131,unit,currency,unit_price\na,b,b,kg,EUR,1\n".encode(),
             kind="products",
         )
 
