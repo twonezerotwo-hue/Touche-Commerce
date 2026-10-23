@@ -761,7 +761,7 @@ tested backup**, use `-ApplyMigrations`. This is not a production daemon or
 a claim that the user workstation has been started remotely.
 
 
-### Stage 10 — Release-readiness check
+### Stage 10 — Release-readiness check (CI verified)
 
 Run `python scripts/release-gate.py --target ci` for a static repository
 prerequisite check. This is **not** proof of a functioning Windows local
@@ -769,4 +769,6 @@ installation or production readiness. `--target local` and
 `--target production` intentionally return `BLOCKED` until independently
 documented runtime and operations acceptance exists. See
 `docs/STAGE10_RELEASE_READINESS.md` for safe startup, backup/restore and
-release-exclusion guidance. No live provider or Finance write is enabled.
+release-exclusion guidance. GitHub Actions `40030032968` passed (585 backend,
+192 frontend tests, 4/4 CI jobs) and PR #8 merged. Local Windows runtime and
+production release are unverified. No live provider or Finance write is enabled.
