@@ -10,14 +10,16 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
 from app.api.deps import app_settings
-from app.api.security import current_session
+from app.api.security import current_session, require_company_permission
 from app.api.v1.schemas.errors import ErrorEnvelope
 from app.api.v1.schemas.integrations import FinanceLinkStatusResponse
 from app.core.config import Settings
+from app.integrations.eyay import EyayMarketPreview, market_preview
 from app.integrations.finance.service import FinanceIntegrationService
+from app.security.permissions import Permission
 from app.services.auth import SessionContext
 
 router = APIRouter(tags=["integrations"])
@@ -49,4 +51,27 @@ def finance_link_status(
         latency_ms=health.latency_ms,
         detail=health.detail,
         checked_at=health.checked_at,
+    )
+
+
+@router.get(
+    "/integrations/eyay/market",
+    response_model=EyayMarketPreview,
+    summary="E-YAY read-only source market context (never executes orders)",
+)
+def eyay_market_context(
+    response: Response,
+    settings: Annotated[Settings, Depends(app_settings)],
+    _context: Annotated[
+        SessionContext,
+        Depends(require_company_permission(Permission.COMPANY_VIEW)),
+    ],
+) -> EyayMarketPreview:
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Vary"] = "Cookie"
+    return market_preview(
+        enabled=settings.eyay_enabled,
+        base_url=settings.eyay_base_url,
+        timeout=settings.eyay_timeout_seconds,
+        max_response_bytes=settings.eyay_max_response_bytes,
     )

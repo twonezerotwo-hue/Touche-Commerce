@@ -1223,6 +1223,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/integrations/eyay/market": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** E-YAY read-only source market context (never executes orders) */
+        get: operations["eyay_market_context_api_v1_integrations_eyay_market_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/integrations/finance/status": {
         parameters: {
             query?: never;
@@ -3581,6 +3598,60 @@ export interface components {
             tool: string;
             /** Warnings */
             warnings: string[];
+        };
+        /** EyayMarketPreview */
+        EyayMarketPreview: {
+            /** Assets */
+            assets?: components["schemas"]["EyayMarketSignal"][];
+            /**
+             * Automatic Execution Enabled
+             * @default false
+             */
+            automatic_execution_enabled: boolean;
+            /**
+             * Finance Writes Enabled
+             * @default false
+             */
+            finance_writes_enabled: boolean;
+            /**
+             * Integration State
+             * @default DISABLED
+             */
+            integration_state: string;
+            /**
+             * Mode
+             * @default READ_ONLY
+             */
+            mode: string;
+            /** Regime */
+            regime?: string | null;
+            /**
+             * Source
+             * @default CLEAN_E_YAY
+             */
+            source: string;
+            /** Source Generated At */
+            source_generated_at?: string | null;
+            /** Source Snapshot Id */
+            source_snapshot_id?: string | null;
+            /**
+             * Trade Actions Enabled
+             * @default false
+             */
+            trade_actions_enabled: boolean;
+            /** Warning */
+            warning?: string | null;
+        };
+        /** EyayMarketSignal */
+        EyayMarketSignal: {
+            /** Direction */
+            direction: string;
+            /** Score */
+            score: number;
+            /** Status */
+            status: string;
+            /** Symbol */
+            symbol: string;
         };
         /** FigureResponse */
         FigureResponse: {
@@ -11331,6 +11402,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    eyay_market_context_api_v1_integrations_eyay_market_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EyayMarketPreview"];
                 };
             };
         };

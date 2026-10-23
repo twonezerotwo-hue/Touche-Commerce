@@ -1,7 +1,7 @@
 # TOUCHE COMMERCE — Progress
 
 **Last updated:** 2026-10-23 (local)
-**Current stage:** Stage 7C3 — provider readiness contract (IN_PROGRESS; CI pending)
+**Current stage:** Stage 8 — E-YAY read-only market context (IN_PROGRESS; CI pending)
 **Current milestone:** 7C2 — 565 backend / 192 frontend; admin-only opt-out records; sending disabled
 **Stage 6:** PASSED on Stage 6 local reported evidence (551 backend / 192 frontend, mock provider)
 **Stage 7A:** PASSED in GitHub CI (555 backend / 192 frontend, OpenAPI current; PR #1 merged); Windows browser acceptance not run
@@ -2189,3 +2189,22 @@ Introduces a structured, authenticated prerequisites contract and automated
 assertions showing neither Gmail nor WhatsApp is connected, credentialed or
 send-capable. GitHub CI is pending. This is not real provider integration,
 verified consent, live sending or operational acceptance.
+
+
+## 34. Stage 8 — Clean E-YAY paper-safe market context (IN PROGRESS)
+
+A new default-disabled, authenticated Commerce GET at
+`/api/v1/integrations/eyay/market` reads only E-YAY's **published**
+`/api/v1/system/health` and `/api/v1/regime-report/current` interfaces from
+literal 127.0.0.1/::1 loopback. Paper-safe and no-execution gates must be true.
+Only an explicitly timestamped, <=15 minute old regime, up to 20 validated
+public symbol signals and provenance are shown. No paper portfolio, positions,
+orders, prices, finance data, real trading or business write paths are imported.
+
+The implementation was prepared using the OpenAPI contract of
+`twonezerotwo-hue/clean-e-yay` (main on 2026-10-23). Tests mock source GET
+and verify disabled/unsafe/stale/protocol failure, SSRF host validation, and
+that no position data leaks. GitHub CI / live E-YAY connectivity not yet verified.
+
+Stage 8 **cannot be marked a live connected integration** until an isolated
+HTTP acceptance run starts the actual E-YAY local runtime in an approved sandbox.

@@ -3748,6 +3748,127 @@
         "title": "EvidenceResponse",
         "type": "object"
       },
+      "EyayMarketPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "assets": {
+            "items": {
+              "$ref": "#/components/schemas/EyayMarketSignal"
+            },
+            "title": "Assets",
+            "type": "array"
+          },
+          "automatic_execution_enabled": {
+            "default": false,
+            "title": "Automatic Execution Enabled",
+            "type": "boolean"
+          },
+          "finance_writes_enabled": {
+            "default": false,
+            "title": "Finance Writes Enabled",
+            "type": "boolean"
+          },
+          "integration_state": {
+            "default": "DISABLED",
+            "title": "Integration State",
+            "type": "string"
+          },
+          "mode": {
+            "default": "READ_ONLY",
+            "title": "Mode",
+            "type": "string"
+          },
+          "regime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Regime"
+          },
+          "source": {
+            "default": "CLEAN_E_YAY",
+            "title": "Source",
+            "type": "string"
+          },
+          "source_generated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Generated At"
+          },
+          "source_snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Snapshot Id"
+          },
+          "trade_actions_enabled": {
+            "default": false,
+            "title": "Trade Actions Enabled",
+            "type": "boolean"
+          },
+          "warning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warning"
+          }
+        },
+        "title": "EyayMarketPreview",
+        "type": "object"
+      },
+      "EyayMarketSignal": {
+        "additionalProperties": false,
+        "properties": {
+          "direction": {
+            "title": "Direction",
+            "type": "string"
+          },
+          "score": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "type": "number"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "symbol": {
+            "maxLength": 32,
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "direction",
+          "status",
+          "score"
+        ],
+        "title": "EyayMarketSignal",
+        "type": "object"
+      },
       "FigureResponse": {
         "properties": {
           "currency": {
@@ -21258,6 +21379,27 @@
         "summary": "Readiness probe",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/v1/integrations/eyay/market": {
+      "get": {
+        "operationId": "eyay_market_context_api_v1_integrations_eyay_market_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EyayMarketPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "E-YAY read-only source market context (never executes orders)",
+        "tags": [
+          "integrations"
         ]
       }
     },

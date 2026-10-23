@@ -733,3 +733,13 @@ numbers or email addresses, and no user or AI obtains send permission.
 The isolated GitHub Actions PostgreSQL migration and API tests passed (565
 backend, 192 frontend) and PR #4 merged. No real provider, contact consent
 or live sending has been verified; do not use live providers or Finance data.
+
+
+### Stage 8 — E-YAY read-only market status (development)
+
+Optional default-disabled connection to locally running Clean E-YAY on
+`http://127.0.0.1:9000`. Only a healthy paper-safe/no-execution source with
+current regime snapshot produces bounded context. No exchange order, Commerce
+sales order, automatic deal, finance posting or bank transfer can be initiated.
+Enable only after verifying that the local E-YAY runtime has the expected
+source contract; no live source was connected during development.

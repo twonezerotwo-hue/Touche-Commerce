@@ -449,3 +449,16 @@ The authenticated `GET /api/v1/communications/provider-requirements` exposes
 Gmail API and Meta WhatsApp Cloud API prerequisites, explicit need for verified
 consent and independent send approval, and an unconfigured status. There is no
 credential store or OAuth flow in Stage 7C3; channel transport stays disabled.
+
+
+---
+
+## Stage 8 — E-YAY integration (read-only market context in progress)
+
+The first safe adapter is **context, not trading**: only published E-YAY health
+and regime report paths, loopback-only, strict 200 JSON checks, byte/time limits,
+paper_safe/no_execution gate, explicit snapshot freshness and 20 bounded source
+signals. It is disabled by default and never exposes paper account positions,
+trading commands, financial writes or cross-company business data. No live E-YAY
+server has yet been verified. A future integration may add independent business
+insights only after semantic contract and risk review.

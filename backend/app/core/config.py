@@ -133,6 +133,12 @@ class Settings(BaseSettings):
         default=1_048_576, ge=1_024, le=4_194_304
     )
 
+    # --- E-YAY market context (Stage 8; read-only, loopback-only) ----------
+    eyay_enabled: bool = False
+    eyay_base_url: str = "http://127.0.0.1:9000"
+    eyay_timeout_seconds: float = Field(default=2.0, ge=0.1, le=5.0)
+    eyay_max_response_bytes: int = Field(default=131_072, ge=8_192, le=524_288)
+
     # --- AI Office (Stage 6) ------------------------------------------------
     # Disabled by default. The provider credential stays server-side and is never
     # returned by any endpoint. A non-mock provider receives commercial data, so
