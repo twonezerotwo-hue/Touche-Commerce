@@ -230,7 +230,7 @@ def upload_document(
     if client.csrf:
         request.add_header("X-CSRF-Token", client.csrf)
     request.add_header("Idempotency-Key", idempotency_key or uuid.uuid4().hex)
-    return client._send(request)  # noqa: SLF001 - same module
+    return client._send(request)
 
 
 def post(
