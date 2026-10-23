@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import ClassVar
+from dataclasses import dataclass
 
 import pytest
 from pydantic import SecretStr
@@ -29,7 +28,6 @@ class FakeModel:
     model: str = "fake"
     failure: Exception | None = None
     calls: int = 0
-    warnings: ClassVar[tuple[str, ...]] = ()
 
     def complete(self, _request: ModelRequest) -> ModelResponse:
         self.calls += 1
