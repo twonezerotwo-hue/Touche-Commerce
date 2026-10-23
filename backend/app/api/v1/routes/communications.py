@@ -24,6 +24,8 @@ from app.api.v1.schemas.communications import (
     CommunicationPreflightResponse,
     CommunicationsStatusResponse,
     PreflightBlocker,
+    ProviderRequirement,
+    ProviderRequirementsResponse,
     RecordSuppressionRequest,
     SuppressionListResponse,
     SuppressionResponse,
@@ -293,3 +295,24 @@ def create_suppression(
     response.status_code = http_status
     _no_store(response)
     return body
+
+
+@router.get("/provider-requirements", response_model=ProviderRequirementsResponse)
+def provider_requirements(
+    response: Response,
+    context: ViewContext,
+) -> ProviderRequirementsResponse:
+    """Verified API shape for future provider setup; zero credentials or transport.
+
+    This is deliberately a configuration checklist, not an OAuth flow. No
+    deployment can silently derive a connected state from environment values.
+    """
+    _no_store(response)
+    return ProviderRequirementsResponse(
+        providers=[
+            ProviderRequirement(channel="EMAIL", provider="GOOGLE_GMAIL_API"),
+            ProviderRequirement(
+                channel="WHATSAPP_BUSINESS", provider="META_WHATSAPP_CLOUD_API"
+            ),
+        ]
+    )
