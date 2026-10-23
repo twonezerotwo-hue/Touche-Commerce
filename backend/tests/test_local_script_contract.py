@@ -13,7 +13,7 @@ def test_local_launcher_rejects_collision_and_does_not_reset_databases() -> None
     assert "Port $port is occupied" in source
     assert "Start-Process" in source
     assert "NoReload" in source
-    assert "-ApplyMigrations" not in source  # switch is named ApplyMigrations
+    assert "if ($ApplyMigrations) {" in source
     assert "$ApplyMigrations" in source
     assert "Remove-Item" not in source
     assert "bootstrap-local-postgres" not in source
