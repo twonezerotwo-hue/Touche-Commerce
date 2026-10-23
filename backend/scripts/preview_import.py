@@ -20,7 +20,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--kind", choices=("products", "counterparties"), required=True)
     parser.add_argument("--file", type=Path, required=True)
-    parser.add_argument("--show-records", action="store_true", help="Show records locally (may be sensitive)")
+    parser.add_argument(
+        "--show-records", action="store_true", help="Show records locally (may be sensitive)"
+    )
     args = parser.parse_args()
     try:
         size = args.file.stat().st_size
