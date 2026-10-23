@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { ArrowUpRight, Menu, X } from "lucide-react";
 
 import { Avatar } from "@/components/ui/avatar";
+import { useLocale } from "@/lib/i18n/locale-provider";
 import { NAV_GROUPS, PUBLIC_NAV_ITEMS, resolveActiveHref } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +20,7 @@ export interface MobileIdentity {
 /** Slide-over navigation for screens below the desktop breakpoint. */
 export function MobileNav({ identity }: { identity: MobileIdentity }) {
   const pathname = usePathname();
+  const { t } = useLocale();
   const activeHref = resolveActiveHref(pathname);
   const [open, setOpen] = useState(false);
 
@@ -40,7 +42,7 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
     <div className="lg:hidden">
       <button
         type="button"
-        aria-label="Open navigation"
+        aria-label={t("openNavigation")}
         aria-expanded={open}
         onClick={() => setOpen(true)}
         className="flex size-9 items-center justify-center rounded-md border border-white/10 text-mist-300 transition-colors hover:border-accent-400/40 hover:text-mist-100"
@@ -52,12 +54,12 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
         <div className="fixed inset-0 z-50">
           <button
             type="button"
-            aria-label="Close navigation"
+            aria-label={t("closeNavigation")}
             className="absolute inset-0 bg-ink-950/80 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           />
           <nav
-            aria-label="Mobile primary"
+            aria-label={t("mobilePrimary")}
             className="absolute inset-y-0 left-0 flex w-[300px] max-w-[85vw] flex-col border-r border-white/10 bg-ink-900 shadow-2xl"
           >
             <div className="flex items-start justify-between px-5 pt-6 pb-5">
@@ -76,7 +78,7 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
               </Link>
               <button
                 type="button"
-                aria-label="Close navigation"
+                aria-label={t("closeNavigation")}
                 onClick={() => setOpen(false)}
                 className="flex size-8 items-center justify-center rounded-md text-mist-400 hover:bg-white/5 hover:text-mist-100"
               >
@@ -136,7 +138,7 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
               ))}
 
               <div className="mb-2">
-                <p className="eyebrow px-3 pb-2">Platform</p>
+                <p className="eyebrow px-3 pb-2">{t("platform")}</p>
                 {PUBLIC_NAV_ITEMS.map((item) => {
                   const Icon = item.icon;
                   return (
