@@ -228,7 +228,7 @@ class AIGateway:
             logger.info(
                 "ai.provider.call",
                 extra={
-                    "provider": self.provider.name,
+                    "provider": response.provider,
                     "model": response.model,
                     "attempts": attempt,
                     "input_tokens": usage.input_tokens,
