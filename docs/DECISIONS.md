@@ -1514,7 +1514,7 @@ by the new negative test and corrected in `e160815`. PR #2 merged at
 
 ## ADR-056 — CRM provenance must not be treated as consent
 
-**Status:** ACCEPTED · STAGE 7C1 IN PROGRESS
+**Status:** ACCEPTED · STAGE 7C1 IMPLEMENTED / CI VERIFIED
 
 **Decision:** A communication preflight can reference an existing CRM
 counterparty ID, but the server obtains its company from the authenticated
@@ -1533,4 +1533,7 @@ approved send intent and delivery remain unimplemented.
 No transport, token, webhooks, sending or financial writes. No changes to
 `communications.send` role assignments.
 
-**Verification:** Stage 7C1 GitHub CI and local browser acceptance pending.
+**Verification:** GitHub CI run `40021727161` PASSED (561 backend,
+192 frontend, OpenAPI). Regex regression fixed in `ac3c4ad`; PR #3 merged
+at `7624c33`. Local Windows browser, provider and real consent verification
+remain outstanding.
