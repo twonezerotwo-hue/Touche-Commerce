@@ -16,6 +16,7 @@ import {
   Scale,
   Settings,
   Sparkles,
+  Mail,
   Truck,
   UserRound,
   Users,
@@ -191,6 +192,13 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         stage: "Stage 6",
         description: "Evidence-cited analysis with human-approved proposals",
       },
+      {
+        label: "Communications",
+        icon: Mail,
+        href: "/communications",
+        stage: "Stage 7A",
+        description: "Review prepared correspondence — sending disabled",
+      },
     ],
   },
   {
@@ -304,6 +312,7 @@ export function resolveWorkspaceContext(pathname: string): WorkspaceContext {
     return { section: "Finance", page: "Financial exceptions" };
   }
   if (pathname === "/ai") return { section: "AI", page: "AI Office" };
+  if (pathname === "/communications") return { section: "AI", page: "Communications" };
   if (pathname === "/crm") return { section: "Workspace", page: "CRM" };
   if (pathname === "/products") return { section: "Workspace", page: "Products" };
   if (pathname === "/account") return { section: "Account", page: "Profile & access" };
