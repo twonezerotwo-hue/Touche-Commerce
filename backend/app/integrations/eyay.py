@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import http.client
 import json
+import math
 import re
 from datetime import UTC, datetime
 from urllib.parse import urlsplit
@@ -145,6 +146,7 @@ def market_preview(
             if (
                 isinstance(name, str) and _SYMBOL.fullmatch(name)
                 and isinstance(score, (int, float)) and not isinstance(score, bool)
+                and math.isfinite(score)
                 and direction in _DIRECTIONS and status in _STATUSES
             ):
                 clean.append(
