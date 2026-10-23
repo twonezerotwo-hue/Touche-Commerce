@@ -20,7 +20,11 @@ from app.db.models.ai import (
 )
 from app.db.models.audit import AuditAction, AuditActorType, AuditOutcome, AuditRecord
 from app.db.models.base import SCHEMA, Base
-from app.db.models.communications import CommunicationSuppression, SuppressionChannel, SuppressionReason
+from app.db.models.communications import (
+    CommunicationSuppression,
+    SuppressionChannel,
+    SuppressionReason,
+)
 from app.db.models.finance import FinanceCompanyMapping, FinanceMappingStatus
 from app.db.models.identity import (
     Company,
@@ -113,7 +117,6 @@ from app.db.models.trade import (
 )
 
 __all__ = [
-    "SCHEMA",
     "AcceptanceChannel",
     "AiConversation",
     "AiMessage",
@@ -182,6 +185,7 @@ __all__ = [
     "ReviewDecision",
     "RfqStatus",
     "RunStatus",
+    "SCHEMA",
     "SalesOrder",
     "SalesOrderItem",
     "SalesOrderStatus",
@@ -199,8 +203,6 @@ __all__ = [
     "ShipmentReference",
     "ShipmentStatus",
     "SourceEntityType",
-    "SuppressionChannel",
-    "SuppressionReason",
     "SupplierQuote",
     "SupplierQuoteItem",
     "SupplierQuoteRevision",
@@ -208,6 +210,8 @@ __all__ = [
     "SupplierRfq",
     "SupplierRfqItem",
     "SupplierRfqRevision",
+    "SuppressionChannel",
+    "SuppressionReason",
     "ToolCallStatus",
     "TrackingSource",
     "TradeDocument",
