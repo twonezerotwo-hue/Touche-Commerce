@@ -13,9 +13,8 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.core.errors import NotFoundError
-from app.db.models.communications import CommunicationSuppression
-
 from app.db.engine import Database
+from app.db.models.communications import CommunicationSuppression
 from app.db.models.trade import Counterparty, RecordStatus
 from app.db.tenant import apply_company_context
 
