@@ -64,6 +64,7 @@ def communications_status(
     _no_store(response)
     return CommunicationsStatusResponse(
         can_review_drafts=Permission.TRADE_WRITE in context.permissions,
+        can_manage_suppressions=Permission.COMMUNICATIONS_SUPPRESS in context.permissions,
         channels=[
             ChannelStatus(channel="EMAIL"),
             ChannelStatus(channel="WHATSAPP_BUSINESS"),
