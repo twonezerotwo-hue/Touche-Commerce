@@ -12,8 +12,8 @@ import json
 import math
 import re
 from datetime import UTC, datetime
-from urllib.parse import urlsplit
 from typing import Any
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -69,7 +69,9 @@ def parse_eyay_address(base_url: str) -> tuple[str, int]:
     return parts.hostname, port
 
 
-def _source_get(host: str, port: int, *, path: str, timeout: float, max_bytes: int) -> dict[str, Any]:
+def _source_get(
+    host: str, port: int, *, path: str, timeout: float, max_bytes: int
+) -> dict[str, Any]:
     client = http.client.HTTPConnection(host, port, timeout=timeout)
     try:
         client.request(
