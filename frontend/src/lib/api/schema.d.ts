@@ -363,6 +363,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/communications/provider-requirements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Provider Requirements
+         * @description Verified API shape for future provider setup; zero credentials or transport.
+         *
+         *     This is deliberately a configuration checklist, not an OAuth flow. No
+         *     deployment can silently derive a connected state from environment values.
+         */
+        get: operations["provider_requirements_api_v1_communications_provider_requirements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/communications/status": {
         parameters: {
             query?: never;
@@ -5470,6 +5493,90 @@ export interface components {
             /** Warnings */
             warnings: string[];
         };
+        /** ProviderRequirement */
+        ProviderRequirement: {
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "EMAIL" | "WHATSAPP_BUSINESS";
+            /**
+             * Connection State
+             * @default NOT_CONFIGURED
+             * @constant
+             */
+            connection_state: "NOT_CONFIGURED";
+            /**
+             * Credential Storage
+             * @default SERVER_SIDE_ONLY
+             * @constant
+             */
+            credential_storage: "SERVER_SIDE_ONLY";
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "GOOGLE_GMAIL_API" | "META_WHATSAPP_CLOUD_API";
+            /**
+             * Requires Audited Delivery
+             * @default true
+             * @constant
+             */
+            requires_audited_delivery: true;
+            /**
+             * Requires Independent Human Approval
+             * @default true
+             * @constant
+             */
+            requires_independent_human_approval: true;
+            /**
+             * Requires Oauth Or Business Verification
+             * @default true
+             * @constant
+             */
+            requires_oauth_or_business_verification: true;
+            /**
+             * Requires Verified Consent
+             * @default true
+             * @constant
+             */
+            requires_verified_consent: true;
+            /**
+             * Transport Enabled
+             * @default false
+             * @constant
+             */
+            transport_enabled: false;
+        };
+        /** ProviderRequirementsResponse */
+        ProviderRequirementsResponse: {
+            /**
+             * Human Send Approval Available
+             * @default false
+             * @constant
+             */
+            human_send_approval_available: false;
+            /**
+             * Live Provider Verified
+             * @default false
+             * @constant
+             */
+            live_provider_verified: false;
+            /** Providers */
+            providers: components["schemas"]["ProviderRequirement"][];
+            /**
+             * Readiness
+             * @default BLOCKED
+             * @constant
+             */
+            readiness: "BLOCKED";
+            /**
+             * Sending Enabled
+             * @default false
+             * @constant
+             */
+            sending_enabled: false;
+        };
         /** PurchaseOrderCreateRequest */
         PurchaseOrderCreateRequest: {
             /** Expected Delivery Date */
@@ -8923,6 +9030,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    provider_requirements_api_v1_communications_provider_requirements_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderRequirementsResponse"];
                 };
             };
         };

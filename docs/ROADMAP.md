@@ -442,3 +442,10 @@ recipient PII. Existing preflight always refuses delivery and now also
 reports an explicit suppression blocker. Opt-in evidence, suppression
 lifting procedures, provider auth, transport, webhooks and human-approved
 outbound messages are **not** implemented in Stage 7C2.
+
+
+### Stage 7C3 — provider prerequisites contract (CI pending)
+The authenticated `GET /api/v1/communications/provider-requirements` exposes
+Gmail API and Meta WhatsApp Cloud API prerequisites, explicit need for verified
+consent and independent send approval, and an unconfigured status. There is no
+credential store or OAuth flow in Stage 7C3; channel transport stays disabled.

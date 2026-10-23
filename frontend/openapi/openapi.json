@@ -8664,6 +8664,127 @@
         "title": "ProposalResponse",
         "type": "object"
       },
+      "ProviderRequirement": {
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "enum": [
+              "EMAIL",
+              "WHATSAPP_BUSINESS"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
+          "connection_state": {
+            "const": "NOT_CONFIGURED",
+            "default": "NOT_CONFIGURED",
+            "title": "Connection State",
+            "type": "string"
+          },
+          "credential_storage": {
+            "const": "SERVER_SIDE_ONLY",
+            "default": "SERVER_SIDE_ONLY",
+            "title": "Credential Storage",
+            "type": "string"
+          },
+          "provider": {
+            "enum": [
+              "GOOGLE_GMAIL_API",
+              "META_WHATSAPP_CLOUD_API"
+            ],
+            "title": "Provider",
+            "type": "string"
+          },
+          "requires_audited_delivery": {
+            "const": true,
+            "default": true,
+            "title": "Requires Audited Delivery",
+            "type": "boolean"
+          },
+          "requires_independent_human_approval": {
+            "const": true,
+            "default": true,
+            "title": "Requires Independent Human Approval",
+            "type": "boolean"
+          },
+          "requires_oauth_or_business_verification": {
+            "const": true,
+            "default": true,
+            "title": "Requires Oauth Or Business Verification",
+            "type": "boolean"
+          },
+          "requires_verified_consent": {
+            "const": true,
+            "default": true,
+            "title": "Requires Verified Consent",
+            "type": "boolean"
+          },
+          "transport_enabled": {
+            "const": false,
+            "default": false,
+            "title": "Transport Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "channel",
+          "provider",
+          "connection_state",
+          "credential_storage",
+          "requires_oauth_or_business_verification",
+          "requires_verified_consent",
+          "requires_independent_human_approval",
+          "requires_audited_delivery",
+          "transport_enabled"
+        ],
+        "title": "ProviderRequirement",
+        "type": "object"
+      },
+      "ProviderRequirementsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "human_send_approval_available": {
+            "const": false,
+            "default": false,
+            "title": "Human Send Approval Available",
+            "type": "boolean"
+          },
+          "live_provider_verified": {
+            "const": false,
+            "default": false,
+            "title": "Live Provider Verified",
+            "type": "boolean"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/ProviderRequirement"
+            },
+            "title": "Providers",
+            "type": "array"
+          },
+          "readiness": {
+            "const": "BLOCKED",
+            "default": "BLOCKED",
+            "title": "Readiness",
+            "type": "string"
+          },
+          "sending_enabled": {
+            "const": false,
+            "default": false,
+            "title": "Sending Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "readiness",
+          "live_provider_verified",
+          "human_send_approval_available",
+          "sending_enabled",
+          "providers"
+        ],
+        "title": "ProviderRequirementsResponse",
+        "type": "object"
+      },
       "PurchaseOrderCreateRequest": {
         "additionalProperties": false,
         "properties": {
@@ -16649,6 +16770,28 @@
           }
         },
         "summary": "Communication Preflight",
+        "tags": [
+          "communications"
+        ]
+      }
+    },
+    "/api/v1/communications/provider-requirements": {
+      "get": {
+        "description": "Verified API shape for future provider setup; zero credentials or transport.\n\nThis is deliberately a configuration checklist, not an OAuth flow. No\ndeployment can silently derive a connected state from environment values.",
+        "operationId": "provider_requirements_api_v1_communications_provider_requirements_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderRequirementsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Provider Requirements",
         "tags": [
           "communications"
         ]

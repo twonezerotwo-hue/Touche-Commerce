@@ -1,7 +1,7 @@
 # TOUCHE COMMERCE — Progress
 
 **Last updated:** 2026-10-23 (local)
-**Current stage:** Stage 7C2 — append-only suppression registry (CI VERIFIED and merged)
+**Current stage:** Stage 7C3 — provider readiness contract (IN_PROGRESS; CI pending)
 **Current milestone:** 7C2 — 565 backend / 192 frontend; admin-only opt-out records; sending disabled
 **Stage 6:** PASSED on Stage 6 local reported evidence (551 backend / 192 frontend, mock provider)
 **Stage 7A:** PASSED in GitHub CI (555 backend / 192 frontend, OpenAPI current; PR #1 merged); Windows browser acceptance not run
@@ -2182,3 +2182,10 @@ PostgreSQL. PR #4 merged into main at `5bc7bdc`.
 **Not verified:** Windows interactive browser, deployed permission checks,
 provider authentication, contact control, opt-in evidence or actual delivery.
 This remains **not** a provider or consent integration; sending is disabled.
+
+
+## 32. Stage 7C3 — No-send provider requirements (IN_PROGRESS)
+Introduces a structured, authenticated prerequisites contract and automated
+assertions showing neither Gmail nor WhatsApp is connected, credentialed or
+send-capable. GitHub CI is pending. This is not real provider integration,
+verified consent, live sending or operational acceptance.
