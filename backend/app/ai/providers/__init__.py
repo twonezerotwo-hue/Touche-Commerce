@@ -41,10 +41,10 @@ def build_provider(settings: Settings) -> ModelProvider:
 
 __all__ = [
     "AnthropicProvider",
+    "LocalOllamaProvider",
     "MockProvider",
     "ModelProvider",
     "OpenAICompatibleProvider",
-    "LocalOllamaProvider",
     "PrimaryThenLocalProvider",
     "build_provider",
 ]
