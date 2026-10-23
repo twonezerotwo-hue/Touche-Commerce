@@ -274,3 +274,24 @@ def test_preflight_never_treats_archived_crm_contact_as_current(
     assert result.status_code == 200, result.text
     assert "CRM_RECIPIENT_MISMATCH" in result.json()["blockers"]
     assert result.json()["sendable"] is False
+
+
+def test_provider_requirements_fail_closed_and_never_expose_secrets(
+    world: OrderWorld,
+) -> None:
+    result = world.client.get(f"{API}/provider-requirements")
+    assert result.status_code == 200, result.text
+    assert result.headers["Cache-Control"] == "no-store"
+    body = result.json()
+    assert body["readiness"] == "BLOCKED"
+    assert body["live_provider_verified"] is False
+    assert body["human_send_approval_available"] is False
+    assert body["sending_enabled"] is False
+    assert {x["channel"] for x in body["providers"]} == {
+        "EMAIL", "WHATSAPP_BUSINESS"
+    }
+    assert all(p["transport_enabled"] is False for p in body["providers"])
+    assert all(p["requires_verified_consent"] is True for p in body["providers"])
+    assert "secret" not in result.text.lower()
+    assert "access_token" not in result.text.lower()
+    assert world.client.post(f"{API}/provider-requirements", json={}).status_code == 405
