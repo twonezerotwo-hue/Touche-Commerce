@@ -1395,3 +1395,19 @@ Preflight adds `RECIPIENT_SUPPRESSED` where a matching company contact
 and channel have been blocked; `CONSENT_UNDOCUMENTED` remains unconditional
 and `sendable=false` is unchanged. Nothing authenticates a recipient,
 grants channel consent or connects a provider.
+
+
+### 15. Stage 8 — E-YAY public market regime (CI pending)
+
+`GET /integrations/eyay/market` requires authenticated `company.view`; no
+company id is accepted from the caller. It yields source `CLEAN_E_YAY`,
+`mode=READ_ONLY`, `integration_state`, `regime` when safe/current,
+`source_snapshot_id`, `source_generated_at`, at most 20 bounded asset signals
+and three permanently-false `*_enabled` indicators.
+
+`TOUCHE_EYAY_ENABLED=false` default makes the endpoint `DISABLED` without any
+network connection. If enabled, only loopback `http` addresses with explicit
+ports are permitted; only `GET /api/v1/system/health` and
+`GET /api/v1/regime-report/current` are called. Unsafe, stale or invalid source
+responses withhold all signals. This cannot trigger a trade, message, order or
+finance write.
