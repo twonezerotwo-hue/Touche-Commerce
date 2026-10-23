@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pydantic import SecretStr
+
 from app.ai.errors import AIDisabledError
 from app.ai.providers.anthropic import AnthropicProvider
 from app.ai.providers.base import ModelProvider
@@ -9,7 +11,6 @@ from app.ai.providers.fallback import LocalOllamaProvider, PrimaryThenLocalProvi
 from app.ai.providers.mock import MockProvider
 from app.ai.providers.openai_compat import OpenAICompatibleProvider
 from app.core.config import Settings
-from pydantic import SecretStr
 
 
 def build_provider(settings: Settings) -> ModelProvider:
