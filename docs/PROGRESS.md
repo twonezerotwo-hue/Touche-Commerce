@@ -1,8 +1,8 @@
 # TOUCHE COMMERCE — Progress
 
 **Last updated:** 2026-10-23 (local)
-**Current stage:** Stage 7C2 — append-only suppression registry (IN_PROGRESS; CI pending)
-**Current milestone:** 7C2 — admin-only CRM/channel opt-out records; sends still disabled
+**Current stage:** Stage 7C2 — append-only suppression registry (CI VERIFIED and merged)
+**Current milestone:** 7C2 — 565 backend / 192 frontend; admin-only opt-out records; sending disabled
 **Stage 6:** PASSED on Stage 6 local reported evidence (551 backend / 192 frontend, mock provider)
 **Stage 7A:** PASSED in GitHub CI (555 backend / 192 frontend, OpenAPI current; PR #1 merged); Windows browser acceptance not run
 **Stage 7B:** PASSED in GitHub CI (558 backend / 192 frontend, PR #2 merged)
@@ -2152,7 +2152,7 @@ connection setup, revocation, dedicated send approval and delivery executor.
 
 ---
 
-## 31. Stage 7C2 — Do-not-contact ledger (IN_PROGRESS)
+## 31. Stage 7C2 — Do-not-contact ledger (CI VERIFIED)
 
 Feature branch: `stage-7c2`, based on CI-verified Stage 7C1 main
 (`e26b93a`). Migration: `0011_communication_suppression`.
@@ -2175,7 +2175,10 @@ Feature branch: `stage-7c2`, based on CI-verified Stage 7C1 main
 * Backend tests target replay, duplication, permission refusal, audit,
   preflight denial and cross-company isolation.
 
-**Verification pending:** GitHub Actions with fresh PostgreSQL migration,
-Ruff, mypy, full pytest, frontend and OpenAPI drift. Interactive Windows
-browser validation remains separate. This is **not** provider auth or
-channel-specific consent. No message can be sent by Stage 7C2.
+**Verification:** GitHub Actions `40025166931` passed: backend 565, frontend
+192, Ruff, mypy app, ESLint, Prettier, TypeScript, Next.js production build,
+and OpenAPI drift. The `0011` migration applied successfully to ephemeral
+PostgreSQL. PR #4 merged into main at `5bc7bdc`.
+**Not verified:** Windows interactive browser, deployed permission checks,
+provider authentication, contact control, opt-in evidence or actual delivery.
+This remains **not** a provider or consent integration; sending is disabled.
