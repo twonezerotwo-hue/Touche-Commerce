@@ -680,7 +680,8 @@
                 "SEND_PERMISSION_UNAVAILABLE",
                 "RECIPIENT_INVALID",
                 "CRM_RECIPIENT_MISMATCH",
-                "CONSENT_UNDOCUMENTED"
+                "CONSENT_UNDOCUMENTED",
+                "RECIPIENT_SUPPRESSED"
               ],
               "type": "string"
             },
@@ -733,6 +734,11 @@
       "CommunicationsStatusResponse": {
         "additionalProperties": false,
         "properties": {
+          "can_manage_suppressions": {
+            "default": false,
+            "title": "Can Manage Suppressions",
+            "type": "boolean"
+          },
           "can_review_drafts": {
             "title": "Can Review Drafts",
             "type": "boolean"
@@ -767,6 +773,7 @@
           "mode",
           "external_sending_enabled",
           "can_review_drafts",
+          "can_manage_suppressions",
           "send_permission",
           "channels"
         ],
@@ -10375,6 +10382,41 @@
         "title": "ReconciliationTimelineResponse",
         "type": "object"
       },
+      "RecordSuppressionRequest": {
+        "additionalProperties": false,
+        "description": "A block only; no opt-in claim, recipient address or free-text PII.",
+        "properties": {
+          "channel": {
+            "enum": [
+              "EMAIL",
+              "WHATSAPP_BUSINESS"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
+          "counterparty_id": {
+            "format": "uuid",
+            "title": "Counterparty Id",
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "CONTACT_REQUEST",
+              "COMPLIANCE_REVIEW",
+              "IMPORTED_BLOCK"
+            ],
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "counterparty_id",
+          "channel",
+          "reason"
+        ],
+        "title": "RecordSuppressionRequest",
+        "type": "object"
+      },
       "ReviewRequest": {
         "additionalProperties": false,
         "properties": {
@@ -15299,6 +15341,95 @@
         "title": "SupplierQuoteWithdrawRequest",
         "type": "object"
       },
+      "SuppressionListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SuppressionResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "truncated": {
+            "default": false,
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "truncated"
+        ],
+        "title": "SuppressionListResponse",
+        "type": "object"
+      },
+      "SuppressionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "enum": [
+              "EMAIL",
+              "WHATSAPP_BUSINESS"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
+          "counterparty_id": {
+            "format": "uuid",
+            "title": "Counterparty Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "effect": {
+            "const": "BLOCKED",
+            "default": "BLOCKED",
+            "title": "Effect",
+            "type": "string"
+          },
+          "grants_consent": {
+            "const": false,
+            "default": false,
+            "title": "Grants Consent",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "CONTACT_REQUEST",
+              "COMPLIANCE_REVIEW",
+              "IMPORTED_BLOCK"
+            ],
+            "title": "Reason",
+            "type": "string"
+          },
+          "recorded_by": {
+            "format": "uuid",
+            "title": "Recorded By",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "counterparty_id",
+          "channel",
+          "reason",
+          "recorded_by",
+          "created_at",
+          "effect",
+          "grants_consent"
+        ],
+        "title": "SuppressionResponse",
+        "type": "object"
+      },
       "TaskProposalResponse": {
         "properties": {
           "evidence": {
@@ -16540,6 +16671,92 @@
           }
         },
         "summary": "Communications Status",
+        "tags": [
+          "communications"
+        ]
+      }
+    },
+    "/api/v1/communications/suppressions": {
+      "get": {
+        "description": "Administrator-only, tenant-scoped, bounded, address-free ledger view.",
+        "operationId": "list_suppressions_api_v1_communications_suppressions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuppressionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Suppressions",
+        "tags": [
+          "communications"
+        ]
+      },
+      "post": {
+        "description": "Record a permanent safety block, never an opt-in or delivery permission.\n\nAn idempotency key is mandatory, and the audit row commits atomically with\nthe suppression. Duplicate blocks do not generate additional audit events.",
+        "operationId": "create_suppression_api_v1_communications_suppressions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordSuppressionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuppressionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Suppression",
         "tags": [
           "communications"
         ]
