@@ -20,6 +20,7 @@ from app.ai.errors import (
 from app.ai.providers.base import ModelProvider
 from app.ai.providers.openai_compat import OpenAICompatibleProvider
 from app.ai.types import ModelRequest, ModelResponse
+from app.core.errors import ErrorCode
 
 
 class LocalOllamaProvider(OpenAICompatibleProvider):
@@ -33,6 +34,7 @@ class FallbackExhaustedError(ProviderError):
     """Both configured providers failed; do not retry and incur extra API calls."""
 
     status_code = 503
+    code = ErrorCode.AI_PROVIDER_UNAVAILABLE
     retryable = False
     default_message = "Neither the primary AI API nor the local model is available."
 
