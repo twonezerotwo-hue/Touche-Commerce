@@ -67,6 +67,9 @@ jobs:
         working-directory: backend
         run: python -m alembic upgrade head
 
+      - name: Stage 10 static CI readiness gate
+        run: python scripts/release-gate.py --target ci
+
       - name: Ruff
         working-directory: backend
         run: python -m ruff check .
