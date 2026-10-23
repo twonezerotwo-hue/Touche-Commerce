@@ -1454,3 +1454,21 @@ reports `NOT_CONFIGURED` until a real connector is implemented and verified.
 
 No message dispatch, credential handling, external access or Finance write is
 implemented in this slice. Regression and browser acceptance are still pending.
+
+
+---
+
+## 28. Stage 7C1 — CRM provenance, not delivery (GitHub CI verified)
+
+The Stage 7B no-send preflight optionally accepts an explicit CRM counterparty
+ID. A read-only service applies the session's tenant context and PostgreSQL
+RLS and compares a validated email/E.164 address to one active CRM record.
+Missing, wrong-company and archived records fail closed. No address is returned,
+persisted by preflight or sent to any provider. Even a CRM match never supplies
+communication consent; `CONSENT_UNDOCUMENTED` is unconditional.
+`sendable=false` and the unassigned `communications.send` permission remain.
+
+CI run `40021727161` passed 561 backend / 192 frontend tests and generated
+API client drift checks; PR #3 merged at `7624c33`. This is not a provider
+OAuth implementation, customer consent ledger, browser acceptance or live
+sending verification. All provider connections still report NOT_CONFIGURED.
