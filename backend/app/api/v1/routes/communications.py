@@ -31,6 +31,7 @@ from app.db.tenant import apply_company_context
 from app.security.permissions import Permission
 from app.services.ai_office import AiOfficeService
 from app.services.auth import SessionContext
+from app.services.communications import crm_recipient_matches
 
 router = APIRouter(prefix="/communications", tags=["communications"])
 
@@ -139,14 +140,34 @@ def communication_preflight(
         blockers.append("DRAFT_NOT_APPROVED")
     if draft.version != payload.draft_version:
         blockers.append("DRAFT_VERSION_MISMATCH")
+    normalized_recipient: str | None = None
     if payload.channel == "EMAIL":
         try:
-            validate_email(payload.recipient, check_deliverability=False)
+            normalized_recipient = validate_email(
+                payload.recipient, check_deliverability=False
+            ).normalized
         except EmailNotValidError:
             blockers.append("RECIPIENT_INVALID")
-    elif not _PHONE_E164.fullmatch(payload.recipient):
+    elif _PHONE_E164.fullmatch(payload.recipient):
+        normalized_recipient = payload.recipient
+    else:
         blockers.append("RECIPIENT_INVALID")
 
+    if (
+        normalized_recipient is None
+        or not crm_recipient_matches(
+            database,
+            company_id=active_company_id(context),
+            counterparty_id=payload.counterparty_id,
+            channel=payload.channel,
+            normalized_recipient=normalized_recipient,
+        )
+    ):
+        blockers.append("CRM_RECIPIENT_MISMATCH")
+
+    # CRM possession is NOT recipient authorization or channel-specific consent.
+    # No structured opt-in/permission evidence exists in Commerce yet.
+    blockers.append("CONSENT_UNDOCUMENTED")
     blockers.append("CHANNEL_NOT_CONFIGURED")
     if Permission.COMMUNICATIONS_SEND not in context.permissions:
         blockers.append("SEND_PERMISSION_UNAVAILABLE")
