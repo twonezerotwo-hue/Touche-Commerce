@@ -99,8 +99,8 @@ def test_suppression_is_idempotent_immutable_and_logged_without_contact_details(
     assert first.status_code == 201, first.text
     assert first.json()["grants_consent"] is False
     assert first.json()["effect"] == "BLOCKED"
-    assert "email" not in first.text.lower()
-    assert "phone" not in first.text.lower()
+    assert "@" not in first.text
+    assert "example.com" not in first.text
 
     replay = admin_client.post(
         f"{BASE}/suppressions", json=payload, headers=_headers(csrf, key=key)
@@ -135,7 +135,7 @@ def test_suppression_is_idempotent_immutable_and_logged_without_contact_details(
         ).scalars().all()
     assert len(rows) == 1
     assert rows[0]["channel"] == "EMAIL"
-    assert "email" not in str(rows[0]).lower()
+    assert "@" not in str(rows[0])
 
     install_ai()
     run = ask(world.client, world.csrf, "Draft a follow-up email to suppliers")
