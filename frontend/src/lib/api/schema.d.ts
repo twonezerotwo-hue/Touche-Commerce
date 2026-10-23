@@ -339,6 +339,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/communications/preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Communication Preflight
+         * @description Validate operator-entered recipient and draft state without sending.
+         *
+         *     No recipient is persisted, returned, logged or dispatched. A successful
+         *     preflight is deliberately impossible until a separately approved outbound
+         *     transport, dedicated sender role and independent human send approval exist.
+         */
+        post: operations["communication_preflight_api_v1_communications_preflight_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/communications/status": {
         parameters: {
             query?: never;
@@ -2224,6 +2248,59 @@ export interface components {
             updated_at: string;
             /** Version */
             version: number;
+        };
+        /**
+         * CommunicationPreflightRequest
+         * @description Preview eligibility without storing, sending or echoing a recipient.
+         */
+        CommunicationPreflightRequest: {
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "EMAIL" | "WHATSAPP_BUSINESS";
+            /**
+             * Draft Id
+             * Format: uuid
+             */
+            draft_id: string;
+            /** Draft Version */
+            draft_version: number;
+            /** Recipient */
+            recipient: string;
+        };
+        /** CommunicationPreflightResponse */
+        CommunicationPreflightResponse: {
+            /** Blockers */
+            blockers: ("DRAFT_NOT_APPROVED" | "DRAFT_VERSION_MISMATCH" | "CHANNEL_NOT_CONFIGURED" | "SEND_PERMISSION_UNAVAILABLE" | "RECIPIENT_INVALID")[];
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "EMAIL" | "WHATSAPP_BUSINESS";
+            /**
+             * Draft Id
+             * Format: uuid
+             */
+            draft_id: string;
+            /**
+             * External Sending Enabled
+             * @default false
+             * @constant
+             */
+            external_sending_enabled: false;
+            /**
+             * Recipient Echoed
+             * @default false
+             * @constant
+             */
+            recipient_echoed: false;
+            /**
+             * Sendable
+             * @default false
+             * @constant
+             */
+            sendable: false;
         };
         /** CommunicationsStatusResponse */
         CommunicationsStatusResponse: {
@@ -8694,6 +8771,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CommunicationDraftListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    communication_preflight_api_v1_communications_preflight_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommunicationPreflightRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunicationPreflightResponse"];
                 };
             };
             /** @description Validation Error */
