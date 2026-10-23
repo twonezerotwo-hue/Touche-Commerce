@@ -152,3 +152,25 @@ jobs:
       - name: Fail on contract drift
         run: |
           git diff --exit-code -- frontend/openapi/openapi.json frontend/src/lib/api/schema.d.ts
+
+
+  windows-scripts:
+    name: Windows PowerShell · local scripts parse
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse startup and verification scripts
+        shell: pwsh
+        run: |
+          foreach ($path in @('scripts/start-local.ps1', 'scripts/verify.ps1')) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $path).Path, [ref]$tokens, [ref]$errors
+            ) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error $_.Message }
+              throw "PowerShell parse failed: $path"
+            }
+            Write-Host "Syntax validated: $path"
+          }
