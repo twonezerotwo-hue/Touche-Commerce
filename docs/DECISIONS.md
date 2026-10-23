@@ -1564,3 +1564,21 @@ Real provider connections and live sending remain disabled.
 **Validation:** GitHub Actions `40025166931` PASSED (565 backend,
 192 frontend and OpenAPI drift). PR #4 merged into main at `5bc7bdc`.
 No browser, live provider, legal consent or outbound delivery was verified.
+
+
+---
+
+## ADR-058 — E-YAY context cannot cross execution boundaries
+
+**Status:** ACCEPTED · STAGE 8 DEVELOPMENT IN PROGRESS.
+
+E-YAY's canonical source OpenAPI exposes health and regime-context views.
+Commerce may read only two concrete GET endpoints over numeric loopback;
+never scrape, proxy paper positions, trade execution, news body, or internal
+provider credentials. Reject untrusted hosts, redirect responses, unsafe source
+mode, stale timestamps and malformed numeric data. Display explicit snapshot
+provenance. Server-side disabled by default. No automatic trading, actual P&L,
+financial posts, user positions, RFQ/order changes, or AI action rights result.
+
+The E-YAY connector's existence is not proof of a running source or accurate
+forecasts. CI fixture tests and an isolated real-HTTP check are distinct gates.
