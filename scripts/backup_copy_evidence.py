@@ -128,7 +128,12 @@ def verify_manifest(
         relative = Path(copies[label])
         if relative.is_absolute() or ".." in relative.parts:
             raise EvidenceError("Backup paths must be within the specified evidence root")
-        source = (resolved_root / relative).resolve(strict=True)
+        component_path = resolved_root
+        for component in relative.parts:
+            component_path /= component
+            if component_path.is_symlink():
+                raise EvidenceError("Backup paths cannot contain symbolic links")
+        source = component_path.resolve(strict=True)
         if not source.is_relative_to(resolved_root):
             raise EvidenceError("Backup paths escape the evidence root")
         info = _digest(source, count, label=label)
