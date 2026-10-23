@@ -30,10 +30,12 @@ const REQUEST_HEADERS = [
 
 const RESPONSE_HEADERS = [
   "cache-control",
+  "content-disposition",
   "content-type",
   "etag",
   "retry-after",
   "vary",
+  "x-content-type-options",
   "x-request-id",
 ] as const;
 

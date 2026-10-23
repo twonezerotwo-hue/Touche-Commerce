@@ -342,7 +342,7 @@ export function DiscrepancyResolutionForm({
   csrfToken,
   canReview,
 }: {
-  discrepancy: ReconciliationDiscrepancy;
+  discrepancy: Pick<ReconciliationDiscrepancy, "id" | "status" | "version">;
   csrfToken: string;
   canReview: boolean;
 }) {

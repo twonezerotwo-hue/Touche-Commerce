@@ -157,6 +157,9 @@ export default async function FinancePage({
             <Button asChild variant="outline" size="sm">
               <Link href="/finance/discrepancies">Discrepancies</Link>
             </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/finance/intelligence">Intelligence</Link>
+            </Button>
             <Button asChild variant="ghost" size="sm">
               <Link href="/">Back to Command Center</Link>
             </Button>

@@ -3,6 +3,7 @@ import {
   ArrowLeftRight,
   Banknote,
   Calculator,
+  ChartNoAxesCombined,
   ClipboardCheck,
   FileText,
   FileWarning,
@@ -171,6 +172,13 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         stage: "Stage 5D",
         description: "Exception queue for missing or conflicting evidence",
       },
+      {
+        label: "Intelligence",
+        icon: ChartNoAxesCombined,
+        href: "/finance/intelligence",
+        stage: "Stage 5E",
+        description: "Order profitability, cost variance and evidence coverage",
+      },
     ],
   },
   {
@@ -266,6 +274,16 @@ export function resolveWorkspaceContext(pathname: string): WorkspaceContext {
   if (pathname === "/finance/reconciliation") return { section: "Finance", page: "Reconciliation" };
   if (pathname === "/finance/discrepancies") return { section: "Finance", page: "Discrepancies" };
   if (pathname.startsWith("/finance/orders/")) return { section: "Finance", page: "Order finance" };
+  if (pathname === "/finance/intelligence") return { section: "Finance", page: "Intelligence" };
+  if (pathname === "/finance/intelligence/orders") {
+    return { section: "Finance", page: "Order profitability" };
+  }
+  if (pathname.startsWith("/finance/intelligence/orders/")) {
+    return { section: "Finance", page: "Order intelligence" };
+  }
+  if (pathname === "/finance/intelligence/exceptions") {
+    return { section: "Finance", page: "Financial exceptions" };
+  }
   if (pathname === "/crm") return { section: "Workspace", page: "CRM" };
   if (pathname === "/products") return { section: "Workspace", page: "Products" };
   if (pathname === "/account") return { section: "Account", page: "Profile & access" };

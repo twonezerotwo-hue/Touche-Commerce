@@ -1,0 +1,576 @@
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { ExportCsvButton } from "./export-csv-button";
+import {
+  CompletenessBar,
+  CostComparisonChart,
+  MarginDistributionChart,
+  MonthlyCommitmentsChart,
+  RankedCountChart,
+} from "./intelligence-charts";
+import { IntelligenceDetail } from "./intelligence-detail";
+import { IntelligenceExceptionsTable } from "./intelligence-exceptions";
+import { IntelligenceFilterBar } from "./intelligence-filters";
+import { MetricCard } from "./intelligence-metrics";
+import { IntelligenceOrdersTable } from "./intelligence-orders-table";
+import { Pager } from "./pager";
+import type {
+  FinancialException,
+  IntelligenceMetric,
+  OrderIntelligenceDetail,
+  OrderProfitability,
+} from "@/lib/finance/intelligence";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn(), back: vi.fn() }),
+}));
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+const ORDER_ID = "7f1c1b3e-0000-4000-8000-000000000001";
+const RUN_ID = "7f1c1b3e-0000-4000-8000-0000000000aa";
+
+function metric(overrides: Partial<IntelligenceMetric> = {}): IntelligenceMetric {
+  return {
+    key: "accepted_value",
+    label: "Accepted order value",
+    kind: "MONEY",
+    money: [
+      { currency: "USD", amount: "250.00" },
+      { currency: "EUR", amount: "100.00" },
+    ],
+    percentages: [],
+    percentage: null,
+    count: null,
+    available: true,
+    classification: "DOCUMENTED",
+    completeness: "COMPLETE",
+    meaning: "Documented customer acceptance, not revenue recognition.",
+    as_of: "2026-10-23",
+    data_through: null,
+    ...overrides,
+  };
+}
+
+function order(overrides: Partial<OrderProfitability> = {}): OrderProfitability {
+  return {
+    sales_order_id: ORDER_ID,
+    order_number: "SO-2610-ABC123",
+    customer_name: "Buyer Ltd",
+    status: "CONFIRMED",
+    fulfilment_model: "PURCHASE_RESALE",
+    currency: "USD",
+    confirmed_at: "2026-10-20T09:00:00+00:00",
+    expected_delivery_date: null,
+    sales_value: "250.00",
+    estimated_gross_profit: "80.00",
+    estimated_gross_margin_pct: "32.00",
+    committed_gross_profit: null,
+    committed_gross_margin_pct: null,
+    documented_total_cost: null,
+    cost_variance: null,
+    cost_variance_pct: null,
+    estimate_status: "COMPLETE",
+    committed_status: "PARTIAL",
+    completeness: "PARTIAL",
+    missing_components: ["SHIPMENT_COSTS"],
+    classifications: {
+      sales_value: "DOCUMENTED",
+      estimated_gross_profit: "ESTIMATED",
+      committed_gross_profit: "UNAVAILABLE",
+      documented_operational_cost: "UNAVAILABLE",
+      cost_variance: "UNAVAILABLE",
+      actual_profit: "UNAVAILABLE",
+    },
+    purchase_currency_mismatch: false,
+    cost_currency_mismatch: false,
+    partial_fulfilment: true,
+    cancelled: false,
+    reconciliation_status: "UNMATCHED",
+    latest_run_id: RUN_ID,
+    latest_run_at: "2026-10-22T12:00:00+00:00",
+    data_through: "2026-10-20",
+    open_discrepancy_count: 2,
+    blocking_discrepancy_count: 1,
+    run_count: 1,
+    ...overrides,
+  };
+}
+
+function exception(overrides: Partial<FinancialException> = {}): FinancialException {
+  return {
+    id: "disc-1",
+    run_id: RUN_ID,
+    sales_order_id: ORDER_ID,
+    order_number: "SO-2610-ABC123",
+    customer_name: "Buyer Ltd",
+    currency: "USD",
+    order_status: "CONFIRMED",
+    code: "MISSING_FINANCE_REFERENCE",
+    severity: "WARNING",
+    status: "OPEN",
+    title: "No Finance source is linked to this order yet",
+    detail: "An unavailable capability, not proof that an invoice is missing.",
+    expected: {},
+    observed: {},
+    source_entity_type: null,
+    source_entity_id: null,
+    finance_source_reference: null,
+    reviewer_name: null,
+    resolution_notes: null,
+    resolved_at: null,
+    created_at: "2026-10-22T12:00:00+00:00",
+    updated_at: "2026-10-22T12:00:00+00:00",
+    version: 1,
+    ...overrides,
+  };
+}
+
+function detail(): OrderIntelligenceDetail {
+  return {
+    order: order(),
+    quote: {
+      quote_id: "quote-1",
+      quote_number: "SQ-2610-0001",
+      revision: 2,
+      status: "APPROVED",
+      currency: "USD",
+      incoterm: "CIF",
+      named_delivery_place: "Rotterdam",
+      payment_terms: "30 days net",
+      valid_until: "2026-12-01",
+      lines: [
+        {
+          product_id: "prod-1",
+          description: "Aluminium ingot",
+          quantity: "100.000",
+          unit: "MT",
+          unit_price: "2.50",
+          line_total: "250.00",
+        },
+      ],
+    },
+    purchase_orders: [
+      {
+        purchase_order_id: "po-1",
+        po_number: "PO-2610-0001",
+        status: "APPROVED",
+        currency: "USD",
+        total_cost: "150.00",
+        supplier_name: "Supplier One",
+        classification: "COMMITTED",
+      },
+    ],
+    shipments: [
+      {
+        shipment_id: "shp-1",
+        shipment_number: "SHP-2610-0001",
+        status: "DELIVERED",
+        costs: [
+          {
+            cost_id: "cost-1",
+            cost_type: "FREIGHT",
+            stage: "INCURRED",
+            currency: "USD",
+            amount: "20.00",
+            reference: "freight-1",
+            classification: "DOCUMENTED",
+          },
+        ],
+      },
+    ],
+    cost_lines: [
+      {
+        cost_type: "VAT_CASHFLOW",
+        original_amount: "18.00",
+        original_currency: "USD",
+        converted_amount: "18.00",
+        target_currency: "USD",
+        basis: "ORDER",
+        verification_status: "VERIFIED",
+        source_reference: "vat-1",
+        fx_rate: null,
+        fx_snapshot_id: null,
+        is_expense: false,
+      },
+    ],
+    fx_assumptions: [],
+    checks: [
+      {
+        key: "po",
+        label: "Approved purchase order",
+        satisfied: true,
+        detail: "PO-2610-0001 is approved.",
+      },
+      {
+        key: "ship",
+        label: "Shipment cost evidence",
+        satisfied: false,
+        detail: "No INCURRED cost is recorded.",
+      },
+    ],
+    limitations: ["Actual profit needs a Finance invoice source that does not exist yet."],
+    runs: [
+      {
+        run_id: RUN_ID,
+        status: "UNMATCHED",
+        as_of: "2026-10-22",
+        data_through: "2026-10-20",
+        currency: "USD",
+        created_at: "2026-10-22T12:00:00+00:00",
+        evidence_count: 0,
+        open_discrepancy_count: 2,
+        latest_decision: null,
+        latest_review_at: null,
+      },
+    ],
+    evidence: [],
+    discrepancies: [exception()],
+    read_only: true,
+    accounting_writes_enabled: false,
+    statutory_statements: false,
+  };
+}
+
+describe("MetricCard", () => {
+  it("shows each currency on its own line and never a combined total", () => {
+    render(<MetricCard metric={metric()} />);
+    const card = screen.getByText("Accepted order value").closest("[data-metric]") as HTMLElement;
+    expect(within(card).getByText(/250\.00/)).toBeInTheDocument();
+    expect(within(card).getByText(/100\.00/)).toBeInTheDocument();
+    expect(within(card).getByText("USD")).toBeInTheDocument();
+    expect(within(card).getByText("EUR")).toBeInTheDocument();
+    expect(within(card).queryByText(/350/)).not.toBeInTheDocument();
+    expect(within(card).getByText("DOCUMENTED")).toBeInTheDocument();
+    expect(within(card).getByText("COMPLETE")).toBeInTheDocument();
+  });
+
+  it("says Not available instead of showing zero for an unavailable metric", () => {
+    render(
+      <MetricCard
+        metric={metric({
+          available: false,
+          classification: "UNAVAILABLE",
+          completeness: "UNAVAILABLE",
+          money: [{ currency: "USD", amount: "0.00" }],
+        })}
+      />,
+    );
+    expect(screen.getByText("Not available")).toBeInTheDocument();
+    expect(screen.queryByText(/0\.00/)).not.toBeInTheDocument();
+  });
+});
+
+describe("charts", () => {
+  const monthly = [
+    {
+      month: "2026-09",
+      currency: "USD",
+      accepted_value: "250.00",
+      purchase_commitments: "150.00",
+      order_count: 1,
+    },
+    {
+      month: "2026-09",
+      currency: "EUR",
+      accepted_value: "100.00",
+      purchase_commitments: "60.00",
+      order_count: 2,
+    },
+  ];
+
+  it("draws one scale per currency, with a legend and a table view", () => {
+    render(<MonthlyCommitmentsChart rows={monthly} />);
+    expect(screen.getByLabelText("Legend")).toHaveTextContent("Accepted value");
+    expect(screen.getByLabelText("Legend")).toHaveTextContent("Purchase commitments");
+    expect(screen.getByText("Table view")).toBeInTheDocument();
+    const marks = screen.getAllByLabelText(/· accepted/);
+    expect(marks).toHaveLength(2);
+    expect(screen.getByLabelText(/2026-09 · USD · accepted/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/2026-09 · EUR · accepted/)).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/350\.00/);
+  });
+
+  it("states emptiness instead of drawing an empty plot", () => {
+    render(<MonthlyCommitmentsChart rows={[]} />);
+    expect(screen.getByText("No monthly commitments")).toBeInTheDocument();
+    expect(screen.queryByText("Table view")).not.toBeInTheDocument();
+  });
+
+  it("compares estimated and documented cost inside each currency", () => {
+    render(
+      <CostComparisonChart
+        rows={[
+          {
+            currency: "USD",
+            estimated_cost: "170.00",
+            documented_cost: "170.00",
+            variance: "0.00",
+            order_count: 1,
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByLabelText(/Estimated cost .*170\.00/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Documented cost .*170\.00/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Legend")).toBeInTheDocument();
+  });
+
+  it("lists margin bands with their order counts", () => {
+    render(
+      <MarginDistributionChart
+        buckets={[
+          { key: "LOSS", label: "LOSS", count: 1 },
+          { key: "30+", label: "30+", count: 4 },
+        ]}
+      />,
+    );
+    expect(screen.getByLabelText("30+: 4 orders")).toBeInTheDocument();
+    expect(screen.getByLabelText("LOSS: 1 order")).toBeInTheDocument();
+  });
+
+  it("ranks categories by count, largest first", () => {
+    render(
+      <RankedCountChart
+        title="Exception categories"
+        items={[
+          { key: "SOURCE_STALE", count: 1 },
+          { key: "MISSING_EVIDENCE", count: 4 },
+        ]}
+        emptyTitle="No open exceptions"
+      />,
+    );
+    const rows = screen.getAllByRole("listitem");
+    expect(rows[0]).toHaveAttribute("aria-label", "MISSING EVIDENCE: 4");
+    expect(rows[1]).toHaveAttribute("aria-label", "SOURCE STALE: 1");
+  });
+
+  it("names every completeness segment with its count", () => {
+    render(
+      <CompletenessBar
+        title="Order completeness"
+        counts={[
+          { status: "COMPLETE", count: 3 },
+          { status: "PARTIAL", count: 1 },
+          { status: "MISSING", count: 0 },
+          { status: "UNAVAILABLE", count: 2 },
+        ]}
+      />,
+    );
+    for (const label of ["COMPLETE", "PARTIAL", "MISSING", "UNAVAILABLE"]) {
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    }
+    expect(screen.getByText("Table view")).toBeInTheDocument();
+  });
+});
+
+describe("IntelligenceOrdersTable", () => {
+  it("links to the order analysis and keeps missing figures as words", () => {
+    render(<IntelligenceOrdersTable items={[order()]} />);
+    expect(screen.getByRole("link", { name: "SO-2610-ABC123" })).toHaveAttribute(
+      "href",
+      `/finance/intelligence/orders/${ORDER_ID}`,
+    );
+    expect(screen.getAllByText("Not available").length).toBeGreaterThan(0);
+    expect(screen.getByText("Partial fulfilment")).toBeInTheDocument();
+    expect(screen.getByText(/Missing: SHIPMENT COSTS/)).toBeInTheDocument();
+    expect(screen.getByText("2 open · 1 blocking")).toBeInTheDocument();
+  });
+
+  it("shows an empty state for no orders", () => {
+    render(<IntelligenceOrdersTable items={[]} />);
+    expect(screen.getByText("No orders match")).toBeInTheDocument();
+  });
+});
+
+describe("IntelligenceExceptionsTable", () => {
+  it("offers resolution only to a reviewer on an open item", () => {
+    const { rerender } = render(
+      <IntelligenceExceptionsTable items={[exception()]} csrfToken="csrf" canReview />,
+    );
+    expect(screen.getByRole("button", { name: "Resolve" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "SO-2610-ABC123" })).toHaveAttribute(
+      "href",
+      `/finance/intelligence/orders/${ORDER_ID}`,
+    );
+
+    rerender(
+      <IntelligenceExceptionsTable items={[exception()]} csrfToken="csrf" canReview={false} />,
+    );
+    expect(screen.queryByRole("button", { name: "Resolve" })).not.toBeInTheDocument();
+
+    rerender(
+      <IntelligenceExceptionsTable
+        items={[
+          exception({
+            status: "RESOLVED",
+            resolution_notes: "Linked F-USD-AR-1.",
+            reviewer_name: "Amina",
+          }),
+        ]}
+        csrfToken="csrf"
+        canReview
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Resolve" })).not.toBeInTheDocument();
+    expect(screen.getByText("Linked F-USD-AR-1.")).toBeInTheDocument();
+  });
+});
+
+describe("IntelligenceDetail", () => {
+  it("separates the bases, keeps actual profit unavailable and states the limitations", () => {
+    render(<IntelligenceDetail detail={detail()} csrfToken="csrf" canReview={false} />);
+    expect(screen.getByText("Actual profit").closest(".panel")).toHaveTextContent("Not available");
+    expect(screen.getByText("Estimated gross profit")).toBeInTheDocument();
+    expect(screen.getByText("Committed gross profit")).toBeInTheDocument();
+    expect(
+      screen.getByText("Actual profit needs a Finance invoice source that does not exist yet."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Approved purchase order")).toBeInTheDocument();
+    expect(screen.getByText(/Shipment cost evidence/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "PO-2610-0001" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "SHP-2610-0001" })).toBeInTheDocument();
+    expect(
+      screen.getByText("No Finance source has been linked to this order."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Exceptions for this order")).toBeInTheDocument();
+  });
+
+  it("marks a non-expense cost line as excluded", () => {
+    render(<IntelligenceDetail detail={detail()} csrfToken="csrf" canReview={false} />);
+    const row = screen.getByText("VAT CASHFLOW").closest("tr") as HTMLElement;
+    expect(within(row).getByText("No")).toBeInTheDocument();
+  });
+});
+
+describe("IntelligenceFilterBar and Pager", () => {
+  const options = {
+    currencies: ["EUR", "USD"],
+    customers: [{ id: "c1", name: "Buyer Ltd" }],
+    suppliers: [],
+    order_statuses: ["CONFIRMED"],
+    fulfilment_models: ["PURCHASE_RESALE"],
+    reconciliation_statuses: ["VERIFIED"],
+    completeness_statuses: ["COMPLETE" as const],
+  };
+
+  it("pre-selects active filters, preserves hidden state and offers Clear", () => {
+    render(
+      <IntelligenceFilterBar
+        action="/finance/intelligence/orders"
+        filters={{ currency: "USD", from: "2026-01-01" }}
+        options={options}
+        hidden={{ view: "variance" }}
+      />,
+    );
+    expect(screen.getByLabelText("Currency")).toHaveValue("USD");
+    expect(screen.getByLabelText("From")).toHaveValue("2026-01-01");
+    expect(screen.getByRole("option", { name: "Buyer Ltd" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Clear" })).toHaveAttribute(
+      "href",
+      "/finance/intelligence/orders?view=variance",
+    );
+    expect(document.querySelector('input[type="hidden"][name="view"]')).toHaveAttribute(
+      "value",
+      "variance",
+    );
+  });
+
+  it("pages forward and back while keeping the filters", () => {
+    render(
+      <Pager
+        basePath="/finance/intelligence/orders"
+        total={60}
+        limit={25}
+        offset={25}
+        params={{ currency: "USD" }}
+        noun="order"
+      />,
+    );
+    expect(screen.getByRole("link", { name: "Previous" })).toHaveAttribute(
+      "href",
+      "/finance/intelligence/orders?currency=USD&offset=0",
+    );
+    expect(screen.getByRole("link", { name: "Next" })).toHaveAttribute(
+      "href",
+      "/finance/intelligence/orders?currency=USD&offset=50",
+    );
+    expect(screen.getByText(/60 orders/)).toBeInTheDocument();
+  });
+});
+
+describe("ExportCsvButton", () => {
+  it("downloads the file with the server's name and sends the active filters", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("record_type\r\n", {
+        status: 200,
+        headers: {
+          "content-type": "text/csv",
+          "content-disposition": 'attachment; filename="analysis-20261023.csv"',
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const createObjectURL = vi.fn(() => "blob:mock");
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, "createObjectURL", { value: createObjectURL, configurable: true });
+    Object.defineProperty(URL, "revokeObjectURL", { value: revokeObjectURL, configurable: true });
+    const downloads: string[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      downloads.push(this.download);
+    });
+
+    render(<ExportCsvButton filters={{ currency: "USD" }} orderCount={3} />);
+    expect(screen.getByText("3 orders")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Export CSV/ }));
+
+    await waitFor(() => expect(downloads).toEqual(["analysis-20261023.csv"]));
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toMatch(/\/finance\/intelligence\/export\?currency=USD$/);
+    expect(init.credentials).toBe("same-origin");
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock");
+    expect(screen.queryByText("Export failed")).not.toBeInTheDocument();
+  });
+
+  it("shows a refusal on the page instead of saving the error as a file", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            error: {
+              code: "BAD_REQUEST",
+              message: "The selected analysis contains more than 5000 orders.",
+              request_id: "req-9",
+              timestamp: "2026-10-23T09:00:00+00:00",
+              details: null,
+            },
+          }),
+          { status: 400, headers: { "content-type": "application/json" } },
+        ),
+      ),
+    );
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    render(<ExportCsvButton filters={{}} />);
+    await userEvent.click(screen.getByRole("button", { name: /Export CSV/ }));
+
+    expect(await screen.findByText("Export failed")).toBeInTheDocument();
+    expect(screen.getByText(/more than 5000 orders/)).toBeInTheDocument();
+    expect(screen.getByText(/BAD_REQUEST · request req-9/)).toBeInTheDocument();
+    expect(click).not.toHaveBeenCalled();
+  });
+
+  it("reports an unreachable API", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    render(<ExportCsvButton filters={{}} />);
+    await userEvent.click(screen.getByRole("button", { name: /Export CSV/ }));
+    expect(await screen.findByText(/Cannot reach the API/)).toBeInTheDocument();
+  });
+});
