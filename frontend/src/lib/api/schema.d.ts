@@ -383,6 +383,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/communications/suppressions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Suppressions
+         * @description Administrator-only, tenant-scoped, bounded, address-free ledger view.
+         */
+        get: operations["list_suppressions_api_v1_communications_suppressions_get"];
+        put?: never;
+        /**
+         * Create Suppression
+         * @description Record a permanent safety block, never an opt-in or delivery permission.
+         *
+         *     An idempotency key is mandatory, and the audit row commits atomically with
+         *     the suppression. Duplicate blocks do not generate additional audit events.
+         */
+        post: operations["create_suppression_api_v1_communications_suppressions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/companies": {
         parameters: {
             query?: never;
@@ -2274,7 +2301,7 @@ export interface components {
         /** CommunicationPreflightResponse */
         CommunicationPreflightResponse: {
             /** Blockers */
-            blockers: ("DRAFT_NOT_APPROVED" | "DRAFT_VERSION_MISMATCH" | "CHANNEL_NOT_CONFIGURED" | "SEND_PERMISSION_UNAVAILABLE" | "RECIPIENT_INVALID" | "CRM_RECIPIENT_MISMATCH" | "CONSENT_UNDOCUMENTED")[];
+            blockers: ("DRAFT_NOT_APPROVED" | "DRAFT_VERSION_MISMATCH" | "CHANNEL_NOT_CONFIGURED" | "SEND_PERMISSION_UNAVAILABLE" | "RECIPIENT_INVALID" | "CRM_RECIPIENT_MISMATCH" | "CONSENT_UNDOCUMENTED" | "RECIPIENT_SUPPRESSED")[];
             /**
              * Channel
              * @enum {string}
@@ -2306,6 +2333,11 @@ export interface components {
         };
         /** CommunicationsStatusResponse */
         CommunicationsStatusResponse: {
+            /**
+             * Can Manage Suppressions
+             * @default false
+             */
+            can_manage_suppressions: boolean;
             /** Can Review Drafts */
             can_review_drafts: boolean;
             /** Channels */
@@ -6074,6 +6106,27 @@ export interface components {
              */
             status: "INCOMPLETE" | "UNMATCHED" | "POTENTIAL_MATCH" | "MATCHED_EVIDENCE" | "VERIFIED" | "DISPUTED";
         };
+        /**
+         * RecordSuppressionRequest
+         * @description A block only; no opt-in claim, recipient address or free-text PII.
+         */
+        RecordSuppressionRequest: {
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "EMAIL" | "WHATSAPP_BUSINESS";
+            /**
+             * Counterparty Id
+             * Format: uuid
+             */
+            counterparty_id: string;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "CONTACT_REQUEST" | "COMPLIANCE_REVIEW" | "IMPORTED_BLOCK";
+        };
         /** ReviewRequest */
         ReviewRequest: {
             /**
@@ -7989,6 +8042,61 @@ export interface components {
             /** Reason */
             reason: string;
         };
+        /** SuppressionListResponse */
+        SuppressionListResponse: {
+            /** Items */
+            items: components["schemas"]["SuppressionResponse"][];
+            /**
+             * Truncated
+             * @default false
+             */
+            truncated: boolean;
+        };
+        /** SuppressionResponse */
+        SuppressionResponse: {
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "EMAIL" | "WHATSAPP_BUSINESS";
+            /**
+             * Counterparty Id
+             * Format: uuid
+             */
+            counterparty_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Effect
+             * @default BLOCKED
+             * @constant
+             */
+            effect: "BLOCKED";
+            /**
+             * Grants Consent
+             * @default false
+             * @constant
+             */
+            grants_consent: false;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "CONTACT_REQUEST" | "COMPLIANCE_REVIEW" | "IMPORTED_BLOCK";
+            /**
+             * Recorded By
+             * Format: uuid
+             */
+            recorded_by: string;
+        };
         /** TaskProposalResponse */
         TaskProposalResponse: {
             /** Evidence */
@@ -8835,6 +8943,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CommunicationsStatusResponse"];
+                };
+            };
+        };
+    };
+    list_suppressions_api_v1_communications_suppressions_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuppressionListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_suppression_api_v1_communications_suppressions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordSuppressionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuppressionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -118,6 +118,8 @@ class AuditAction(StrEnum):
     AI_PROPOSAL_EDITED = "ai.proposal.edited"
     AI_PROPOSAL_APPROVED = "ai.proposal.approved"
     AI_PROPOSAL_REJECTED = "ai.proposal.rejected"
+    # Stage 7C2: irrevocable outbound contact suppression; no contact data in audit.
+    COMMUNICATION_SUPPRESSION_RECORDED = "communications.suppression.recorded"
 
 
 _AUDIT_ACTIONS = tuple(action.value for action in AuditAction)

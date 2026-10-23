@@ -34,6 +34,8 @@ class Permission(StrEnum):
     TRADE_WRITE = "trade.write"
     # Stage 7A: distinct outbound permission, deliberately granted to no role yet.
     COMMUNICATIONS_SEND = "communications.send"
+    # An independent admin-only safety action; does not grant sending.
+    COMMUNICATIONS_SUPPRESS = "communications.suppress"
     FINANCE_APPROVE = "finance.approve"
     # Stage 5D: a distinct financial-review capability. Admin never inherits it.
     FINANCE_RECONCILE = "finance.reconcile"
@@ -59,6 +61,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             Permission.SETTINGS_MANAGE,
             Permission.MEMBERSHIP_MANAGE,
             Permission.AUDIT_VIEW,
+            Permission.COMMUNICATIONS_SUPPRESS,
         }
     ),
 }

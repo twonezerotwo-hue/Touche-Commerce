@@ -20,6 +20,11 @@ from app.db.models.ai import (
 )
 from app.db.models.audit import AuditAction, AuditActorType, AuditOutcome, AuditRecord
 from app.db.models.base import SCHEMA, Base
+from app.db.models.communications import (
+    CommunicationSuppression,
+    SuppressionChannel,
+    SuppressionReason,
+)
 from app.db.models.finance import FinanceCompanyMapping, FinanceMappingStatus
 from app.db.models.identity import (
     Company,
@@ -124,6 +129,7 @@ __all__ = [
     "AuditOutcome",
     "AuditRecord",
     "Base",
+    "CommunicationSuppression",
     "Company",
     "CompanySettingEntry",
     "CompanySettings",
@@ -204,6 +210,8 @@ __all__ = [
     "SupplierRfq",
     "SupplierRfqItem",
     "SupplierRfqRevision",
+    "SuppressionChannel",
+    "SuppressionReason",
     "ToolCallStatus",
     "TrackingSource",
     "TradeDocument",

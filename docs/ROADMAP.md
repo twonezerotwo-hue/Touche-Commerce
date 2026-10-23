@@ -432,3 +432,13 @@ of contact ownership or permission to send. Both channels still report
 NOT_CONFIGURED, `CONSENT_UNDOCUMENTED` is unavoidable, and sending is disabled.
 Provider authorization and structured consent history belong to later Stage
 7C milestones, each requiring independent security/production validation.
+
+
+#### Stage 7C2 — Suppression ledger (in progress)
+
+Introduce an immutable, audited do-not-contact ledger: an administrator can
+block an existing company's CRM contact on either channel without adding
+recipient PII. Existing preflight always refuses delivery and now also
+reports an explicit suppression blocker. Opt-in evidence, suppression
+lifting procedures, provider auth, transport, webhooks and human-approved
+outbound messages are **not** implemented in Stage 7C2.

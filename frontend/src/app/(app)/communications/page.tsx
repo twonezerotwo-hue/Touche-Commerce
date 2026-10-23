@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { CommunicationPreflight } from "@/components/communications/preflight";
+import { SuppressionPanel } from "@/components/communications/suppression-panel";
 import { ApiErrorAlert } from "@/components/finance/api-error-alert";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
@@ -21,6 +22,7 @@ type CommunicationsStatus = {
   mode: "DRAFT_ONLY";
   external_sending_enabled: false;
   can_review_drafts: boolean;
+  can_manage_suppressions: boolean;
   channels: Channel[];
 };
 
@@ -63,6 +65,13 @@ export default async function CommunicationsPage() {
     ),
   ]);
 
+  const suppressions =
+    status.ok && status.data.can_manage_suppressions
+      ? await serverGet<components["schemas"]["SuppressionListResponse"]>(
+          "/communications/suppressions?limit=50",
+        )
+      : null;
+
   return (
     <div className="mx-auto max-w-[1360px] space-y-6">
       {header}
@@ -89,6 +98,24 @@ export default async function CommunicationsPage() {
               </div>
             ))}
           </section>
+          {status.data.can_manage_suppressions && suppressions ? (
+            suppressions.ok ? (
+              <SuppressionPanel
+                csrfToken={state.session.session.csrf_token}
+                counterparties={
+                  contacts.ok
+                    ? contacts.data.items.map((item) => ({
+                        id: item.id,
+                        name: item.name,
+                      }))
+                    : []
+                }
+                saved={suppressions.data.items}
+              />
+            ) : (
+              <ApiErrorAlert title="Suppression ledger unavailable" failure={suppressions} />
+            )
+          ) : null}
           <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>

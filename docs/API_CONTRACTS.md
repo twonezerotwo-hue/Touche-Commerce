@@ -1369,3 +1369,24 @@ The existing `sendable=false`, `external_sending_enabled=false` and
 CI workflow `40021727161` passed with 561 backend and 192 frontend tests,
 and PR #3 merged. No interactive browser or actual provider/consent evidence
 verification was performed.
+
+
+### 14.3 Stage 7C2 — Suppression registry (CI validation pending)
+
+`GET /communications/suppressions?limit=50` requires the new
+`communications.suppress` capability, currently assigned only to company
+administrators. Returns a bounded list of company-scoped contact UUIDs,
+channels, reasons, recorders and timestamps — not contact addresses.
+
+`POST /communications/suppressions` requires that capability, verified
+session/active company, CSRF and `Idempotency-Key`. Body is
+`{counterparty_id, channel: EMAIL|WHATSAPP_BUSINESS,
+reason: CONTACT_REQUEST|COMPLIANCE_REVIEW|IMPORTED_BLOCK}`. Returns 201 on
+new block, 200 if the company/contact/channel already has a block, or
+idempotent replay. The first recorded block is never edited; every new
+block and audit row commit atomically. No DELETE, PUT, opt-in or send endpoint.
+
+Preflight adds `RECIPIENT_SUPPRESSED` where a matching company contact
+and channel have been blocked; `CONSENT_UNDOCUMENTED` remains unconditional
+and `sendable=false` is unchanged. Nothing authenticates a recipient,
+grants channel consent or connects a provider.

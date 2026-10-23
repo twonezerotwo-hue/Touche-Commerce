@@ -723,3 +723,12 @@ CRM record as proof of consent**. Provider connections and sending remain
 unavailable; no address or phone is stored by the preflight. The feature passed GitHub CI (561 backend / 192 frontend) and merged from
 PR #3. Contact control, consent records, live providers and messaging are
 still unavailable.
+
+
+### Stage 7C2 — administrator do-not-contact ledger (in progress)
+
+The Communications workspace offers company administrators an irreversible
+per-contact, per-channel suppression registry. Records do not contain phone
+numbers or email addresses, and no user or AI obtains send permission.
+The new PostgreSQL migration and API require isolated test execution before
+this branch can be merged; do not use live providers or Finance data.

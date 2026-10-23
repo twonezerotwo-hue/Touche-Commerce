@@ -23,6 +23,7 @@ class CommunicationsStatusResponse(CommunicationsModel):
     mode: Literal["DRAFT_ONLY"] = "DRAFT_ONLY"
     external_sending_enabled: Literal[False] = False
     can_review_drafts: bool
+    can_manage_suppressions: bool = False
     send_permission: Literal["communications.send"] = "communications.send"
     channels: list[ChannelStatus] = Field(default_factory=list)
 
@@ -66,6 +67,7 @@ PreflightBlocker = Literal[
     "RECIPIENT_INVALID",
     "CRM_RECIPIENT_MISMATCH",
     "CONSENT_UNDOCUMENTED",
+    "RECIPIENT_SUPPRESSED",
 ]
 
 
@@ -76,3 +78,28 @@ class CommunicationPreflightResponse(CommunicationsModel):
     external_sending_enabled: Literal[False] = False
     blockers: list[PreflightBlocker]
     recipient_echoed: Literal[False] = False
+
+
+class RecordSuppressionRequest(BaseModel):
+    """A block only; no opt-in claim, recipient address or free-text PII."""
+
+    model_config = ConfigDict(extra="forbid")
+    counterparty_id: UUID
+    channel: Literal["EMAIL", "WHATSAPP_BUSINESS"]
+    reason: Literal["CONTACT_REQUEST", "COMPLIANCE_REVIEW", "IMPORTED_BLOCK"]
+
+
+class SuppressionResponse(CommunicationsModel):
+    id: UUID
+    counterparty_id: UUID
+    channel: Literal["EMAIL", "WHATSAPP_BUSINESS"]
+    reason: Literal["CONTACT_REQUEST", "COMPLIANCE_REVIEW", "IMPORTED_BLOCK"]
+    recorded_by: UUID
+    created_at: datetime
+    effect: Literal["BLOCKED"] = "BLOCKED"
+    grants_consent: Literal[False] = False
+
+
+class SuppressionListResponse(CommunicationsModel):
+    items: list[SuppressionResponse]
+    truncated: bool = False

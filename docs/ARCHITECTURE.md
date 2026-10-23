@@ -1472,3 +1472,18 @@ CI run `40021727161` passed 561 backend / 192 frontend tests and generated
 API client drift checks; PR #3 merged at `7624c33`. This is not a provider
 OAuth implementation, customer consent ledger, browser acceptance or live
 sending verification. All provider connections still report NOT_CONFIGURED.
+
+
+## 29. Stage 7C2 append-only do-not-contact ledger (in progress)
+
+An independently authorized administrator creates an immutable block on
+(tenant company, CRM counterparty, channel) via a CSRF-protected,
+idempotent, audited endpoint. PostgreSQL RLS plus composite foreign keys
+enforce isolation. No raw recipient is stored in the ledger. Existing
+preflight queries this ledger and returns `RECIPIENT_SUPPRESSED` in addition
+to continuing consent and provider blockers. No opt-in, unblock, provider
+connection, message queue or delivery path exists.
+
+The separate migrations and migration-head tests must pass before this slice
+can be marked verified. Runtime table privileges are SELECT/INSERT only,
+and the audit event is appended to the existing immutable audit trail.

@@ -1,8 +1,8 @@
 # TOUCHE COMMERCE — Progress
 
 **Last updated:** 2026-10-23 (local)
-**Current stage:** Stage 7C1 — CRM recipient provenance (CI VERIFIED and merged)
-**Current milestone:** 7C1 — CRM source match and consent fail-closed, 561 backend / 192 frontend
+**Current stage:** Stage 7C2 — append-only suppression registry (IN_PROGRESS; CI pending)
+**Current milestone:** 7C2 — admin-only CRM/channel opt-out records; sends still disabled
 **Stage 6:** PASSED on Stage 6 local reported evidence (551 backend / 192 frontend, mock provider)
 **Stage 7A:** PASSED in GitHub CI (555 backend / 192 frontend, OpenAPI current; PR #1 merged); Windows browser acceptance not run
 **Stage 7B:** PASSED in GitHub CI (558 backend / 192 frontend, PR #2 merged)
@@ -2148,3 +2148,34 @@ channel-specific consent, Gmail/WhatsApp provider auth, real delivery.
 **Future Stage 7C:** verified contact control, independently audited
 channel-specific consent evidence, opt-out/suppression, authorized provider
 connection setup, revocation, dedicated send approval and delivery executor.
+
+
+---
+
+## 31. Stage 7C2 — Do-not-contact ledger (IN_PROGRESS)
+
+Feature branch: `stage-7c2`, based on CI-verified Stage 7C1 main
+(`e26b93a`). Migration: `0011_communication_suppression`.
+
+* Append-only `touche.communication_suppression`: tenant company, CRM
+  counterparty, EMAIL/WHATSAPP_BUSINESS channel, bounded reason, administrator,
+  timestamp, unique company+counterparty+channel. **No address/phone stored**.
+* Strict composite foreign key to CRM, runtime SELECT+INSERT only, RLS
+  tenant policies and no UPDATE/DELETE. Downgrade blocks if evidence exists.
+* `communications.suppress` independent administrator-only permission;
+  `communications.send` remains granted to no role.
+* Admin-only GET/POST suppression APIs; POST requires session, active-company
+  role, CSRF and a required Idempotency-Key, uses an atomic audit event
+  (`communications.suppression.recorded`). Duplicate blocks preserve
+  original reason and actor; no additional event.
+* Existing preflight includes `RECIPIENT_SUPPRESSED` when applicable and
+  continues to always return `sendable=false`.
+* Communications workspace displays an admin-only do-not-contact panel
+  requiring explicit acknowledgement of permanence.
+* Backend tests target replay, duplication, permission refusal, audit,
+  preflight denial and cross-company isolation.
+
+**Verification pending:** GitHub Actions with fresh PostgreSQL migration,
+Ruff, mypy, full pytest, frontend and OpenAPI drift. Interactive Windows
+browser validation remains separate. This is **not** provider auth or
+channel-specific consent. No message can be sent by Stage 7C2.
