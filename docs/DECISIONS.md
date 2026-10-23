@@ -1490,7 +1490,7 @@ browser acceptance remains open.
 
 ## ADR-055 — Preflight is not authority to deliver
 
-**Status:** ACCEPTED · IMPLEMENTATION IN PROGRESS (Stage 7B)
+**Status:** ACCEPTED · IMPLEMENTED AND CI VERIFIED (Stage 7B)
 
 **Decision.** Recipient readiness checking must be a bounded, authenticated
 and CSRF-protected request. The active company comes only from the server
@@ -1504,4 +1504,7 @@ currently receives `communications.send`; provider channels remain
 `NOT_CONFIGURED`. An AI draft review or a preflight result alone never gives
 delivery rights. A later send executor requires a separate ADR and migration.
 
-**Verification.** Stage 7B API tests and CI are required. No live provider used.
+**Verification.** GitHub Actions run `40019149502` passed 558 backend and
+192 frontend tests with clean OpenAPI. A missing CSRF dependency was found
+by the new negative test and corrected in `e160815`. PR #2 merged at
+`1140b06`. No live provider or Windows browser verification was performed.
