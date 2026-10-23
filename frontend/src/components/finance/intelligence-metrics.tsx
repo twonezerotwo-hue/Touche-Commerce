@@ -12,7 +12,8 @@ export function MetricCard({ metric }: { metric: IntelligenceMetric }) {
     <div className="panel p-4" data-metric={metric.key}>
       <div className="flex items-start justify-between gap-3">
         <p className="eyebrow">{metric.label}</p>
-        <ClassificationBadge value={metric.classification} />
+        {/* The API names a metric's kind; with no figure to show, it must not wear that label. */}
+        <ClassificationBadge value={lines.length === 0 ? "UNAVAILABLE" : metric.classification} />
       </div>
       {lines.length === 0 ? (
         <p className="mt-3 font-display text-[20px] leading-none text-mist-500">Not available</p>

@@ -263,6 +263,25 @@ describe("MetricCard", () => {
     expect(screen.getByText("Not available")).toBeInTheDocument();
     expect(screen.queryByText(/0\.00/)).not.toBeInTheDocument();
   });
+
+  it("does not label a figure-less metric with the kind the API reports for it", () => {
+    render(
+      <MetricCard
+        metric={metric({
+          key: "committed_gross_profit",
+          label: "Committed gross profit",
+          available: false,
+          classification: "COMMITTED",
+          completeness: "PARTIAL",
+          money: [],
+        })}
+      />,
+    );
+    const card = screen.getByText("Committed gross profit").closest("[data-metric]") as HTMLElement;
+    expect(within(card).getByText("Not available")).toBeInTheDocument();
+    expect(within(card).getByText("UNAVAILABLE")).toBeInTheDocument();
+    expect(within(card).queryByText("COMMITTED")).not.toBeInTheDocument();
+  });
 });
 
 describe("charts", () => {
