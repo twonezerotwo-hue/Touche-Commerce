@@ -1336,7 +1336,7 @@ send a message. New contracts need OpenAPI regeneration, full regression and iso
 acceptance before Stage 7A can be marked PASSED.
 
 
-### 14.1 Stage 7B — recipient readiness, not delivery (unverified)
+### 14.1 Stage 7B — recipient readiness, not delivery (CI verified)
 
 `POST /communications/preflight` requires an active Commerce session, CSRF,
 `trade.write` permission and body `{draft_id, draft_version, channel, recipient}`.
@@ -1348,4 +1348,6 @@ recipient shape without persisting or returning the address. Response has
 `RECIPIENT_INVALID`, `CHANNEL_NOT_CONFIGURED`,
 `SEND_PERMISSION_UNAVAILABLE`. No message can be sent or queued.
 
-No backend/frontend acceptance is yet claimed for Stage 7B.
+CI workflow `40019149502` passed (558 backend, 192 frontend and contract
+drift); PR #2 merged. Provider integration and Windows browser acceptance
+were not run, and the endpoint cannot dispatch a message.
