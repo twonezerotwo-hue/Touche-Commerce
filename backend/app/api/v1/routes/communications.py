@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import select
 
 from app.api.deps import get_database
-from app.api.security import active_company_id, require_company_permission
+from app.api.security import active_company_id, require_company_permission, require_csrf
 from app.api.v1.schemas.communications import (
     ChannelStatus,
     CommunicationDraftListResponse,
@@ -109,7 +109,11 @@ def list_communication_drafts(
     return CommunicationDraftListResponse(items=items, truncated=len(rows) > limit)
 
 
-@router.post("/preflight", response_model=CommunicationPreflightResponse)
+@router.post(
+    "/preflight",
+    response_model=CommunicationPreflightResponse,
+    dependencies=[Depends(require_csrf)],
+)
 def communication_preflight(
     payload: CommunicationPreflightRequest,
     response: Response,
