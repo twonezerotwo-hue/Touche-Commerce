@@ -11,11 +11,11 @@ from app.ai.director import AIRuntime
 from app.security.permissions import Permission, Role, permissions_for
 from tests.test_ai_api import ask, install_ai
 from tests.test_operations_api import OrderWorld
-from tests.test_reconciliation_api import world
+from tests.test_reconciliation_api import approver, trader, world
 
 pytestmark = pytest.mark.integration
 
-_IMPORTED_FIXTURES = (world, install_ai)
+_IMPORTED_FIXTURES = (world, install_ai, approver, trader)
 API = "/api/v1/communications"
 
 
