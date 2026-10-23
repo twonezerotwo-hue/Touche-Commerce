@@ -36,13 +36,17 @@ export function TopBar({ identity }: TopBarProps) {
           {page === section ? null : (
             <>
               <ChevronRight className="size-3 text-mist-600/70" aria-hidden />
-              <span className="truncate text-[11px] text-mist-200">{localizeNavigation(locale, page)}</span>
+              <span className="truncate text-[11px] text-mist-200">
+                {localizeNavigation(locale, page)}
+              </span>
             </>
           )}
         </nav>
 
         <div className="min-w-0 lg:hidden">
-          <p className="truncate text-[12px] text-mist-200">{page}</p>
+          <p className="truncate text-[12px] text-mist-200">
+            {localizeNavigation(locale, page)}
+          </p>
         </div>
 
         <div className="ml-auto flex items-center gap-2">
