@@ -6,7 +6,7 @@
 
 Deliver a polished, secure, bilingual (TR/EN) multi-user trade platform accessible from Windows and macOS browsers over a centrally hosted, hardened HTTPS service; retain safe local-development operation; integrate read-only TOUCHE FINANCE and E-YAY, a primary API AI with conditional local-model fallback, and authorization-gated Gmail / WhatsApp Business / social publishing. Do not redesign or duplicate working Stages 0–10. Preserve PostgreSQL tenant isolation, role permissions, auditable immutable evidence, Decimal/currency invariants and financial source-of-truth boundaries.
 
-**Owner requirements and technical decisions (2026-10-24):** [PREMIUM_PLATFORM_DECISIONS.md](PREMIUM_PLATFORM_DECISIONS.md) is the requirements baseline for Stages 11–20. Cloud-first EU hosting; shared PostgreSQL; 5+ users; one operator company with many counterparties; TRY/USD/EUR; manual + CSV/XLSX import; dark TR/EN; professional trade documents; encrypted offsite + local backup. \n\n**Three distinct milestones:**
+**Owner requirements and technical decisions (2026-10-24):** [PREMIUM_PLATFORM_DECISIONS.md](PREMIUM_PLATFORM_DECISIONS.md) is the requirements baseline for Stages 11–20. Türkiye-registered operating company (registered legal title still unverified); shared PostgreSQL; 5+ Windows/MacBook users; TRY/USD/EUR; manual + CSV/XLSX import; dark TR/EN; professional trade documents; encrypted offsite + local backup. **Hosting budget: $0 and no credit card provided.** Oracle signup was blocked by mandatory card verification. Local-only/LAN acceptance precedes any optional **synthetic-only** cardless remote preview. Always-on shared internet production remains **BLOCKED** absent reliable approved infrastructure. \n\n**Three distinct milestones:**
 - **M1: LOCAL_OPERATIONAL** — Stage 11 and critical Stage 12–13 workflows run and pass real Windows/browser/DB tests. Standalone Commerce must work with all external connectors disabled; this is not the shared internet deployment.
 - **M2: CONNECTED_OPERATIONAL** — Stage 14–17 connectors and AI each accepted individually; connectors are independently optional and fail closed.
 - **M3: PRODUCTION_APPROVED** — Stage 18–20 security, recovery, UAT and deployment evidence accepted by designated operator. This designation cannot be achieved by static CI checks alone.
@@ -24,7 +24,7 @@ Deliver a polished, secure, bilingual (TR/EN) multi-user trade platform accessib
 ## Stages and evidence requirements
 
 ### Stage 11 — Windows local launch and acceptance (P0)
-- Establish current workstation/repository baseline, synchronize main safely, check Python 3.12, Node, PowerShell and local PostgreSQL; inspect existing ports/processes without killing them.
+- Establish current workstation/repository baseline, synchronize main safely, check Python 3.12, Node, PowerShell and local PostgreSQL; inspect existing ports/processes without killing them. Add a deliberately configured secure **LAN-only** mode for both Windows and MacBook browsers (the current Stage 9 launcher is loopback-only); do not blindly change dev listener binding to 0.0.0.0 or make a public tunnel.
 - Safely back up and restore an isolated copy before any real migration. Use existing `scripts/setup.ps1`, `scripts/verify.ps1`, `scripts/start-local.ps1`; fix genuine Windows differences.
 - Execute real browser login, session rotation, company switching, CRM, catalogue, RFQ, quote, sales order, procurement, partial shipment, documents, Finance-disabled, E-YAY-disabled, mock AI and communications-disabled journeys.
 - **Exit:** dated LOCAL_ACCEPTED evidence: environment versions, test outputs, sanitized screenshots, DB role/RLS proof, backup/restore test, operator sign-off. Do not modify live Finance/e-yay state.
@@ -68,7 +68,7 @@ Deliver a polished, secure, bilingual (TR/EN) multi-user trade platform accessib
 - **Exit:** signed UAT checklist, no open P0/P1 defects, measured baseline for agreed performance thresholds, change log and rollback candidate.
 
 ### Stage 20 — Release and handover (P0)
-- Owner selected **both local operation and shared internet/cloud production** for Windows + macOS browsers. Use an EU-region hosted HTTPS deployment, centrally managed PostgreSQL and private document storage. Keep local Finance/E-YAY/Ollama behind an outbound-authenticated allowlisted connector rather than exposing localhost. Requires domain/hosting, certificates, DNS, secret management, production pipeline, monitored DB and restore-tested cloud + local backups. Do not expose development scripts/services to the public internet.
+- Owner requested both local operation and shared internet/cloud production for Windows + macOS browsers, **but has $0 hosting budget and will not provide a card**. Stage 20 cannot claim always-on production with those constraints. First complete secure local/LAN workflows and optionally offer a synthetic-only cardless Render + Neon proof of concept after verifying terms. Production still requires funded or independently secured durable HTTPS hosting, central PostgreSQL and private document storage. Keep local Finance/E-YAY/Ollama behind an outbound-authenticated allowlisted connector; never expose localhost. Require domain, TLS, key management, deployment pipeline, monitored DB and tested offsite+local restore.
 - Release from a CI-green versioned commit, migrate only with verified backup, execute smoke tests, rollback drill and hand over operator/admin guides.
 - **Exit:** operator-approved release manifest, dated production acceptance evidence and operational owner. Default classification remains `NOT_PRODUCTION_APPROVED` until proved.
 
@@ -83,7 +83,7 @@ Record values as **provided / undecided / not applicable**, never infer missing 
 - **AI:** Choose OpenAI-compatible local/API, Anthropic or other; data residency/preferences and monthly spend cap; configure keys privately.
 - **Communications:** Which Gmail/Google Workspace identity? Meta Business Manager, verified WhatsApp Business number and Cloud API configuration status? Desired receive/draft/send scope, consent evidence ownership and sender approver.
 - **Premium UX:** Reference brand/style, logo/assets, default language, light/dark preference and must-have dashboards.
-- **Production operations:** Domain/hosting decision (if public), responsible operator, encryption/backup location, acceptable data-loss and outage thresholds and whether real customer data will be used in first pilot.
+- **Production operations:** Domain/hosting decision (if public), responsible operator, encryption/backup location, acceptable data-loss and outage thresholds. **The first remote pilot must use synthetic/non-customer data** until a reviewed compliant reliable deployment exists; no cardless 24/7 guarantee.
 
 ## Work queue and dependencies
 
