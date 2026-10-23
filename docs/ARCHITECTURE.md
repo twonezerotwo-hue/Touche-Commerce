@@ -1320,7 +1320,7 @@ forwards `content-disposition` and `x-content-type-options` for it.
 
 ### 25.5 Verification
 
-Backend `402 passed`; frontend `149 passed / 22 files`; ruff, mypy, ESLint,
+Backend `402 passed`; frontend `160 passed / 22 files`; ruff, mypy, ESLint,
 Prettier, typecheck and `next build` pass. The isolated harness reuses the real
 Stage 5D order and checks the figures against values derived from its inputs
 (estimated profit `50.00` at `20.00%`, committed profit withheld while part-shipped),

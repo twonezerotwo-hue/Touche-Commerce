@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-23 (local)
 **Current stage:** Stage 5E — read-only financial intelligence (implemented and isolated-HTTP verified locally)
-**Current milestone:** 5E — 402 backend tests, 149 frontend tests, `ISOLATED_HTTP_VERIFIED`, browser-reviewed
+**Current milestone:** 5E — 402 backend tests, 160 frontend tests, `ISOLATED_HTTP_VERIFIED`, browser-reviewed
 **Stage 5:** IN_PROGRESS (Stage 5A/5B/5C/5D/5E implemented; no further milestone started)
 
 Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
@@ -39,7 +39,7 @@ Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
 | Sales orders, procurement, shipments, trade documents | PASSED | Stage 4 — §22 |
 | Finance read-only connector (Stage 5C) | PASSED | §24 — 20 connector + 18 API tests, isolated HTTP |
 | Financial reconciliation (Stage 5D) | PASSED | §25 — evidence runs, review, discrepancies; isolated HTTP |
-| Financial intelligence (Stage 5E) | PASSED | §26 — 402 backend / 149 frontend tests; isolated HTTP and a real-browser review (defects fixed, cosmetic items open) |
+| Financial intelligence (Stage 5E) | PASSED | §26 — 402 backend / 160 frontend tests; isolated HTTP and a real-browser review (defects and cosmetic findings fixed; a few minor items remain, §26.6) |
 | Accounting, payments, external integrations, AI assistants | NOT_STARTED | no accounting write path exists |
 
 > This table records the **Stage 0** baseline. Stage 1A results are in
@@ -1714,7 +1714,7 @@ or compute an actual profit. Finance remains the financial source of truth.
 | new intelligence API tests | **5 passed** (live PostgreSQL, real order) |
 | `ruff check app tests` / `ruff check scripts/verify_finance_http.py` | passed |
 | `mypy app` | passed (109 source files) |
-| `npm test -- --run` | **149 passed / 22 files** (102 earlier + 47 new) |
+| `npm test -- --run` | **160 passed / 22 files** (102 earlier + 58 new) |
 | `npm run lint` · `typecheck` · `format:check` | passed |
 | `npm run build` | passed; the four new routes are listed |
 | `scripts\generate-api-types.ps1 -Check` | passed after the contract commit (7 paths and 28 schemas added; nothing removed or changed) |
@@ -1782,6 +1782,8 @@ The live Finance application was **not** started.
 | Order and exceptions tables were too narrow: at 1024 px only five of nine columns were visible, the order number broke into three lines, the finding column was 106 px wide and the resolution control was scrolled out of view. | real-browser review | status folded into the order cell, order number `nowrap`, customer name clamped, wrapping headers; exceptions table reduced to three columns with the resolution control under the finding (commit `697c94d`) |
 | Twelve months in the monthly chart widened the page on a phone (layout 666 px on a 375 px screen). A first fix (scrolling plot) was not enough: the panel, a grid item, still grew to the plot. | real-browser review, then a re-measure | plot scrolls inside a `min-w-0` panel; labels `nowrap`; edge tooltips anchored inside the plot; tested |
 | Order detail: “Documented cost” read “Not available” beside a DOCUMENTED badge; “Cost variance” read “Not available of estimate”; the tooltip said “1 orders”; the coverage metric carried a green VERIFIED badge at 0.00%. | real-browser review | operational cost shown with the total as unavailable; badges fall back to UNAVAILABLE without a figure; VERIFIED never shown on a metric; pluralisation fixed; all tested |
+| Cosmetic findings: filter labels beside their inputs; chart empty state as a panel inside a panel; category names truncated without a hover title; sub-pixel completeness segments; tooltips overhanging their panel; an odd coverage panel alone in a row; a loss that looked like a gain. | real-browser review | block labels (bar and exceptions form); plain-text chart empty state; two-line category labels with a `title`; 4 px minimum segment; edge-anchored tooltips; `ChartGrid` (odd last panel spans both columns); losses tinted `crimson-400` with the minus sign kept and cost variance deliberately not tinted (commit `8510b52`) |
+| The loss percentage line used `text-crimson-400/80`, about 4.1:1 on the top of the panel gradient, below the 4.5:1 AA threshold. | contrast computed while closing out the browser checks | full-strength `crimson-400` (5.5–6.6:1); test asserts it (commit `46d49fb`) |
 
 The first isolated run failed on the committed-profit assertion before the third
 fix above; the recorded result is from the second, clean run.
@@ -1794,24 +1796,63 @@ customer name) that was deleted afterwards and never committed. Widths 375, 1024
 1280 and 1440 px. Thirteen findings were reported; the six that affected
 readability or truth of a figure were fixed and re-measured in the same environment
 (`697c94d`), the HTTP verifier was re-run (`ISOLATED_HTTP_VERIFIED`) and the live
-Finance hashes were unchanged. The remaining findings are recorded in §26.6.
+Finance hashes were unchanged. The remaining findings were then fixed in `8510b52`.
+
+**Close-out verification (2026-10-23, after `8510b52`).** Run against a fresh isolated
+environment with the real order plus the same kind of temporary, labelled synthetic
+page (deleted, never committed), at 1280 and 375 px:
+
+* Exceptions-form labels: all six (Status, Severity, Code, Currency, From, To) are
+  `display:block`, sit above their control in the same column, and none is orphaned.
+* Margin-chart tooltips at both edges: all five bands anchor correctly (`left-0`,
+  `left-0`, centred, `right-0`, `right-0`) and stay inside the panel with a 17 px
+  margin at the first and last band; at 375 px they also stay inside the viewport.
+  Real keyboard `Tab` focus opens the tooltip: on the first band with a visible focus
+  ring, on the last band (accessible name `30+: 3 orders`) with the tooltip shown
+  inside the panel.
+* Small segments: shares of 1, 1, 1 against 5000 render at the 4 px minimum with no
+  overflow of the bar (427 px and 309 px bars).
+* Long category names: wrap to two lines with the full text in `title` and in the
+  list item's accessible name; a 74-character key is clamped at two lines, its full
+  text still available; every row is focusable.
+* Negative formatting: losses on KPI lines, estimated/committed profit and margin on
+  detail tiles and in the order table render in `rgb(224, 122, 114)` with the minus
+  sign in the text; gains stay in the normal colour; cost variance is not tinted.
+  Contrast of the loss colour on the panel surfaces is 5.5–6.6:1.
+* Empty chart state: no panel nested inside the chart panel; odd last panel spans
+  both columns (938 px against 461 px); no page-level horizontal overflow at either
+  width.
+
+Then: backend `402 passed` (ruff, mypy clean), frontend `160 passed` (ESLint,
+Prettier, typecheck and `next build` clean), the OpenAPI drift check clean, the HTTP
+verifier `ISOLATED_HTTP_VERIFIED` again (estimated profit `50.00`, committed profit
+withheld while part-shipped, unauthorized resolution `FORBIDDEN`, one export row,
+export through the proxy keeping its file name and `nosniff`, cross-tenant
+isolation, write route `405`, no credentials in responses, Finance database and
+workbook unchanged), and the live Finance hashes identical to §25.4.
 
 ### 26.6 Honest limitations
 
 * Verification is isolated: HTTP/SSR level plus the real-browser review in §26.5.
-  Not covered by that review: tablet width (768 px), keyboard-focus tooltips, an
-  accessibility audit and the Export CSV download (a download needs explicit
-  permission, so it was verified over HTTP only).
-* Open cosmetic findings from the browser review, not fixed: the filter-bar labels
-  “From”/“To” sit beside their inputs while the other labels sit above; the chart
-  empty state renders as a panel inside a panel; category names are truncated in the
-  two-column layout without a hover title; completeness segments below one pixel
-  are invisible (the legend still lists their counts); tooltips of the margin and
-  cost charts can overhang their panel at the edges; an odd number of coverage
-  panels leaves one alone in a half row; negative figures carry no visual emphasis;
-  and a year of months needs horizontal scrolling inside the two-column monthly
-  chart. Pre-existing and unchanged: the shell footer still reads “STAGE 5D” and the
-  sidebar highlights “Finance” and “Intelligence” together.
+  Not covered: tablet width (768 px), a full accessibility audit (only contrast,
+  labels, accessible names and keyboard focus were checked; no screen reader) and the
+  Export CSV download in the browser (a download needs explicit permission, so it was
+  verified over HTTP only).
+* Cosmetic findings from the browser review: **all fixed and re-verified** (§26.5,
+  `8510b52`, `46d49fb`). Minor items that remain, none affecting a figure:
+  * Where a table is empty, `EmptyState` (itself a panel) still sits inside the page's
+    panel wrapper, so “No financial exceptions” and “No orders match” show as a box
+    within a box. The chart empty state was fixed; the shared component was not
+    changed.
+  * Secondary text in `text-mist-600` (the customer name under an order number, small
+    captions) measures about 3.0:1 on the panel, below the 4.5:1 AA threshold. It is
+    the existing design-system muted tier, shared with the Stage 5C/5D screens, and
+    was not changed in this stage.
+  * A year of months needs horizontal scrolling inside the two-column monthly chart
+    (about 44 px per month); the page itself never overflows. At 1024 px the order
+    table still scrolls horizontally (two of eight columns off-screen).
+  * Pre-existing and unchanged: the shell footer still reads “STAGE 5D” and the
+    sidebar highlights “Finance” and “Intelligence” together.
 * The isolated order is a single USD order. Multi-currency behaviour is proven by
   the pure and API tests (`test_currency_totals_are_never_mixed`, the currency
   isolation API test), not by the isolated run.
@@ -1845,6 +1886,9 @@ Finance hashes were unchanged. The remaining findings are recorded in §26.6.
 * `dd4e458` — `test(stage5e): add financial intelligence to the isolated HTTP verifier`.
 * `639eb82` — `docs(stage5e): record financial intelligence contract and verification evidence`.
 * `697c94d` — `fix(stage5e): fix table, chart and label defects found in the browser review`.
-* The documentation commit that records the browser review (this update).
+* `0521567` — `docs(stage5e): record the browser review, its fixes and the open items`.
+* `8510b52` — `fix(stage5e): polish filter labels, empty states, small shares, tooltips and losses`.
+* `46d49fb` — `fix(stage5e): give the loss percentage line full-strength contrast`.
+* The close-out documentation commit (this update).
 * Nothing was pushed, merged or deployed; the Finance repository was not
   modified.
