@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
 from app.api.deps import app_settings
 from app.api.security import current_session, require_company_permission
@@ -60,12 +60,15 @@ def finance_link_status(
     summary="E-YAY read-only source market context (never executes orders)",
 )
 def eyay_market_context(
+    response: Response,
     settings: Annotated[Settings, Depends(app_settings)],
     _context: Annotated[
         SessionContext,
         Depends(require_company_permission(Permission.COMPANY_VIEW)),
     ],
 ) -> EyayMarketPreview:
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Vary"] = "Cookie"
     return market_preview(
         enabled=settings.eyay_enabled,
         base_url=settings.eyay_base_url,
