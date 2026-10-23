@@ -1543,7 +1543,7 @@ remain outstanding.
 
 ## ADR-057 — Contact suppression is append-only and independent of consent
 
-**Status:** ACCEPTED / Stage 7C2 IN PROGRESS
+**Status:** ACCEPTED / Stage 7C2 CI VERIFIED
 
 Outbound communication risk must be reducible independently of any future
 approval or provider connection. Commerce stores a permanent per-company CRM
@@ -1561,4 +1561,6 @@ opt-in, independent ownership or legal basis; explicit consent evidence and
 compliant suppression lifting require separate ADRs, tests and controls.
 Real provider connections and live sending remain disabled.
 
-**Validation:** not claimed before GitHub Actions finishes.
+**Validation:** GitHub Actions `40025166931` PASSED (565 backend,
+192 frontend and OpenAPI drift). PR #4 merged into main at `5bc7bdc`.
+No browser, live provider, legal consent or outbound delivery was verified.
