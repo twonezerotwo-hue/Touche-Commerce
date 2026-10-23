@@ -17,8 +17,8 @@ from app.api.security import current_session, require_company_permission
 from app.api.v1.schemas.errors import ErrorEnvelope
 from app.api.v1.schemas.integrations import FinanceLinkStatusResponse
 from app.core.config import Settings
-from app.integrations.finance.service import FinanceIntegrationService
 from app.integrations.eyay import EyayMarketPreview, market_preview
+from app.integrations.finance.service import FinanceIntegrationService
 from app.security.permissions import Permission
 from app.services.auth import SessionContext
 
