@@ -1,10 +1,11 @@
 # TOUCHE COMMERCE — Progress
 
 **Last updated:** 2026-10-23 (local)
-**Current stage:** Stage 7A — communications groundwork (in progress; not yet locally tested)
-**Current milestone:** 7A — draft discovery API, distinct send permission, draft-only workspace
+**Current stage:** Stage 7B — recipient-safe preflight (in progress)
+**Current milestone:** 7B — no-send channel/recipient readiness and UI preview
 **Stage 6:** PASSED on Stage 6 local reported evidence (551 backend / 192 frontend, mock provider)
-**Stage 7A:** IN_PROGRESS (GitHub changes only; no outbound integration and no local test claim)
+**Stage 7A:** PASSED in GitHub CI (555 backend / 192 frontend, OpenAPI current; PR #1 merged); Windows browser acceptance not run
+**Stage 7B:** IN_PROGRESS (CI verification pending; outbound sending disabled)
 
 Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
 `FAILED`. Nothing is marked `PASSED` without an executed command in this file.
@@ -2090,3 +2091,24 @@ acceptance are required before this milestone may be called PASSED.
 
 **Scope deliberately excluded:** OAuth, SMTP, WhatsApp credentials/webhooks,
 outbound sends, scheduled jobs, accounting writes, live Finance startup.
+
+
+## 29. Stage 7B — Preflight for messaging (IN_PROGRESS)
+
+Branch `stage-7b` starts from Stage 7A merge commit `1db9b73`.
+Only an authorized trader may POST `/api/v1/communications/preflight` with an
+existing draft id/version, selected EMAIL/WHATSAPP_BUSINESS channel and an operator-
+entered recipient. It validates the draft through active-company RLS, checks approval
+and version and validates email format without DNS/network calls or phone E.164
+shape. It **always responds `sendable=false`**, because neither provider is
+configured nor the separate `communications.send` permission is granted.
+Recipients are not persisted, echoed or delivered. The Communications UI presents
+readiness blockers but has no send button or transport capability.
+
+**Verification:** new backend tests authored; GitHub Actions and generated contract
+drift remain pending for this branch. Do not mark Stage 7B PASSED until checks pass.
+
+**Open future work:** provider-specific OAuth/keys and lifecycle, revocation,
+independent send approval, verified recipient association, immutable intent, queue
+and idempotency, audit, webhook authenticity, delivery reconciliation and per-tenant
+isolation. No live external calls or Finance writes.

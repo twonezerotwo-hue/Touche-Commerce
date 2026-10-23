@@ -6,26 +6,35 @@ Reviewing an AI proposal in Stage 6 does not dispatch a message.
 
 from __future__ import annotations
 
+import re
 from typing import Annotated
 
+from email_validator import EmailNotValidError, validate_email
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import select
 
 from app.api.deps import get_database
-from app.api.security import active_company_id, require_company_permission
+from app.api.security import active_company_id, require_company_permission, require_csrf
 from app.api.v1.schemas.communications import (
     ChannelStatus,
     CommunicationDraftListResponse,
     CommunicationDraftResponse,
+    CommunicationPreflightRequest,
+    CommunicationPreflightResponse,
     CommunicationsStatusResponse,
+    PreflightBlocker,
 )
+from app.core.errors import NotFoundError
 from app.db.engine import Database
 from app.db.models.ai import AiProposal, ProposalKind
 from app.db.tenant import apply_company_context
 from app.security.permissions import Permission
+from app.services.ai_office import AiOfficeService
 from app.services.auth import SessionContext
 
 router = APIRouter(prefix="/communications", tags=["communications"])
+
+_PHONE_E164 = re.compile(r"^\\+[1-9][0-9]{6,14}$")
 
 ViewContext = Annotated[
     SessionContext, Depends(require_company_permission(Permission.COMPANY_VIEW))
@@ -98,3 +107,53 @@ def list_communication_drafts(
             )
     _no_store(response)
     return CommunicationDraftListResponse(items=items, truncated=len(rows) > limit)
+
+
+@router.post(
+    "/preflight",
+    response_model=CommunicationPreflightResponse,
+    dependencies=[Depends(require_csrf)],
+)
+def communication_preflight(
+    payload: CommunicationPreflightRequest,
+    response: Response,
+    context: Annotated[
+        SessionContext, Depends(require_company_permission(Permission.TRADE_WRITE))
+    ],
+    database: Annotated[Database, Depends(get_database)],
+) -> CommunicationPreflightResponse:
+    """Validate operator-entered recipient and draft state without sending.
+
+    No recipient is persisted, returned, logged or dispatched. A successful
+    preflight is deliberately impossible until a separately approved outbound
+    transport, dedicated sender role and independent human send approval exist.
+    """
+    draft = AiOfficeService(database).get_proposal(
+        company_id=active_company_id(context), proposal_id=payload.draft_id
+    )
+    if draft.kind != ProposalKind.DRAFT.value:
+        raise NotFoundError("This communication draft does not exist.")
+
+    blockers: list[PreflightBlocker] = []
+    if draft.status != "APPROVED":
+        blockers.append("DRAFT_NOT_APPROVED")
+    if draft.version != payload.draft_version:
+        blockers.append("DRAFT_VERSION_MISMATCH")
+    if payload.channel == "EMAIL":
+        try:
+            validate_email(payload.recipient, check_deliverability=False)
+        except EmailNotValidError:
+            blockers.append("RECIPIENT_INVALID")
+    elif not _PHONE_E164.fullmatch(payload.recipient):
+        blockers.append("RECIPIENT_INVALID")
+
+    blockers.append("CHANNEL_NOT_CONFIGURED")
+    if Permission.COMMUNICATIONS_SEND not in context.permissions:
+        blockers.append("SEND_PERMISSION_UNAVAILABLE")
+
+    _no_store(response)
+    return CommunicationPreflightResponse(
+        draft_id=draft.id,
+        channel=payload.channel,
+        blockers=blockers,
+    )

@@ -1481,5 +1481,27 @@ delivery status reconciliation, rate limits, data minimization, and per-tenant
 provider credentials. Every actual send must be audited and tested with an
 isolated provider stub before any real destination is enabled.
 
-**Verification.** Static/API tests authored in Stage 7A; live backend/frontend
-regression and isolated HTTP acceptance remain open. Stage 7A is not PASSED.
+**Verification.** Stage 7A GitHub Actions run 40016540897 passed: 555 backend,
+192 frontend and OpenAPI drift checks. PR #1 merged at 1db9b73. Isolated Windows
+browser acceptance remains open.
+
+
+---
+
+## ADR-055 — Preflight is not authority to deliver
+
+**Status:** ACCEPTED · IMPLEMENTATION IN PROGRESS (Stage 7B)
+
+**Decision.** Recipient readiness checking must be a bounded, authenticated
+and CSRF-protected request. The active company comes only from the server
+session. It references an existing AI DRAFT proposal by ID and version,
+validates approval and recipient format, and returns reason codes only.
+No recipient, provider credentials or message body is emitted in the response,
+written to the ledger, attached to audit events or sent to an external network.
+
+**Hard safety rule.** All preflight results have `sendable=false`. No role
+currently receives `communications.send`; provider channels remain
+`NOT_CONFIGURED`. An AI draft review or a preflight result alone never gives
+delivery rights. A later send executor requires a separate ADR and migration.
+
+**Verification.** Stage 7B API tests and CI are required. No live provider used.

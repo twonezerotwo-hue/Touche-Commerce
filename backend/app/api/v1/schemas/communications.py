@@ -45,3 +45,31 @@ class CommunicationDraftListResponse(CommunicationsModel):
     items: list[CommunicationDraftResponse]
     source: Literal["AI_OFFICE"] = "AI_OFFICE"
     truncated: bool = False
+
+
+class CommunicationPreflightRequest(BaseModel):
+    """Preview eligibility without storing, sending or echoing a recipient."""
+
+    model_config = ConfigDict(extra="forbid")
+    draft_id: UUID
+    draft_version: int = Field(ge=1)
+    channel: Literal["EMAIL", "WHATSAPP_BUSINESS"]
+    recipient: str = Field(min_length=3, max_length=254)
+
+
+PreflightBlocker = Literal[
+    "DRAFT_NOT_APPROVED",
+    "DRAFT_VERSION_MISMATCH",
+    "CHANNEL_NOT_CONFIGURED",
+    "SEND_PERMISSION_UNAVAILABLE",
+    "RECIPIENT_INVALID",
+]
+
+
+class CommunicationPreflightResponse(CommunicationsModel):
+    draft_id: UUID
+    channel: Literal["EMAIL", "WHATSAPP_BUSINESS"]
+    sendable: Literal[False] = False
+    external_sending_enabled: Literal[False] = False
+    blockers: list[PreflightBlocker]
+    recipient_echoed: Literal[False] = False
