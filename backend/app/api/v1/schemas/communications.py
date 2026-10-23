@@ -53,6 +53,7 @@ class CommunicationPreflightRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     draft_id: UUID
     draft_version: int = Field(ge=1)
+    counterparty_id: UUID | None = None
     channel: Literal["EMAIL", "WHATSAPP_BUSINESS"]
     recipient: str = Field(min_length=3, max_length=254)
 
@@ -63,6 +64,8 @@ PreflightBlocker = Literal[
     "CHANNEL_NOT_CONFIGURED",
     "SEND_PERMISSION_UNAVAILABLE",
     "RECIPIENT_INVALID",
+    "CRM_RECIPIENT_MISMATCH",
+    "CONSENT_UNDOCUMENTED",
 ]
 
 
