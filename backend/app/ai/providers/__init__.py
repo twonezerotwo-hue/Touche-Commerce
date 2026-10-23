@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from pydantic import SecretStr
+
 from app.ai.errors import AIDisabledError
 from app.ai.providers.anthropic import AnthropicProvider
 from app.ai.providers.base import ModelProvider
+from app.ai.providers.fallback import LocalOllamaProvider, PrimaryThenLocalProvider
 from app.ai.providers.mock import MockProvider
 from app.ai.providers.openai_compat import OpenAICompatibleProvider
 from app.core.config import Settings
@@ -23,15 +26,25 @@ def build_provider(settings: Settings) -> ModelProvider:
         return AnthropicProvider(
             base_url=base_url, api_key=settings.ai_api_key, model=settings.ai_model
         )
-    return OpenAICompatibleProvider(
+    primary = OpenAICompatibleProvider(
         base_url=base_url, api_key=settings.ai_api_key, model=settings.ai_model
     )
+    if not settings.ai_local_fallback_enabled:
+        return primary
+    local = LocalOllamaProvider(
+        base_url=settings.ai_local_fallback_base_url,
+        api_key=SecretStr("local-ollama-no-credential"),
+        model=settings.ai_local_fallback_model,
+    )
+    return PrimaryThenLocalProvider(primary, local)
 
 
 __all__ = [
     "AnthropicProvider",
+    "LocalOllamaProvider",
     "MockProvider",
     "ModelProvider",
     "OpenAICompatibleProvider",
+    "PrimaryThenLocalProvider",
     "build_provider",
 ]

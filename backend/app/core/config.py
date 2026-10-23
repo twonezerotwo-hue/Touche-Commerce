@@ -146,6 +146,9 @@ class Settings(BaseSettings):
     # provider is deterministic, offline and allowed in local/test/ci only.
     ai_enabled: bool = False
     ai_provider: Literal["mock", "openai_compatible", "anthropic"] = "mock"
+    ai_local_fallback_enabled: bool = False
+    ai_local_fallback_base_url: str = "http://127.0.0.1:11434/v1"
+    ai_local_fallback_model: str = Field(default="qwen3:8b", min_length=1, max_length=120)
     ai_model: str = Field(default="mock-trade-director-1", min_length=1, max_length=120)
     ai_base_url: str | None = None
     ai_api_key: SecretStr | None = None
@@ -380,6 +383,28 @@ class Settings(BaseSettings):
             loopback = parts.hostname in {"localhost", "127.0.0.1", "::1"}
             if parts.scheme == "http" and not loopback:
                 raise ValueError("ai_base_url must use https unless it is a loopback address")
+        if self.ai_local_fallback_enabled:
+            if self.ai_provider != "openai_compatible" or not self.ai_enabled:
+                raise ValueError("local AI fallback requires an enabled OpenAI-compatible API")
+            local = urlsplit(self.ai_local_fallback_base_url)
+            if (
+                local.scheme != "http"
+                or local.hostname not in {"127.0.0.1", "::1"}
+                or local.username is not None
+                or local.password is not None
+                or local.path != "/v1"
+                or local.query
+                or local.fragment
+            ):
+                raise ValueError(
+                    "ai_local_fallback_base_url must be http://127.0.0.1:<port>/v1"
+                )
+            try:
+                port = local.port
+            except ValueError as exc:
+                raise ValueError("local AI fallback port is invalid") from exc
+            if port is None or not 1 <= port <= 65535:
+                raise ValueError("local AI fallback must have an explicit TCP port")
         if not self.ai_enabled:
             return
         if self.ai_provider == "mock":
