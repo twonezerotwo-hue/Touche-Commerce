@@ -277,6 +277,7 @@ Branch `stage-5d`, created from `3e35ef1`:
 
 * `0e9a1af` — evidence reconciliation backend
 * `0ce2658` — premium reconciliation workspace
-* documentation commit containing this page
+* `f949003` — documentation and acceptance evidence
+* the close-out documentation commit containing this page
 
 Nothing was pushed, merged or deployed; the Finance repository was not modified.

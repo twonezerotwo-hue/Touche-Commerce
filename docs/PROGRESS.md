@@ -1,9 +1,9 @@
 # TOUCHE COMMERCE — Progress
 
-**Last updated:** 2026-10-22 (local)
-**Current stage:** Stage 5C — real read-only Finance integration (implemented and isolated-HTTP verified locally)
-**Current milestone:** 5C — 355 backend tests, 96 frontend tests, `ISOLATED_HTTP_VERIFIED`
-**Stage 5:** IN_PROGRESS (Stage 5A/5B/5C implemented; Stage 5D not started)
+**Last updated:** 2026-10-23 (local)
+**Current stage:** Stage 5D — evidence-based financial reconciliation (implemented and isolated-HTTP verified locally)
+**Current milestone:** 5D — 379 backend tests, 102 frontend tests, `ISOLATED_HTTP_VERIFIED`
+**Stage 5:** IN_PROGRESS (Stage 5A/5B/5C/5D implemented; Stage 5E not started)
 
 Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
 `FAILED`. Nothing is marked `PASSED` without an executed command in this file.
@@ -1659,7 +1659,8 @@ E03740DA624522EA9AC4869D3ADDDFB008C96DC7D2A78759CE760D810B0FA51E
 * `0ce2658` — `feat(stage5d): add premium reconciliation workspace`
   (overview/run/discrepancy/order screens, components, client, navigation and
   frontend tests).
-* The documentation commit containing this section.
+* `f949003` — `docs(stage5d): record reconciliation contract and acceptance evidence`.
+* The close-out documentation commit containing the refreshed milestone header.
 * Nothing was pushed, merged or deployed; the Finance repository was not
   modified.
 
