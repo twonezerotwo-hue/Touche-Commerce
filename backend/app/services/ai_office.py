@@ -17,10 +17,10 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select, text, update
 from sqlalchemy.orm import Session
 
-from app.ai.errors import ActionNotSupportedError, ProposalStateError
+from app.ai.errors import ActionNotSupportedError, AIBudgetExceededError, ProposalStateError
 from app.ai.proposals import ACTIONS, BLOCKING_WARNINGS, NewProposal, apply_edit
 from app.ai.tools.registry import ToolClass, ToolExecution, ToolOutcome
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError, VersionConflictError
@@ -515,9 +515,38 @@ class AiOfficeService:
         prompt_version: str,
         is_external: bool,
         request_id: str | None,
+        monthly_cost_cap_usd: Decimal | None = None,
+        reserved_cost_usd: Decimal = Decimal("0"),
     ) -> tuple[RunRecord, MessageRecord]:
         with self._database.transaction() as session:
             apply_company_context(session, company_id)
+            if monthly_cost_cap_usd is not None:
+                if reserved_cost_usd <= 0 or monthly_cost_cap_usd <= 0:
+                    raise AIBudgetExceededError("The AI monthly reservation is not configured.")
+                # Cross-process atomic admission for this tenant; do not trust a
+                # preflight SELECT alone when multiple workers submit together.
+                lock_key = company_id.int & ((1 << 63) - 1)
+                session.execute(
+                    text("SELECT pg_advisory_xact_lock(CAST(:key AS bigint))"),
+                    {"key": lock_key},
+                )
+                month_start = datetime.now(UTC).replace(
+                    day=1, hour=0, minute=0, second=0, microsecond=0
+                )
+                month_cost = session.execute(
+                    select(
+                        func.coalesce(
+                            func.sum(AiRun.cost_usd + AiRun.reserved_cost_usd), 0
+                        )
+                    ).where(
+                        AiRun.company_id == company_id,
+                        AiRun.started_at >= month_start,
+                    )
+                ).scalar_one()
+                if Decimal(month_cost) + reserved_cost_usd > monthly_cost_cap_usd:
+                    raise AIBudgetExceededError(
+                        "The configured monthly AI USD budget has been reached."
+                    )
             conversation = self._owned_conversation(
                 session, company_id=company_id, user_id=user_id, conversation_id=conversation_id
             )
@@ -532,6 +561,7 @@ class AiOfficeService:
                 prompt_version=prompt_version,
                 is_external=is_external,
                 request_id=request_id,
+                reserved_cost_usd=reserved_cost_usd,
             )
             session.add(run)
             session.flush()
@@ -643,6 +673,7 @@ class AiOfficeService:
             run.output_tokens = finish.output_tokens
             run.estimated_usage = finish.estimated_usage
             run.cost_usd = finish.cost_usd.quantize(_COST_QUANTUM)
+            run.reserved_cost_usd = Decimal("0")
             run.model_steps = finish.model_steps
             run.tool_call_count = finish.tool_call_count
             run.provider_calls = finish.provider_calls

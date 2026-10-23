@@ -20,6 +20,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
+from app.ai.budget import reservation_for_run
 from app.ai.errors import (
     AIBudgetExceededError,
     AIDisabledError,
@@ -142,6 +143,14 @@ class AIRuntime:
             or usage.cost_usd >= settings.ai_daily_cost_budget_usd
         ):
             raise AIBudgetExceededError("The daily AI budget for this company has been reached.")
+        # The server-side company transaction reserves worst-case token
+        # cost before the first network request. All five-plus users share
+        # the same company's monthly cap.
+        reservation = (
+            reservation_for_run(settings)
+            if settings.ai_monthly_cost_cap_enabled and self.provider.is_external
+            else Decimal("0")
+        )
         self.limiter.acquire()
         try:
             run, message = office.start_run(
@@ -154,6 +163,12 @@ class AIRuntime:
                 prompt_version=PROMPT_VERSION,
                 is_external=self.provider.is_external,
                 request_id=caller.request_id,
+                monthly_cost_cap_usd=(
+                    settings.ai_monthly_cost_cap_usd
+                    if settings.ai_monthly_cost_cap_enabled and self.provider.is_external
+                    else None
+                ),
+                reserved_cost_usd=reservation,
             )
         except Exception:
             self.limiter.release()

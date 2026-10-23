@@ -152,6 +152,7 @@ class AiRun(Base):
             name="ck_ai_run_counters",
         ),
         CheckConstraint("cost_usd >= 0", name="ck_ai_run_cost"),
+        CheckConstraint("reserved_cost_usd >= 0", name="ck_ai_run_reserved_cost"),
         CheckConstraint(
             "jsonb_typeof(validation_warnings) = 'array' AND jsonb_typeof(safety_flags) = 'array'",
             name="ck_ai_run_flags_array",
@@ -186,6 +187,9 @@ class AiRun(Base):
         Boolean, nullable=False, server_default=text("false")
     )
     cost_usd: Mapped[Decimal] = mapped_column(
+        Numeric(12, 6), nullable=False, server_default=text("0")
+    )
+    reserved_cost_usd: Mapped[Decimal] = mapped_column(
         Numeric(12, 6), nullable=False, server_default=text("0")
     )
     model_steps: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
