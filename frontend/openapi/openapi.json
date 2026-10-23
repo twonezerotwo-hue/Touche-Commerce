@@ -618,6 +618,104 @@
         "title": "CommunicationDraftResponse",
         "type": "object"
       },
+      "CommunicationPreflightRequest": {
+        "additionalProperties": false,
+        "description": "Preview eligibility without storing, sending or echoing a recipient.",
+        "properties": {
+          "channel": {
+            "enum": [
+              "EMAIL",
+              "WHATSAPP_BUSINESS"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
+          "draft_id": {
+            "format": "uuid",
+            "title": "Draft Id",
+            "type": "string"
+          },
+          "draft_version": {
+            "minimum": 1.0,
+            "title": "Draft Version",
+            "type": "integer"
+          },
+          "recipient": {
+            "maxLength": 254,
+            "minLength": 3,
+            "title": "Recipient",
+            "type": "string"
+          }
+        },
+        "required": [
+          "draft_id",
+          "draft_version",
+          "channel",
+          "recipient"
+        ],
+        "title": "CommunicationPreflightRequest",
+        "type": "object"
+      },
+      "CommunicationPreflightResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "blockers": {
+            "items": {
+              "enum": [
+                "DRAFT_NOT_APPROVED",
+                "DRAFT_VERSION_MISMATCH",
+                "CHANNEL_NOT_CONFIGURED",
+                "SEND_PERMISSION_UNAVAILABLE",
+                "RECIPIENT_INVALID"
+              ],
+              "type": "string"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "channel": {
+            "enum": [
+              "EMAIL",
+              "WHATSAPP_BUSINESS"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
+          "draft_id": {
+            "format": "uuid",
+            "title": "Draft Id",
+            "type": "string"
+          },
+          "external_sending_enabled": {
+            "const": false,
+            "default": false,
+            "title": "External Sending Enabled",
+            "type": "boolean"
+          },
+          "recipient_echoed": {
+            "const": false,
+            "default": false,
+            "title": "Recipient Echoed",
+            "type": "boolean"
+          },
+          "sendable": {
+            "const": false,
+            "default": false,
+            "title": "Sendable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "draft_id",
+          "channel",
+          "sendable",
+          "external_sending_enabled",
+          "blockers",
+          "recipient_echoed"
+        ],
+        "title": "CommunicationPreflightResponse",
+        "type": "object"
+      },
       "CommunicationsStatusResponse": {
         "additionalProperties": false,
         "properties": {
@@ -16364,6 +16462,48 @@
           }
         },
         "summary": "List Communication Drafts",
+        "tags": [
+          "communications"
+        ]
+      }
+    },
+    "/api/v1/communications/preflight": {
+      "post": {
+        "description": "Validate operator-entered recipient and draft state without sending.\n\nNo recipient is persisted, returned, logged or dispatched. A successful\npreflight is deliberately impossible until a separately approved outbound\ntransport, dedicated sender role and independent human send approval exist.",
+        "operationId": "communication_preflight_api_v1_communications_preflight_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommunicationPreflightRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunicationPreflightResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Communication Preflight",
         "tags": [
           "communications"
         ]
