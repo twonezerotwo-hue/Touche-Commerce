@@ -106,10 +106,14 @@ export default async function CommunicationsPage() {
               </Link>
             </div>
             {!contacts.ok && status.data.can_review_drafts ? (
-              <p className="mt-3 text-sm text-mist-300">CRM records are unavailable; recipient readiness will remain blocked.</p>
+              <p className="mt-3 text-sm text-mist-300">
+                CRM records are unavailable; recipient readiness will remain blocked.
+              </p>
             ) : null}
             {contacts.ok && contacts.data.has_more ? (
-              <p className="mt-3 text-sm text-mist-300">Showing the latest 50 active CRM records. Use CRM to locate older contacts.</p>
+              <p className="mt-3 text-sm text-mist-300">
+                Showing the latest 50 active CRM records. Use CRM to locate older contacts.
+              </p>
             ) : null}
             {!drafts.ok ? (
               <div className="mt-4">
@@ -142,7 +146,11 @@ export default async function CommunicationsPage() {
                         draftId={draft.id}
                         draftVersion={draft.version}
                         csrfToken={state.session.session.csrf_token}
-                        counterparties={contacts.ok ? contacts.data.items.map((item) => ({ id: item.id, name: item.name })) : []}
+                        counterparties={
+                          contacts.ok
+                            ? contacts.data.items.map((item) => ({ id: item.id, name: item.name }))
+                            : []
+                        }
                       />
                     ) : null}
                   </li>
