@@ -35,7 +35,7 @@ from app.services.communications import crm_recipient_matches
 
 router = APIRouter(prefix="/communications", tags=["communications"])
 
-_PHONE_E164 = re.compile(r"^\\+[1-9][0-9]{6,14}$")
+_PHONE_E164 = re.compile(r"^\+[1-9][0-9]{6,14}$")
 
 ViewContext = Annotated[
     SessionContext, Depends(require_company_permission(Permission.COMPANY_VIEW))
