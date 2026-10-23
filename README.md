@@ -714,11 +714,12 @@ PR #2. Neither email nor WhatsApp sending exists. Local browser and real
 provider acceptance are still unavailable.
 
 
-### Stage 7C1 — CRM provenance (in progress)
+### Stage 7C1 — CRM provenance (CI verified)
 
 The Communications readiness check allows an active-company CRM counterparty
 to be selected as the purported source of an email/E.164 recipient. It rejects
 unlinked, archived or mismatched contact points, but **never treats matching a
 CRM record as proof of consent**. Provider connections and sending remain
-unavailable; no address or phone is stored by the preflight. The feature is
-on `stage-7c` until CI acceptance is verified.
+unavailable; no address or phone is stored by the preflight. The feature passed GitHub CI (561 backend / 192 frontend) and merged from
+PR #3. Contact control, consent records, live providers and messaging are
+still unavailable.
