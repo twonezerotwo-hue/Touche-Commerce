@@ -169,6 +169,8 @@ class Settings(BaseSettings):
     ai_run_deadline_seconds: float = Field(default=120.0, ge=5.0, le=900.0)
     ai_daily_token_budget: int = Field(default=500_000, ge=1_000)
     ai_daily_cost_budget_usd: Decimal = Field(default=Decimal("5.00"), ge=0)
+    ai_monthly_cost_cap_enabled: bool = False
+    ai_monthly_cost_cap_usd: Decimal = Field(default=Decimal("10.00"), ge=0)
     ai_price_input_per_million_usd: Decimal = Field(default=Decimal("0"), ge=0)
     ai_price_output_per_million_usd: Decimal = Field(default=Decimal("0"), ge=0)
 
@@ -411,6 +413,15 @@ class Settings(BaseSettings):
             if self.environment in _NON_LOCAL_ENVIRONMENTS:
                 raise ValueError("the mock AI provider is not allowed in staging or production")
             return
+        if self.environment == "production" and not self.ai_monthly_cost_cap_enabled:
+            raise ValueError("real production AI requires ai_monthly_cost_cap_enabled")
+        if self.ai_monthly_cost_cap_enabled:
+            if (
+                self.ai_monthly_cost_cap_usd <= 0
+                or self.ai_price_input_per_million_usd <= 0
+                or self.ai_price_output_per_million_usd <= 0
+            ):
+                raise ValueError("monthly AI cap requires positive cap and token prices")
         if self.ai_api_key is None or not self.ai_api_key.get_secret_value().strip():
             raise ValueError("ai_api_key is required for a real AI provider")
         if base is None:
