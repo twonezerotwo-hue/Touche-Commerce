@@ -1489,3 +1489,14 @@ The new migration and CI checks passed in GitHub Actions run `40025166931`:
 at `5bc7bdc`. Browser and real provider acceptance remain unverified.
 Runtime table privileges are SELECT/INSERT only,
 and the audit event is appended to the existing immutable audit trail.
+
+
+## 30. Stage 8 E-YAY read-only boundary (in progress)
+
+A separate numeric-loopback E-YAY integration reads only `/system/health`
+followed by `/regime-report/current` when explicitly enabled. There are no
+user credentials, cookies, authorization headers, redirects or external DNS.
+Paper-safe and no-execution safety gates precede regime parsing. The stable
+serialized response excludes E-YAY's portfolio/paper position objects, bounds
+assets to 20 and rejects stale (>15 minute) snapshots. It is deliberately
+separate from RFQ/order/pricing, Finance ledger, AI actions and email sending.
