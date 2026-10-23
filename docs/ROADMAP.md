@@ -462,3 +462,15 @@ signals. It is disabled by default and never exposes paper account positions,
 trading commands, financial writes or cross-company business data. No live E-YAY
 server has yet been verified. A future integration may add independent business
 insights only after semantic contract and risk review.
+
+
+---
+
+## Stage 9 — Local operations and reliability (in progress)
+
+Single-command, non-destructive Windows startup verifies configured credentials
+and local port availability; launches two supervised-by-terminal development
+processes and checks API/login readiness. Separate verification fails closed
+on missing frontend dependencies, and Windows GitHub CI parses the scripts.
+This is **local development availability**, not remote production deployment,
+24/7 uptime, TLS endpoint validation, successful backups or disaster recovery.

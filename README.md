@@ -743,3 +743,19 @@ current regime snapshot produces bounded context. No exchange order, Commerce
 sales order, automatic deal, finance posting or bank transfer can be initiated.
 Enable only after verifying that the local E-YAY runtime has the expected
 source contract; no live source was connected during development.
+
+
+### Stage 9 — One-command local start (development only)
+
+After running setup, starting PostgreSQL and bootstrapping an admin, use:
+
+```powershell
+.\scripts\start-local.ps1
+```
+
+This launches the installed backend and frontend in distinct visible windows,
+refuses occupied ports and verifies `http://127.0.0.1:8000/api/v1/health/live`
+and `http://localhost:3000/login`. It does **not** run database migrations or
+connect Gmail/WhatsApp/E-YAY/Finance. To request migration explicitly **after a
+tested backup**, use `-ApplyMigrations`. This is not a production daemon or
+a claim that the user workstation has been started remotely.

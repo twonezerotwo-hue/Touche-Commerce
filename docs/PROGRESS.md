@@ -1,7 +1,7 @@
 # TOUCHE COMMERCE — Progress
 
 **Last updated:** 2026-10-23 (local)
-**Current stage:** Stage 8 — E-YAY read-only market context (IN_PROGRESS; CI pending)
+**Current stage:** Stage 9 — safe local startup and CI (IN_PROGRESS; CI pending)
 **Current milestone:** 7C2 — 565 backend / 192 frontend; admin-only opt-out records; sending disabled
 **Stage 6:** PASSED on Stage 6 local reported evidence (551 backend / 192 frontend, mock provider)
 **Stage 7A:** PASSED in GitHub CI (555 backend / 192 frontend, OpenAPI current; PR #1 merged); Windows browser acceptance not run
@@ -2208,3 +2208,19 @@ that no position data leaks. GitHub CI / live E-YAY connectivity not yet verifie
 
 Stage 8 **cannot be marked a live connected integration** until an isolated
 HTTP acceptance run starts the actual E-YAY local runtime in an approved sandbox.
+
+
+## 35. Stage 9 — Local operations and CI safety (IN PROGRESS)
+
+- Added `scripts/start-local.ps1` to launch backend and frontend in separate
+  Windows terminals with loopback-only ports and positive HTTP readiness probes.
+  Refuses missing dependencies and occupied ports; does not bootstrap/delete
+  a database or enable any external providers. Alembic is opt-in via
+  `-ApplyMigrations` and requires an operator-verified backup.
+- Changed `scripts/verify.ps1` to run `mypy app` (same shipped app scope as CI)
+  and **fail** rather than report success when frontend dependencies are missing.
+- Added Windows Actions job to parse both operational PowerShell scripts
+  and static regression assertions. No live Windows deployment or backup/restore
+  acceptance is claimed until exercised separately.
+
+**Verification pending:** stacked PR and GitHub CI including Windows parser.

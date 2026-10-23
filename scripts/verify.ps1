@@ -46,7 +46,7 @@ Invoke-Step 'backend: ruff' {
     Invoke-Native -FilePath $python -Arguments @('-m', 'ruff', 'check', '.') -WorkingDirectory $backendDir
 }
 Invoke-Step 'backend: mypy' {
-    Invoke-Native -FilePath $python -Arguments @('-m', 'mypy') -WorkingDirectory $backendDir
+    Invoke-Native -FilePath $python -Arguments @('-m', 'mypy', 'app') -WorkingDirectory $backendDir
 }
 Invoke-Step 'backend: pytest' {
     Invoke-Native -FilePath $python -Arguments $pytestArgs -WorkingDirectory $backendDir
@@ -73,7 +73,8 @@ if (Test-Path (Join-Path $frontendDir 'node_modules')) {
 }
 else {
     Write-Host ''
-    Write-Host 'frontend/node_modules missing - skipping frontend checks (run scripts\setup.ps1)' -ForegroundColor Yellow
+    $failures.Add('frontend: dependencies missing')
+    Write-Host 'frontend/node_modules missing - verification cannot pass. Run scripts\setup.ps1' -ForegroundColor Red
 }
 
 Write-Host ''
