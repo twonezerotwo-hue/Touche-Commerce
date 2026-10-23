@@ -1,9 +1,8 @@
 # TOUCHE COMMERCE — Architecture
 
-**Status:** Stages 0–4 implemented and verified locally. Stage 5A (Finance
-discovery/health), Stage 5B (Finance read-only contract) and Stage 5C (Commerce
-read-only Finance connector) are implemented; financial reconciliation (Stage
-5D) has not begun.
+**Status:** Stages 0–6 are implemented with local verification recorded in PROGRESS.
+Stage 6 is mock-provider verified, not live-provider verified. Stage 7A is in
+progress on a feature branch and has not completed local regressions.
 **Audience:** engineers and reviewers working on Stage 2 and later.
 **Companion documents:** `docs/DECISIONS.md` (binding ADRs), `docs/API_CONTRACTS.md`,
 `docs/ROADMAP.md`, `docs/PROGRESS.md`, `docs/FINANCE_INTEGRATION_CONTRACT.md`.
@@ -1438,3 +1437,20 @@ list); live tool progress with cancel; proposed actions (draft preview stating n
 is sent, edit, approve/reject only for `trade.write`); activity history; the tool
 registry with the actions that are never available. Hrefs are only followed when they
 are application-internal paths.
+
+
+---
+
+## 27. Stage 7A communications discovery (in progress)
+
+Stage 7A deliberately has no outbound transport. The new route `/communications`
+uses an active session and `company.view` to expose existing Stage 6 AI Office
+DRAFT proposals, constrained by PostgreSQL company RLS. No company id is accepted
+from query/body. The displayed approval state is a **human review**, never delivery.
+A separate `communications.send` permission exists without any role assignment:
+future delivery requires explicit authorization, provider configuration, idempotent
+outbox, audit, consent and per-channel execution rules. The channel status endpoint
+reports `NOT_CONFIGURED` until a real connector is implemented and verified.
+
+No message dispatch, credential handling, external access or Finance write is
+implemented in this slice. Regression and browser acceptance are still pending.
