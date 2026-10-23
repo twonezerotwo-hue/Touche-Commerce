@@ -15,7 +15,7 @@ from datetime import date
 from pathlib import Path
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
@@ -33,7 +33,12 @@ from app.db.models import (
 from app.security.permissions import Permission, permissions_for
 from app.services.catalog import ProductService
 from app.services.crm import CounterpartyService
-from app.services.import_preview import ImportPreview, ImportPreviewError, preview_import
+from app.services.import_preview import (
+    MAX_BYTES,
+    ImportPreview,
+    ImportPreviewError,
+    preview_import,
+)
 from app.services.trade_meta import WriteMeta
 
 LOCAL_ONLY = frozenset({"local", "test", "ci"})
@@ -136,6 +141,8 @@ def apply_if_authorized(
 
     if settings.environment not in LOCAL_ONLY:
         raise ImportCommitBlocked("Bulk import CLI is disabled outside local/test/ci")
+    if not 1 <= filename.stat().st_size <= MAX_BYTES:
+        raise ImportCommitBlocked("Import must be nonempty and at most 2 MB")
     source = filename.read_bytes()
     preview = preview_import(filename.name, source, kind=kind)
     digest = hashlib.sha256(source).hexdigest()
@@ -187,6 +194,8 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
+        if not 1 <= args.file.stat().st_size <= MAX_BYTES:
+            raise ImportCommitBlocked("Import must be nonempty and at most 2 MB")
         content = args.file.read_bytes()
         preview = preview_import(args.file.name, content, kind=args.kind)
         digest = hashlib.sha256(content).hexdigest()
