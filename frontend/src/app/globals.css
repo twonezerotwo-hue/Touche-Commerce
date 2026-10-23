@@ -18,8 +18,10 @@
   --color-mist-200: #dbe4ef;
   --color-mist-300: #b6c3d4;
   --color-mist-400: #93a2b6;
-  --color-mist-500: #75849a;
-  --color-mist-600: #566478;
+  /* Stage 6I: muted text meets WCAG AA (>= 4.5:1) on every panel surface.
+     Previously #75849a / #566478 (4.5 / 3.0 on ink-800 panels). */
+  --color-mist-500: #8190a6;
+  --color-mist-600: #7a8ba2;
 
   --color-accent-100: #e8f2ff;
   --color-accent-200: #c6e0ff;

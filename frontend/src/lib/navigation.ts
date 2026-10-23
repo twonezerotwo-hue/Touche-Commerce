@@ -182,6 +182,18 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     ],
   },
   {
+    label: "AI",
+    items: [
+      {
+        label: "AI Office",
+        icon: Sparkles,
+        href: "/ai",
+        stage: "Stage 6",
+        description: "Evidence-cited analysis with human-approved proposals",
+      },
+    ],
+  },
+  {
     label: "Account",
     items: [
       {
@@ -196,17 +208,6 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         icon: Settings,
         stage: "Stage 2",
         description: "Company settings and administration",
-      },
-    ],
-  },
-  {
-    label: "Roadmap",
-    items: [
-      {
-        label: "AI Office",
-        icon: Sparkles,
-        stage: "Stage 6",
-        description: "Scoped assistants with audited actions",
       },
     ],
   },
@@ -226,9 +227,27 @@ export const PUBLIC_NAV_ITEMS: readonly NavItem[] = [
   },
 ];
 
+/** What the footer says about the platform's current capability. */
+export const PLATFORM_STAGE_LABEL = "Stage 6 · AI Trade Director · Read-only, human-approved";
+
 export function isActivePath(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/**
+ * The single navigation entry that owns a path: the most specific matching href.
+ * Without this, `/finance/intelligence` would highlight both "Finance" and
+ * "Intelligence" because `/finance` is a prefix of it.
+ */
+export function resolveActiveHref(pathname: string): string | null {
+  const matches = NAV_ITEMS.flatMap((item) =>
+    item.href && isActivePath(pathname, item.href) ? [item.href] : [],
+  );
+  return matches.reduce<string | null>(
+    (best, href) => (best === null || href.length > best.length ? href : best),
+    null,
+  );
 }
 
 export interface WorkspaceContext {
@@ -284,6 +303,7 @@ export function resolveWorkspaceContext(pathname: string): WorkspaceContext {
   if (pathname === "/finance/intelligence/exceptions") {
     return { section: "Finance", page: "Financial exceptions" };
   }
+  if (pathname === "/ai") return { section: "AI", page: "AI Office" };
   if (pathname === "/crm") return { section: "Workspace", page: "CRM" };
   if (pathname === "/products") return { section: "Workspace", page: "Products" };
   if (pathname === "/account") return { section: "Account", page: "Profile & access" };

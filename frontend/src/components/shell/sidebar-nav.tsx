@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { isActivePath, type NavGroup } from "@/lib/navigation";
+import { resolveActiveHref, type NavGroup } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
 export interface SidebarNavProps {
@@ -14,6 +14,7 @@ export interface SidebarNavProps {
 
 export function SidebarNav({ group, muted = false }: SidebarNavProps) {
   const pathname = usePathname();
+  const activeHref = resolveActiveHref(pathname);
 
   return (
     <div className="mb-4 last:mb-0">
@@ -40,7 +41,7 @@ export function SidebarNav({ group, muted = false }: SidebarNavProps) {
             );
           }
 
-          const active = isActivePath(pathname, item.href);
+          const active = item.href === activeHref;
 
           return (
             <li key={item.label}>

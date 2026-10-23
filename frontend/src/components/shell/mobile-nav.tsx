@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { ArrowUpRight, Menu, X } from "lucide-react";
 
 import { Avatar } from "@/components/ui/avatar";
-import { NAV_GROUPS, PUBLIC_NAV_ITEMS, isActivePath } from "@/lib/navigation";
+import { NAV_GROUPS, PUBLIC_NAV_ITEMS, resolveActiveHref } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
 export interface MobileIdentity {
@@ -19,6 +19,7 @@ export interface MobileIdentity {
 /** Slide-over navigation for screens below the desktop breakpoint. */
 export function MobileNav({ identity }: { identity: MobileIdentity }) {
   const pathname = usePathname();
+  const activeHref = resolveActiveHref(pathname);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -107,7 +108,7 @@ export function MobileNav({ identity }: { identity: MobileIdentity }) {
                           </li>
                         );
                       }
-                      const active = isActivePath(pathname, item.href);
+                      const active = item.href === activeHref;
                       return (
                         <li key={item.label}>
                           <Link
