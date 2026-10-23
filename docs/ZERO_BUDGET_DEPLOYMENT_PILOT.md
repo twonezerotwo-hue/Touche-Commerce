@@ -1,26 +1,30 @@
 # $0 hosting pilot decision — Stage 11/18 infrastructure gate
 
-**Decision state:** PROPOSED, NOT PROVISIONED, NOT PRODUCTION APPROVED. Owner has explicitly selected **$0 recurring hosting cost**, >=5 Windows/macOS browser users, a cloud-primary shared database, no always-on dependence on their Windows desktop. The real onboarding of cloud, domain, IAM, providers and billable resources requires separate operator authorization.
+**Decision state:** PROPOSED, NOT PROVISIONED, NOT PRODUCTION APPROVED. Owner explicitly confirmed **company in Türkiye**, **$0 recurring hosting cost**, **no payment card supplied**, >=5 Windows/macOS browser users and a long-term aspiration for cloud-primary availability without an always-on personal PC. This combination cannot guarantee 24/7 availability today. Oracle signup is **blocked by card verification**. First milestone is local Windows + MacBook LAN acceptance; optional internet preview uses only synthetic records and cardless free-tier evaluation, never real customer trade data.
 
 ## Deployment candidates and selection
 
 | Option | Pilot fit | Business-use and financial risk |
 | --- | --- | --- |
-| Oracle Cloud Always Free ARM VM (Linux) | **Preferred test candidate** for FastAPI + Next.js + PostgreSQL with limited initial users, if free Arm capacity, approved region and quotas are actually available. | Cannot guarantee placement, continuity, resources or 24/7 SLA; underutilized free instances may be reclaimed. Protect data with **independent** backups. Never upgrade/pay automatically. |
-| Existing Windows PC hosting | Local fallback only for testing; browser devices on same private network or via separately approved private gateway. | Host power, updates and availability depend on Windows; owner says continuous operation is undesirable. Not the default shared production architecture. |
+| Oracle Cloud Always Free ARM VM (Linux) | **BLOCKED**. Oracle explicitly requires credit/debit-card payment verification. Owner has not added a card. | No attempt to bypass verification; no credentials or payment method requested in chat. Not the current recommended path. |
+| Existing Windows PC hosting | **Immediate $0/no-card starting path**. Existing FastAPI+Next.js+PostgreSQL can run, and Windows/MacBook browsers use the same test database on the LAN only after secure host-binding, Windows firewall, network ACL, auth/session/cookie/CSRF and browser verification. | Only available while PC is on; not automatically internet-accessible. Existing loopback-only launcher does **not** provide LAN access, so a separate security-reviewed LAN mode is required; never expose existing development listeners blindly. |
 | Tailscale Personal / ZeroTier Personal | Not selected for commercial access. | Personal free plans have **non-commercial/personal-use restrictions**; do not use them as a disguised free business VPN. |
 | Cloudflare Zero Trust free access | Optional access control layer to evaluate after origin and DNS arrangement. | Free tier of Access is not a replacement for paid compute, an owned domain, authoritative storage, on-prem connectivity or backup/restore. |
-| Free PaaS plans | Only if another candidate is objectively supportable and terms allow business use. | Sleep/expiry/storage/CPU/request limits often conflict with an operational trade system; no production approval on assumptions. |
+| Render Free web service + Neon Free PostgreSQL | **Candidate for disposable/synthetic remote demonstration** if sign-up without a card and account/plan terms are confirmed. Render supports Node and Python web services; Neon retains PostgreSQL dialect but free storage/compute and backup safeguards are constrained. | Render sleeps after ~15 min idle and explicitly disclaims production readiness. Combined quotas and deployment of both backend/frontend must be tested; not a live business-data system. No cost or uptime guarantee. |
+| Prisma Compute/Postgres Free | Cardless candidate for **frontend/TypeScript app portions**, NOT a direct replacement for the present FastAPI Python backend. | Compute supports Node/Bun/Next.js, not a drop-in Python API host; avoid unnecessary replatforming just to fit a trial. |
 
 Sources verified 2026-10-24:
-- Oracle: https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm
+- Oracle payment verification: https://docs.oracle.com/en-us/iaas/Content/GSG/Tasks/signingup_topic-Sign_Up_for_Free_Oracle_Cloud_Promotion.htm
+- Render free + payment limits: https://render.com/docs/free and https://render.com/docs/faq
+- Neon free: https://neon.com/pricing
+- Prisma Compute runtime restrictions: https://www.prisma.io/docs/compute
 - Cloudflare access tier: https://www.cloudflare.com/plans/
 - Tailscale personal-use constraints: https://tailscale.com/pricing
 - ZeroTier personal-use constraints: https://www.zerotier.com/pricing/
 
 ## Architecture (zero forced local host uptime)
 
-- Browser TR/EN premium Next.js app -> private FastAPI backend -> centrally hosted PostgreSQL + encrypted private document files. The server's **free allocation is unproven** until resources are provisioned and load tested.
+- **Two gated profiles**: (1) local-only LAN UAT on Windows + MacBook with one test PostgreSQL, and (2) synthetic-only no-card hosted preview if third-party accounts/quota can be verified. Ultimate business production remains separately blocked until funded/reliable hosting, encryption, compliant storage, backups and internet access are in place. The free remote preview may not be durable.
 - Use managed HTTPS with validated hostname once a domain is controlled; `canwetouche.com` has expired and **may not be available**. Temporary pilot access address with valid HTTPS is acceptable only after ownership/security check; never issue customer-facing document links on an unverified hostname.
 - Finance (`C:\ai-excel`), E-YAY (`C:\dev\clean-e-yay`) and Ollama run on Windows and connect to the cloud **outbound only** via strongly authenticated allowlisted connector after security review. Windows offline -> source data stale/unavailable; no raw public localhost ports. Commerce remains usable without the connectors.
 - DeepSeek API is primary; **USD 10/month combined cap**. Plan a backend reservation-based, concurrency-safe budget mechanism and fallback for 402/429/timeout/5xx. Provider prepaid spend controls, if supported, are a second layer. No guarantee spending cannot exceed exactly $10 solely from application counters without accounting for billing lag. Expose provider and real cost per request.
@@ -36,8 +40,10 @@ Sources verified 2026-10-24:
 
 ## Operational acceptance checklist
 
-- [ ] Owner has verified a no-charge OCI account and accepted free-usage restrictions; no paid upgrade.
-- [ ] Choose available allowed region and host architecture; ARM compatibility verified for exact dependency locks.
+- [ ] Record `ORACLE_BLOCKED_CARD_VERIFICATION`; do not request owner's card.
+- [ ] Local Windows/MacBook LAN test succeeds with no unapproved public port exposure.
+- [ ] If hosted preview selected, verify Render + Neon signup without a card, acceptable commercial terms and disposable synthetic-only records.
+- [ ] For any provider, verify allowed region and runtime compatibility with exact FastAPI/Next.js dependency locks.
 - [ ] Provision and protect central VM, private PostgreSQL, host firewall, minimal ports, HTTPS and secrets.
 - [ ] Five distinct role-based user accounts, login/CSRF/session/membership isolation, key admin recovery.
 - [ ] Real MacBook and Windows browser UAT; no direct public DB listener.
@@ -49,7 +55,7 @@ Sources verified 2026-10-24:
 
 ## Dependencies requiring owner action
 
-1. OCI account signup and payment-authorization handling if requested by provider. This is performed **by the owner in Oracle directly**, not by supplying card details in chat.
+1. **Do not ask for Oracle card setup.** The onboarding route was attempted and blocked by mandatory card verification. For optional remote preview, the owner may authorize a no-card free service signup, and development proceeds without it in local-only mode.
 2. For an eventual branded domain, renew/re-register or buy available hostname separately; under a $0 domain budget do not assume `canwetouche.com` is owned.
 3. Confirm official company registration details and a separate business contact identity before live external account setup.
 4. OAuth/Meta/DeepSeek onboarding with credentials entered through a trusted secret store, never GitHub.
