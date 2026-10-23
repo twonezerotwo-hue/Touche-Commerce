@@ -6,13 +6,13 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
+from scripts.apply_import import ImportCommitBlocked, apply_if_authorized, commit_preview
 from sqlalchemy import select
 
 from app.core.config import Settings
 from app.db.engine import Database
 from app.db.models import Counterparty, Product
 from app.services.import_preview import preview_import
-from scripts.apply_import import ImportCommitBlocked, apply_if_authorized, commit_preview
 from tests.conftest import IdentityWorld
 
 
@@ -55,7 +55,7 @@ def test_admin_without_trade_write_cannot_import(
     migration_database: Database, identity_world: IdentityWorld
 ) -> None:
     preview = preview_import("batch.csv", products_csv(), kind="products")
-    with pytest.raises(ImportCommitBlocked, match="lacks trade.write"):
+    with pytest.raises(ImportCommitBlocked, match=r"lacks trade\.write"):
         commit_preview(
             migration_database,
             preview=preview,
