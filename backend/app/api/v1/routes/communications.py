@@ -23,6 +23,7 @@ from app.api.v1.schemas.communications import (
     CommunicationDraftListResponse,
     CommunicationDraftResponse,
     CommunicationsStatusResponse,
+    PreflightBlocker,
 )
 from app.core.errors import NotFoundError
 from app.db.engine import Database
@@ -130,7 +131,7 @@ def communication_preflight(
     if draft.kind != ProposalKind.DRAFT.value:
         raise NotFoundError("This communication draft does not exist.")
 
-    blockers: list[str] = []
+    blockers: list[PreflightBlocker] = []
     if draft.status != "APPROVED":
         blockers.append("DRAFT_NOT_APPROVED")
     if draft.version != payload.draft_version:
@@ -151,5 +152,5 @@ def communication_preflight(
     return CommunicationPreflightResponse(
         draft_id=draft.id,
         channel=payload.channel,
-        blockers=blockers,  # type: ignore[arg-type] -- closed codes listed above
+        blockers=blockers,
     )
