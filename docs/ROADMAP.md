@@ -302,7 +302,7 @@ screens — `/finance/intelligence`, `/finance/intelligence/orders`,
 per-currency charts and an audited, formula-safe CSV export. No migration, no
 Finance call and no `actual_profit` field exist.
 
-**Verification:** backend `402 passed`, frontend `140 passed` across 22 files,
+**Verification:** backend `402 passed`, frontend `149 passed` across 22 files,
 `ISOLATED_HTTP_VERIFIED` over a real accepted order (estimated profit `50.00` at
 `20.00%`, committed profit withheld while the order is part-shipped, exception
 resolution gated by `finance.reconcile`, CSV through the proxy, cross-tenant
@@ -310,8 +310,9 @@ isolation, unchanged live Finance hashes). See `docs/PROGRESS.md` §26.
 
 **Explicitly not implemented:** actual profit, document-supported margin, saved or
 scheduled reports, Finance writes, invoices, payments, journals, AI Trade Director,
-Gmail/WhatsApp automation and E-YAY integration. No browser-level visual check has
-been performed.
+Gmail/WhatsApp automation and E-YAY integration. A real-browser review at four widths
+found and fixed layout and label defects (PROGRESS §26.5); cosmetic items remain open
+and tablet width and an accessibility audit were not run.
 
 ### Next safe milestone (not started)
 

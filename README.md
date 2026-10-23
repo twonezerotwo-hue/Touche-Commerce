@@ -35,10 +35,10 @@ a private trade-document register.
 | PostgreSQL 17 + migrations `0001_foundation` … `0009_reconciliation` | ✅ verified |
 | `/api/v1/health/live` · `/api/v1/health/ready` | ✅ 200 |
 | Backend tests (unit + live DB incl. RLS matrix) | ✅ 402 passed |
-| Frontend tests / lint / typecheck / build | ✅ 140 passed, clean |
+| Frontend tests / lint / typecheck / build | ✅ 149 passed, clean |
 | Finance read-only connector (`/api/v1/finance/*`) | ✅ Stage 5C; isolated HTTP PASS |
 | Evidence reconciliation (`/finance/reconciliation`) | ✅ Stage 5D; isolated HTTP PASS |
-| Financial intelligence (`/api/v1/finance/intelligence/*`, `/finance/intelligence`) | ✅ Stage 5E; isolated HTTP PASS, no browser |
+| Financial intelligence (`/api/v1/finance/intelligence/*`, `/finance/intelligence`) | ✅ Stage 5E; isolated HTTP PASS, real-browser review (cosmetic items open) |
 | Live identity verification (`scripts\verify-identity.ps1`) | ✅ 31 checks passed |
 | Live trade workflow (`scripts\verify-trade.ps1`) | ✅ 39 checks passed |
 | Live sourcing workflow (`scripts\verify-sourcing.ps1`) | ✅ 53 checks passed |
@@ -595,7 +595,7 @@ New API surface (all `GET`, `company.view`, `no-store`):
 /api/v1/finance/intelligence/export        CSV, audited, formula-safe text columns
 ```
 
-**Verification:** backend `402 passed`; frontend `140 passed` across 22 files; ruff,
+**Verification:** backend `402 passed`; frontend `149 passed` across 22 files; ruff,
 mypy, ESLint, Prettier, typecheck and `next build` pass; `ISOLATED_HTTP_VERIFIED`
 with a real accepted order (estimated profit `50.00` at `20.00%`, committed profit
 withheld while part-shipped, unauthorized resolution refused, CSV through the proxy,
@@ -603,8 +603,14 @@ all four screens rendered, cross-tenant isolation, unchanged live Finance hashes
 Reproduce with `backend\.venv\Scripts\python.exe backend\scripts\verify_finance_http.py`.
 See `docs/PROGRESS.md` §26.
 
-**Not verified:** no browser run (chart geometry and tooltips have not been looked at
-on a rendered page), no live Finance run, Docker Compose and GitHub Actions.
+**Browser review:** the screens were reviewed in a real browser (isolated environment,
+the real order plus a temporary page of labelled synthetic data, 375/1024/1280/1440 px).
+The defects that affected readability or the truth of a figure were fixed and
+re-measured; cosmetic items remain open (`docs/PROGRESS.md` §26.5–26.6).
+
+**Not verified:** a live Finance run, Docker Compose, GitHub Actions, tablet width
+(768 px), keyboard-focus tooltips, an accessibility audit and the Export CSV download
+in the browser.
 
 **Not implemented:** actual profit, document-supported margin, saved or scheduled
 reports, Finance writes, invoices, payments, bank transfers, journals, AI Trade

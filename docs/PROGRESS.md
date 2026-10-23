@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-23 (local)
 **Current stage:** Stage 5E — read-only financial intelligence (implemented and isolated-HTTP verified locally)
-**Current milestone:** 5E — 402 backend tests, 140 frontend tests, `ISOLATED_HTTP_VERIFIED`
+**Current milestone:** 5E — 402 backend tests, 149 frontend tests, `ISOLATED_HTTP_VERIFIED`, browser-reviewed
 **Stage 5:** IN_PROGRESS (Stage 5A/5B/5C/5D/5E implemented; no further milestone started)
 
 Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
@@ -39,7 +39,7 @@ Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
 | Sales orders, procurement, shipments, trade documents | PASSED | Stage 4 — §22 |
 | Finance read-only connector (Stage 5C) | PASSED | §24 — 20 connector + 18 API tests, isolated HTTP |
 | Financial reconciliation (Stage 5D) | PASSED | §25 — evidence runs, review, discrepancies; isolated HTTP |
-| Financial intelligence (Stage 5E) | PASSED | §26 — 402 backend / 140 frontend tests; isolated HTTP, browser not used |
+| Financial intelligence (Stage 5E) | PASSED | §26 — 402 backend / 149 frontend tests; isolated HTTP and a real-browser review (defects fixed, cosmetic items open) |
 | Accounting, payments, external integrations, AI assistants | NOT_STARTED | no accounting write path exists |
 
 > This table records the **Stage 0** baseline. Stage 1A results are in
@@ -1714,7 +1714,7 @@ or compute an actual profit. Finance remains the financial source of truth.
 | new intelligence API tests | **5 passed** (live PostgreSQL, real order) |
 | `ruff check app tests` / `ruff check scripts/verify_finance_http.py` | passed |
 | `mypy app` | passed (109 source files) |
-| `npm test -- --run` | **140 passed / 22 files** (102 earlier + 38 new) |
+| `npm test -- --run` | **149 passed / 22 files** (102 earlier + 47 new) |
 | `npm run lint` · `typecheck` · `format:check` | passed |
 | `npm run build` | passed; the four new routes are listed |
 | `scripts\generate-api-types.ps1 -Check` | passed after the contract commit (7 paths and 28 schemas added; nothing removed or changed) |
@@ -1779,14 +1779,39 @@ The live Finance application was **not** started.
 | CSV export prefixed every value that starts with `-`, including negative amounts, so a loss (`-50.00`) became text (`'-50.00`). | code review of the export route, then a runnable check | formula escaping now applies to text columns only; regression test added |
 | A metric with nothing to show carried the kind the API names for it (`COMMITTED`) beside “Not available”. | the first isolated run (an assertion of mine was also wrong) | the card shows `UNAVAILABLE` when it has no figure; test added; backend contract unchanged (ADR-047) |
 | Six `UniqueViolation` errors in one backend run. | two suites sharing `touche_commerce_test` | not defects; suites must run one at a time against the test database |
+| Order and exceptions tables were too narrow: at 1024 px only five of nine columns were visible, the order number broke into three lines, the finding column was 106 px wide and the resolution control was scrolled out of view. | real-browser review | status folded into the order cell, order number `nowrap`, customer name clamped, wrapping headers; exceptions table reduced to three columns with the resolution control under the finding (commit `697c94d`) |
+| Twelve months in the monthly chart widened the page on a phone (layout 666 px on a 375 px screen). A first fix (scrolling plot) was not enough: the panel, a grid item, still grew to the plot. | real-browser review, then a re-measure | plot scrolls inside a `min-w-0` panel; labels `nowrap`; edge tooltips anchored inside the plot; tested |
+| Order detail: “Documented cost” read “Not available” beside a DOCUMENTED badge; “Cost variance” read “Not available of estimate”; the tooltip said “1 orders”; the coverage metric carried a green VERIFIED badge at 0.00%. | real-browser review | operational cost shown with the total as unavailable; badges fall back to UNAVAILABLE without a figure; VERIFIED never shown on a metric; pluralisation fixed; all tested |
 
 The first isolated run failed on the committed-profit assertion before the third
 fix above; the recorded result is from the second, clean run.
 
+**Real-browser review (2026-10-23).** The screens were opened in the in-app browser
+against the isolated environment (synthetic Finance, test database, throw-away
+accounts) with the real Stage 5D order, plus a temporary page of clearly labelled
+**synthetic** data (12 months, three currencies, 12-million amounts, an 80-character
+customer name) that was deleted afterwards and never committed. Widths 375, 1024,
+1280 and 1440 px. Thirteen findings were reported; the six that affected
+readability or truth of a figure were fixed and re-measured in the same environment
+(`697c94d`), the HTTP verifier was re-run (`ISOLATED_HTTP_VERIFIED`) and the live
+Finance hashes were unchanged. The remaining findings are recorded in §26.6.
+
 ### 26.6 Honest limitations
 
-* Verification is isolated and HTTP/SSR level. **No browser was used**; chart
-  geometry, tooltips and overflow have not been looked at on a rendered page.
+* Verification is isolated: HTTP/SSR level plus the real-browser review in §26.5.
+  Not covered by that review: tablet width (768 px), keyboard-focus tooltips, an
+  accessibility audit and the Export CSV download (a download needs explicit
+  permission, so it was verified over HTTP only).
+* Open cosmetic findings from the browser review, not fixed: the filter-bar labels
+  “From”/“To” sit beside their inputs while the other labels sit above; the chart
+  empty state renders as a panel inside a panel; category names are truncated in the
+  two-column layout without a hover title; completeness segments below one pixel
+  are invisible (the legend still lists their counts); tooltips of the margin and
+  cost charts can overhang their panel at the edges; an odd number of coverage
+  panels leaves one alone in a half row; negative figures carry no visual emphasis;
+  and a year of months needs horizontal scrolling inside the two-column monthly
+  chart. Pre-existing and unchanged: the shell footer still reads “STAGE 5D” and the
+  sidebar highlights “Finance” and “Intelligence” together.
 * The isolated order is a single USD order. Multi-currency behaviour is proven by
   the pure and API tests (`test_currency_totals_are_never_mixed`, the currency
   isolation API test), not by the isolated run.
@@ -1807,7 +1832,7 @@ fix above; the recorded result is from the second, clean run.
   transaction-level invoice or payment source.
 * The sidebar highlights “Finance” on every `/finance/*` route (prefix match,
   unchanged since Stage 5D).
-* Docker Compose, a GitHub Actions run and a browser run were not executed.
+* Docker Compose and a GitHub Actions run were not executed.
 * No migration, so there is no downgrade consideration for this stage.
 
 ### 26.7 Git
@@ -1818,6 +1843,8 @@ fix above; the recorded result is from the second, clean run.
 * `e0b723e` — `feat(stage5e): add financial intelligence workspace`.
 * `b2e5d19` — `fix(stage5e): label a figure-less metric UNAVAILABLE`.
 * `dd4e458` — `test(stage5e): add financial intelligence to the isolated HTTP verifier`.
-* The documentation commit containing this section.
+* `639eb82` — `docs(stage5e): record financial intelligence contract and verification evidence`.
+* `697c94d` — `fix(stage5e): fix table, chart and label defects found in the browser review`.
+* The documentation commit that records the browser review (this update).
 * Nothing was pushed, merged or deployed; the Finance repository was not
   modified.

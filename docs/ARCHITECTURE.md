@@ -1320,11 +1320,12 @@ forwards `content-disposition` and `x-content-type-options` for it.
 
 ### 25.5 Verification
 
-Backend `402 passed`; frontend `140 passed / 22 files`; ruff, mypy, ESLint,
+Backend `402 passed`; frontend `149 passed / 22 files`; ruff, mypy, ESLint,
 Prettier, typecheck and `next build` pass. The isolated harness reuses the real
 Stage 5D order and checks the figures against values derived from its inputs
 (estimated profit `50.00` at `20.00%`, committed profit withheld while part-shipped),
 the exception queue and its permission, the CSV through the API and the proxy, the
 rendered screens, tenant isolation and unchanged Finance hashes. Level:
-`ISOLATED_HTTP_VERIFIED`; no browser and no live Finance (PROGRESS §26).
+`ISOLATED_HTTP_VERIFIED`, plus a real-browser review at four widths whose defects
+were fixed; no live Finance (PROGRESS §26).
 
