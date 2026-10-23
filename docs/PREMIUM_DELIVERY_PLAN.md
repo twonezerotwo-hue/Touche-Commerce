@@ -4,10 +4,10 @@
 
 ## Outcome and scope
 
-Deliver a polished, secure, usable multi-tenant trade platform on the operator's Windows workstation; safely integrate TOUCHE FINANCE, E-YAY and (if authorized) Gmail / WhatsApp Business; optionally deploy to a hardened production environment. Do not redesign or duplicate working Stages 0–10. Preserve PostgreSQL tenant isolation, role permissions, auditable immutable evidence, Decimal/currency invariants and financial source-of-truth boundaries.
+Deliver a polished, secure, bilingual (TR/EN) multi-user trade platform accessible from Windows and macOS browsers over a centrally hosted, hardened HTTPS service; retain safe local-development operation; integrate read-only TOUCHE FINANCE and E-YAY, a primary API AI with conditional local-model fallback, and authorization-gated Gmail / WhatsApp Business / social publishing. Do not redesign or duplicate working Stages 0–10. Preserve PostgreSQL tenant isolation, role permissions, auditable immutable evidence, Decimal/currency invariants and financial source-of-truth boundaries.
 
-**Three distinct milestones:**
-- **M1: LOCAL_OPERATIONAL** — Stage 11 and critical Stage 12–13 workflows run and pass real Windows/browser/DB tests. Standalone Commerce must work with all external connectors disabled.
+**Owner requirements and technical decisions (2026-10-24):** [PREMIUM_PLATFORM_DECISIONS.md](PREMIUM_PLATFORM_DECISIONS.md) is the requirements baseline for Stages 11–20. Cloud-first EU hosting; shared PostgreSQL; 5+ users; one operator company with many counterparties; TRY/USD/EUR; manual + CSV/XLSX import; dark TR/EN; professional trade documents; encrypted offsite + local backup. \n\n**Three distinct milestones:**
+- **M1: LOCAL_OPERATIONAL** — Stage 11 and critical Stage 12–13 workflows run and pass real Windows/browser/DB tests. Standalone Commerce must work with all external connectors disabled; this is not the shared internet deployment.
 - **M2: CONNECTED_OPERATIONAL** — Stage 14–17 connectors and AI each accepted individually; connectors are independently optional and fail closed.
 - **M3: PRODUCTION_APPROVED** — Stage 18–20 security, recovery, UAT and deployment evidence accepted by designated operator. This designation cannot be achieved by static CI checks alone.
 
@@ -68,7 +68,7 @@ Deliver a polished, secure, usable multi-tenant trade platform on the operator's
 - **Exit:** signed UAT checklist, no open P0/P1 defects, measured baseline for agreed performance thresholds, change log and rollback candidate.
 
 ### Stage 20 — Release and handover (P0)
-- Select **local-only managed workstation** or **network/cloud production**. The latter requires domain, hosting, certificates, DNS, secure remote access, deployment pipeline, monitored DB and backups. Do not expose development scripts/services to the public internet.
+- Owner selected **both local operation and shared internet/cloud production** for Windows + macOS browsers. Use an EU-region hosted HTTPS deployment, centrally managed PostgreSQL and private document storage. Keep local Finance/E-YAY/Ollama behind an outbound-authenticated allowlisted connector rather than exposing localhost. Requires domain/hosting, certificates, DNS, secret management, production pipeline, monitored DB and restore-tested cloud + local backups. Do not expose development scripts/services to the public internet.
 - Release from a CI-green versioned commit, migrate only with verified backup, execute smoke tests, rollback drill and hand over operator/admin guides.
 - **Exit:** operator-approved release manifest, dated production acceptance evidence and operational owner. Default classification remains `NOT_PRODUCTION_APPROVED` until proved.
 
