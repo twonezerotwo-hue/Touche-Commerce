@@ -485,12 +485,15 @@ including a Windows syntax parse job; PR #7 merged at `40a69d8`. Actual local
 PostgreSQL startup, browser operation and backups still require executing on
 the target machine.
 
-## Stage 10 — Evidence-based final acceptance (in progress)
+## Stage 10 — Evidence-based final acceptance (CI verified; deployment blocked)
 
 Implement a non-invasive static release gate plus regression tests, track
 what can be verified in GitHub Actions, and preserve a separate, blocked
 production readiness state until live Windows/browser, data restoration,
 network TLS/ACL, monitoring and provider verification are completed.
-`docs/STAGE10_RELEASE_READINESS.md` is the acceptance matrix. No CLI argument
+`docs/STAGE10_RELEASE_READINESS.md` is the acceptance matrix. GitHub Actions
+run `40030032968` passed (585 backend tests, 192 frontend tests, four CI
+jobs) and PR #8 merged. LOCAL_ACCEPTED and PRODUCTION_APPROVED remain
+unverified and blocked by operational prerequisites. No CLI argument
 is allowed to fabricate external-source, financial, delivery or production
 validation.
