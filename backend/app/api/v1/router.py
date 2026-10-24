@@ -7,12 +7,14 @@ from app.api.v1.routes import (
     auth,
     communications,
     companies,
+    company_profile,
     counterparties,
     dashboard,
     deals,
     documents,
     finance,
     fx_rates,
+    generated_documents,
     health,
     imports,
     integrations,
@@ -36,6 +38,8 @@ api_router.include_router(intelligence.router)
 api_router.include_router(reconciliation.router)
 api_router.include_router(auth.router)
 api_router.include_router(companies.router)
+# Stage 13: legal details printed on trade documents (read: any member; write: admin).
+api_router.include_router(company_profile.router)
 api_router.include_router(counterparties.router)
 api_router.include_router(products.router)
 api_router.include_router(deals.router)
@@ -51,6 +55,8 @@ api_router.include_router(orders.router)
 api_router.include_router(purchase_orders.router)
 api_router.include_router(shipments.router)
 api_router.include_router(documents.router)
+# Stage 13: TR/EN trade documents rendered from stored records (PDF, DOCX, XLSX, CSV).
+api_router.include_router(generated_documents.router)
 # Stage 13C: authenticated CSV/XLSX import wizard (inspect, preview, commit).
 api_router.include_router(imports.router)
 # Stage 6: the AI Office is read-only toward the business and human-approved.

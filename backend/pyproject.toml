@@ -23,6 +23,9 @@ dependencies = [
     "argon2-cffi>=25.1,<26",
     "email-validator>=2.3,<3",
     "openpyxl>=3.1.5,<4",  # Stage 13 XLSX import preview, never executes formulas
+    # Stage 13 trade documents: PDF (bundled Vera font covers Turkish) and DOCX output.
+    "reportlab>=4.2,<5",
+    "python-docx>=1.1,<2",
 ]
 
 [project.optional-dependencies]
@@ -31,6 +34,7 @@ dev = [
     "httpx2>=2.16,<3",
     "ruff>=0.17,<0.18",
     "mypy>=2.4,<3",
+    "pypdf>=5,<7",  # tests read the generated PDFs back
 ]
 
 [tool.setuptools.packages.find]
@@ -100,6 +104,11 @@ warn_unused_ignores = true
 show_error_codes = true
 disallow_any_generics = true
 plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+# No type stubs are published for these libraries.
+module = ["reportlab.*", "openpyxl.*"]
+ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = ["tests.*"]

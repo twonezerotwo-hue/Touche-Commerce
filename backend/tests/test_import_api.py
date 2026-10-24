@@ -14,7 +14,7 @@ from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
-from openpyxl import Workbook  # type: ignore[import-untyped]
+from openpyxl import Workbook
 from sqlalchemy import func, select
 
 from app.db.engine import Database

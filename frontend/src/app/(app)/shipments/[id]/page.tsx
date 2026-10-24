@@ -26,6 +26,8 @@ import {
 import { BROWSER_API_PREFIX } from "@/lib/api/config";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { DocumentDownloads } from "@/components/documents/document-downloads";
+import { canGenerateDocuments } from "@/lib/documents/access";
 import {
   costStageLabel,
   documentTypeLabel,
@@ -79,6 +81,9 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
         title={`${shipment.shipment_number} · ${transportModeLabel(shipment.transport_mode)}`}
         description={`${shipment.origin} → ${shipment.destination} · order ${shipment.order_number} · ${shipment.carrier ?? "no carrier"} / ${shipment.forwarder ?? "no forwarder"}`}
       />
+      {canGenerateDocuments(state.session.session.company) ? (
+        <DocumentDownloads documents={[{ kind: "packing_list", entityId: shipment.id }]} />
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-4">

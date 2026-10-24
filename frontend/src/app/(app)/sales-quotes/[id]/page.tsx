@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { DocumentDownloads } from "@/components/documents/document-downloads";
+import { canGenerateDocuments } from "@/lib/documents/access";
 import type { SalesQuote } from "@/lib/sourcing/types";
 import { formatDate, formatMoney, formatQuantity, formatTimestamp } from "@/lib/trade/format";
 
@@ -73,6 +75,9 @@ export default async function SalesQuoteDetailPage({
         title={`${quote.quote_number} · ${formatMoney(quote.total_value, quote.currency)}`}
         description={`${quote.customer_name} · deal ${quote.deal_reference} · ${quote.incoterm} ${quote.named_delivery_place} · valid until ${formatDate(quote.valid_until)}`}
       />
+      {canGenerateDocuments(state.session.session.company) ? (
+        <DocumentDownloads documents={[{ kind: "sales_quotation", entityId: quote.id }]} />
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-4">

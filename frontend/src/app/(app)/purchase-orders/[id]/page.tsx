@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { DocumentDownloads } from "@/components/documents/document-downloads";
+import { canGenerateDocuments } from "@/lib/documents/access";
 import type { PurchaseOrder } from "@/lib/operations/types";
 import { formatDate, formatMoney, formatTimestamp } from "@/lib/trade/format";
 
@@ -70,6 +72,9 @@ export default async function PurchaseOrderDetailPage({
         title={`${po.po_number} · ${formatMoney(po.total_cost, po.currency)}`}
         description={`${po.supplier_name} · ${po.incoterm} ${po.named_delivery_place} · ${po.payment_terms}`}
       />
+      {canGenerateDocuments(state.session.session.company) ? (
+        <DocumentDownloads documents={[{ kind: "purchase_order", entityId: po.id }]} />
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-4">
