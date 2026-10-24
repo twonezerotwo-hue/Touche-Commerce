@@ -27,6 +27,8 @@ import {
 import { BROWSER_API_PREFIX } from "@/lib/api/config";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { DocumentDownloads } from "@/components/documents/document-downloads";
+import { canGenerateDocuments } from "@/lib/documents/access";
 import { completionPercent, documentTypeLabel, formatBytes } from "@/lib/operations/format";
 import type {
   DocumentList,
@@ -91,6 +93,15 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         title={`${order.order_number} · ${formatMoney(order.order_total, order.currency)}`}
         description={`${order.customer_name} · accepted quote ${order.quote_number} r${order.sales_quote_revision} · ${order.incoterm} ${order.named_delivery_place}`}
       />
+      {canGenerateDocuments(state.session.session.company) ? (
+        <DocumentDownloads
+          documents={[
+            { kind: "order_confirmation", entityId: order.id },
+            { kind: "proforma_invoice", entityId: order.id },
+            { kind: "commercial_invoice", entityId: order.id },
+          ]}
+        />
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1.65fr_1fr]">
         <div className="space-y-4">

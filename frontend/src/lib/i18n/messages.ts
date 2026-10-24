@@ -8,6 +8,7 @@
  */
 
 import { commonEn, commonTr } from "./catalog/common";
+import { documentsEn, documentsTr } from "./catalog/documents";
 import { importsEn, importsTr } from "./catalog/imports";
 
 export const SUPPORTED_LOCALES = ["en", "tr"] as const;
@@ -45,11 +46,11 @@ const shellTr: Record<keyof typeof shellEn, string> = {
   languageChanged: "Arayüz dili değiştirildi",
 };
 
-const en = { ...shellEn, ...commonEn, ...importsEn } as const;
+const en = { ...shellEn, ...commonEn, ...importsEn, ...documentsEn } as const;
 export type MessageKey = keyof typeof en;
 type Dictionary = Record<MessageKey, string>;
 
-const tr: Dictionary = { ...shellTr, ...commonTr, ...importsTr };
+const tr: Dictionary = { ...shellTr, ...commonTr, ...importsTr, ...documentsTr };
 
 const dictionaries: Record<Locale, Dictionary> = { en, tr };
 

@@ -2,6 +2,7 @@ import {
   Activity,
   ArrowLeftRight,
   Banknote,
+  Building2,
   Calculator,
   ChartNoAxesCombined,
   ClipboardCheck,
@@ -220,6 +221,13 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         description: "Identity, memberships and session policy",
       },
       {
+        label: "Company profile",
+        icon: Building2,
+        href: "/company",
+        stage: "Stage 13",
+        description: "Legal name, tax number, address and bank details for documents",
+      },
+      {
         label: "Settings",
         icon: Settings,
         stage: "Stage 2",
@@ -324,6 +332,7 @@ export function resolveWorkspaceContext(pathname: string): WorkspaceContext {
   if (pathname === "/crm") return { section: "Workspace", page: "CRM" };
   if (pathname === "/products") return { section: "Workspace", page: "Products" };
   if (pathname === "/imports") return { section: "Workspace", page: "Import" };
+  if (pathname === "/company") return { section: "Account", page: "Company profile" };
   if (pathname === "/account") return { section: "Account", page: "Profile & access" };
   if (pathname === "/select-company") return { section: "Account", page: "Select company" };
   return { section: "Workspace", page: "Workspace" };
