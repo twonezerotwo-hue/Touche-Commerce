@@ -71,6 +71,9 @@ describe("Stage 12B catalogue integrity", () => {
       "profileIban",
       "profileSwift",
       "actPlatform",
+      "channelPortal",
+      "ordColModel",
+      "ordIncoterm",
     ]);
     const same = ALL_MESSAGE_KEYS.filter(
       (key) => translate("tr", key) === translate("en", key) && !allowedSame.has(key),

@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { getServerT } from "@/lib/i18n/server";
+import { fulfilmentModelText, operationsStatusText } from "@/lib/i18n/value-labels";
 import { SALES_ORDER_STATUSES, type SalesOrderList } from "@/lib/operations/types";
 import { formatMoney, formatTimestamp, withQuery } from "@/lib/trade/format";
 
@@ -32,6 +34,7 @@ export default async function OrdersPage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t } = await getServerT();
 
   const params = await searchParams;
   const query = new URLSearchParams({ limit: String(PAGE_SIZE) });
@@ -44,21 +47,23 @@ export default async function OrdersPage({
   return (
     <div className="mx-auto max-w-[1360px] space-y-5">
       <PageHeader
-        eyebrow="Execution"
+        eyebrow={t("opsEyebrow")}
         meta={
           <Badge variant="secondary">
-            {result.ok ? `${result.data.items.length} on this page` : "Unavailable"}
+            {result.ok
+              ? t("ordOnPage", { count: result.data.items.length })
+              : t("ordUnavailableBadge")}
           </Badge>
         }
-        title="Sales orders"
-        description="Created only from an approved quote revision plus recorded customer acceptance. The accepted commercial facts are frozen on the order and never re-read from the catalogue."
+        title={t("ordTitle")}
+        description={t("ordDescription")}
       />
 
       <div className="panel overflow-hidden">
         <form action="/orders" method="get" className="flex flex-wrap items-end gap-2 px-4 py-3">
           <div className="space-y-1">
             <label htmlFor="orders-status" className="eyebrow">
-              Status
+              {t("columnStatus")}
             </label>
             <Select
               id="orders-status"
@@ -66,20 +71,20 @@ export default async function OrdersPage({
               defaultValue={filters.status}
               className="h-8 w-[190px] text-[12px]"
             >
-              <option value="">All statuses</option>
+              <option value="">{t("filterAllStatuses")}</option>
               {SALES_ORDER_STATUSES.map((status) => (
                 <option key={status} value={status}>
-                  {status.replaceAll("_", " ")}
+                  {operationsStatusText(t, status)}
                 </option>
               ))}
             </Select>
           </div>
           <Button type="submit" size="sm" variant="subtle">
-            Apply
+            {t("actionApply")}
           </Button>
           {filters.status ? (
             <Button asChild size="sm" variant="ghost">
-              <Link href="/orders">Clear</Link>
+              <Link href="/orders">{t("actionClear")}</Link>
             </Button>
           ) : null}
         </form>
@@ -88,16 +93,13 @@ export default async function OrdersPage({
 
         {!result.ok ? (
           <div className="p-4">
-            <Alert variant="danger" title="Sales orders unavailable">
+            <Alert variant="danger" title={t("ordUnavailable")}>
               {result.message}
             </Alert>
           </div>
         ) : result.data.items.length === 0 ? (
           <div className="p-4">
-            <EmptyState
-              title="No sales orders yet"
-              description="An order appears here once a deal with an approved quote and documented customer acceptance is converted."
-            />
+            <EmptyState title={t("ordNone")} description={t("ordNoneHint")} />
           </div>
         ) : null}
 
@@ -105,14 +107,14 @@ export default async function OrdersPage({
           <Table bare>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-4">Order</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Model</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead>Delivery</TableHead>
-                <TableHead className="pr-4 text-right">Updated</TableHead>
+                <TableHead className="pl-4">{t("ordColOrder")}</TableHead>
+                <TableHead>{t("ordColCustomer")}</TableHead>
+                <TableHead>{t("ordColSource")}</TableHead>
+                <TableHead>{t("ordColModel")}</TableHead>
+                <TableHead>{t("columnStatus")}</TableHead>
+                <TableHead className="text-right">{t("ordColTotal")}</TableHead>
+                <TableHead>{t("ordColDelivery")}</TableHead>
+                <TableHead className="pr-4 text-right">{t("columnUpdated")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -136,7 +138,7 @@ export default async function OrdersPage({
                     <span className="block text-[10px] text-mist-600">{order.deal_reference}</span>
                   </TableCell>
                   <TableCell className="text-[10.5px] tracking-[0.04em] text-mist-500 uppercase">
-                    {order.fulfilment_model.replaceAll("_", " ")}
+                    {fulfilmentModelText(t, order.fulfilment_model)}
                   </TableCell>
                   <TableCell>
                     <OperationsStatusBadge status={order.status} />
@@ -157,13 +159,11 @@ export default async function OrdersPage({
         ) : null}
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-3">
-          <p className="text-[10.5px] text-mist-600">
-            Fulfilment is derived from delivered shipment quantities, never from this status alone.
-          </p>
+          <p className="text-[10.5px] text-mist-600">{t("ordFooter")}</p>
           <div className="flex items-center gap-3">
             {params.cursor ? (
               <Button asChild variant="ghost" size="xs">
-                <Link href={withQuery("/orders", filters)}>First page</Link>
+                <Link href={withQuery("/orders", filters)}>{t("pageFirst")}</Link>
               </Button>
             ) : null}
             {result.ok && result.data.has_more && result.data.next_cursor ? (
@@ -174,7 +174,7 @@ export default async function OrdersPage({
                     cursor: result.data.next_cursor,
                   })}
                 >
-                  Next page
+                  {t("pageNextPage")}
                 </Link>
               </Button>
             ) : null}

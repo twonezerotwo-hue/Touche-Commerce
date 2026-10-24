@@ -7606,6 +7606,11 @@ export interface components {
         /** SalesQuoteSummaryResponse */
         SalesQuoteSummaryResponse: {
             /**
+             * Approved At
+             * @description When the internal approval was recorded; acceptance must follow it.
+             */
+            approved_at?: string | null;
+            /**
              * Company Id
              * Format: uuid
              */

@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { counterpartyTypeLabel } from "@/lib/i18n/value-labels";
 import { createDeal } from "@/lib/trade/client";
 import { formatMoney, lineTotal, sumTotals } from "@/lib/trade/format";
 import type { Counterparty, Product } from "@/lib/trade/types";
@@ -42,6 +44,7 @@ export function DealForm({
   defaultCurrency: string;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [title, setTitle] = useState("");
   const [counterpartyId, setCounterpartyId] = useState(counterparties[0]?.id ?? "");
   const [currency, setCurrency] = useState(defaultCurrency);
@@ -84,28 +87,28 @@ export function DealForm({
     setError(null);
 
     if (!title.trim()) {
-      setError("A deal title is required.");
+      setError(t("dfErrTitle"));
       return;
     }
     if (!counterpartyId) {
-      setError("Select a counterparty.");
+      setError(t("dfErrCounterparty"));
       return;
     }
     const productIds = lines.map((line) => line.productId);
     if (new Set(productIds).size !== productIds.length) {
-      setError("Each product may appear only once per deal.");
+      setError(t("dfErrDuplicate"));
       return;
     }
     if (lines.some((line) => !line.productId)) {
-      setError("Every line needs a product.");
+      setError(t("dfErrProduct"));
       return;
     }
     if (lines.some((line) => !(Number.parseFloat(line.quantity) > 0))) {
-      setError("Every line needs a quantity greater than zero.");
+      setError(t("dfErrQuantity"));
       return;
     }
     if (lines.some((line) => line.unitPrice === "" || Number.parseFloat(line.unitPrice) < 0)) {
-      setError("Every line needs a non-negative unit price.");
+      setError(t("dfErrPrice"));
       return;
     }
 
@@ -129,7 +132,9 @@ export function DealForm({
 
     if (!result.ok) {
       setError(
-        result.requestId ? `${result.message} (request ${result.requestId})` : result.message,
+        result.requestId
+          ? t("requestRef", { message: result.message, id: result.requestId })
+          : result.message,
       );
       return;
     }
@@ -139,176 +144,171 @@ export function DealForm({
 
   if (counterparties.length === 0 || products.length === 0) {
     return (
-      <Alert variant="warning" title="Master data required">
-        A deal needs at least one counterparty and one product. Create them in{" "}
-        <span className="font-mono">/crm</span> and <span className="font-mono">/products</span>{" "}
-        first.
+      <Alert variant="warning" title={t("dfMasterRequired")}>
+        {t("dfMasterBody")}
       </Alert>
     );
-
-    return (
-      <form onSubmit={submit} className="space-y-5">
-        {error ? <Alert variant="danger">{error}</Alert> : null}
-
-        <section className="panel rounded-xl p-6">
-          <span className="eyebrow">Deal header</span>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="deal-title">Title</Label>
-              <Input
-                id="deal-title"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                placeholder="50 MT aluminium ingots, Q4 shipment"
-                maxLength={160}
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="deal-counterparty">Counterparty</Label>
-              <Select
-                id="deal-counterparty"
-                value={counterpartyId}
-                onChange={(event) => setCounterpartyId(event.target.value)}
-                required
-              >
-                {counterparties.map((counterparty) => (
-                  <option key={counterparty.id} value={counterparty.id}>
-                    {counterparty.name} · {counterparty.type}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="deal-currency">Currency</Label>
-              <Input
-                id="deal-currency"
-                value={currency}
-                onChange={(event) => setCurrency(event.target.value)}
-                maxLength={3}
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="deal-close-date">Expected close</Label>
-              <Input
-                id="deal-close-date"
-                type="date"
-                value={expectedCloseDate}
-                onChange={(event) => setExpectedCloseDate(event.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="deal-notes">Notes</Label>
-              <Textarea
-                id="deal-notes"
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                maxLength={2000}
-                placeholder="Incoterm, payment terms, logistics constraints…"
-              />
-            </div>
-          </div>
-        </section>
-
-        <section className="panel rounded-xl p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <span className="eyebrow">Lines</span>
-              <p className="mt-1 text-[11.5px] text-mist-600">
-                One line per product. Lines are immutable once the deal exists.
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] uppercase tracking-[0.16em] text-mist-600">Deal value</p>
-              <p className="font-display text-xl text-mist-100">{formatMoney(total, currency)}</p>
-            </div>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {lines.map((line, index) => {
-              const product = productById.get(line.productId);
-              return (
-                <div
-                  key={line.key}
-                  className="grid gap-3 rounded-lg border border-white/[0.06] bg-white/[0.015] p-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"
-                >
-                  <div className="space-y-1.5">
-                    <Label htmlFor={`line-product-${index}`}>Product</Label>
-                    <Select
-                      id={`line-product-${index}`}
-                      value={line.productId}
-                      onChange={(event) => chooseProduct(line.key, event.target.value)}
-                    >
-                      {products.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.sku} · {item.name}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor={`line-quantity-${index}`}>
-                      Quantity {product ? `(${product.unit})` : ""}
-                    </Label>
-                    <Input
-                      id={`line-quantity-${index}`}
-                      value={line.quantity}
-                      onChange={(event) => updateLine(line.key, { quantity: event.target.value })}
-                      inputMode="decimal"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor={`line-price-${index}`}>Unit price</Label>
-                    <Input
-                      id={`line-price-${index}`}
-                      value={line.unitPrice}
-                      onChange={(event) => updateLine(line.key, { unitPrice: event.target.value })}
-                      inputMode="decimal"
-                    />
-                  </div>
-                  <div className="flex items-end justify-between gap-2 sm:flex-col sm:items-end">
-                    <p className="text-[12px] text-mist-300">
-                      {formatMoney(lineTotal(line.quantity, line.unitPrice), currency)}
-                    </p>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Remove line"
-                      onClick={() => removeLine(line.key)}
-                      disabled={lines.length === 1}
-                    >
-                      <Trash2 className="size-4" aria-hidden />
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={addLine}>
-              <Plus className="size-3.5" aria-hidden />
-              Add line
-            </Button>
-            <p className="text-[11px] text-mist-600">
-              Created as <span className="font-mono">DRAFT</span>; status changes go through the
-              transition endpoint.
-            </p>
-          </div>
-        </section>
-
-        <div className="flex items-center gap-2">
-          <Button type="submit" disabled={pending}>
-            {pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-            {pending ? "Creating…" : "Create deal"}
-          </Button>
-          <Button type="button" variant="ghost" onClick={() => router.back()}>
-            Cancel
-          </Button>
-        </div>
-      </form>
-    );
   }
+
+  return (
+    <form onSubmit={submit} className="space-y-5">
+      {error ? <Alert variant="danger">{error}</Alert> : null}
+
+      <section className="panel rounded-xl p-6">
+        <span className="eyebrow">{t("dfHeader")}</span>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="deal-title">{t("dealsColTitle")}</Label>
+            <Input
+              id="deal-title"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder={t("dfTitlePlaceholder")}
+              maxLength={160}
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="deal-counterparty">{t("dashColCounterparty")}</Label>
+            <Select
+              id="deal-counterparty"
+              value={counterpartyId}
+              onChange={(event) => setCounterpartyId(event.target.value)}
+              required
+            >
+              {counterparties.map((counterparty) => (
+                <option key={counterparty.id} value={counterparty.id}>
+                  {counterparty.name} · {counterpartyTypeLabel(t, counterparty.type)}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="deal-currency">{t("columnCurrency")}</Label>
+            <Input
+              id="deal-currency"
+              value={currency}
+              onChange={(event) => setCurrency(event.target.value)}
+              maxLength={3}
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="deal-close-date">{t("dealsColExpectedClose")}</Label>
+            <Input
+              id="deal-close-date"
+              type="date"
+              value={expectedCloseDate}
+              onChange={(event) => setExpectedCloseDate(event.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="deal-notes">{t("fieldNotes")}</Label>
+            <Textarea
+              id="deal-notes"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              maxLength={2000}
+              placeholder={t("dfNotesPlaceholder")}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="panel rounded-xl p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <span className="eyebrow">{t("dfLines")}</span>
+            <p className="mt-1 text-[11.5px] text-mist-600">{t("dfLinesHint")}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-[0.16em] text-mist-600">
+              {t("dfDealValue")}
+            </p>
+            <p className="font-display text-xl text-mist-100">{formatMoney(total, currency)}</p>
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {lines.map((line, index) => {
+            const product = productById.get(line.productId);
+            return (
+              <div
+                key={line.key}
+                className="grid gap-3 rounded-lg border border-white/[0.06] bg-white/[0.015] p-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"
+              >
+                <div className="space-y-1.5">
+                  <Label htmlFor={`line-product-${index}`}>{t("columnProduct")}</Label>
+                  <Select
+                    id={`line-product-${index}`}
+                    value={line.productId}
+                    onChange={(event) => chooseProduct(line.key, event.target.value)}
+                  >
+                    {products.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.sku} · {item.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor={`line-quantity-${index}`}>
+                    {t("dfQuantity")} {product ? `(${product.unit})` : ""}
+                  </Label>
+                  <Input
+                    id={`line-quantity-${index}`}
+                    value={line.quantity}
+                    onChange={(event) => updateLine(line.key, { quantity: event.target.value })}
+                    inputMode="decimal"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor={`line-price-${index}`}>{t("columnUnitPrice")}</Label>
+                  <Input
+                    id={`line-price-${index}`}
+                    value={line.unitPrice}
+                    onChange={(event) => updateLine(line.key, { unitPrice: event.target.value })}
+                    inputMode="decimal"
+                  />
+                </div>
+                <div className="flex items-end justify-between gap-2 sm:flex-col sm:items-end">
+                  <p className="text-[12px] text-mist-300">
+                    {formatMoney(lineTotal(line.quantity, line.unitPrice), currency)}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t("dfRemoveLine")}
+                    onClick={() => removeLine(line.key)}
+                    disabled={lines.length === 1}
+                  >
+                    <Trash2 className="size-4" aria-hidden />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={addLine}>
+            <Plus className="size-3.5" aria-hidden />
+            {t("dfAddLine")}
+          </Button>
+          <p className="text-[11px] text-mist-600">{t("dfCreatedAs")}</p>
+        </div>
+      </section>
+
+      <div className="flex items-center gap-2">
+        <Button type="submit" disabled={pending}>
+          {pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+          {pending ? t("dfCreating") : t("dfCreate")}
+        </Button>
+        <Button type="button" variant="ghost" onClick={() => router.back()}>
+          {t("actionCancel")}
+        </Button>
+      </div>
+    </form>
+  );
 }

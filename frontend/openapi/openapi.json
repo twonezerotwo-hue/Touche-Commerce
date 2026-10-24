@@ -13676,6 +13676,19 @@
       },
       "SalesQuoteSummaryResponse": {
         "properties": {
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the internal approval was recorded; acceptance must follow it.",
+            "title": "Approved At"
+          },
           "company_id": {
             "format": "uuid",
             "title": "Company Id",

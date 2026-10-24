@@ -55,9 +55,7 @@ describe("TransitionPanel", () => {
     expect(screen.getByRole("button", { name: /lost/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /cancelled/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /won/i })).toBeDisabled();
-    expect(
-      screen.getByText(/Won is disabled until the sales order module exists/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Won is set only when a sales order is created/i)).toBeInTheDocument();
   });
 
   it("requires a reason before calling the API for LOST", async () => {

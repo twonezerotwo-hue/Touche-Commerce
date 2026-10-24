@@ -21,14 +21,16 @@ Evidence, not claims. Full matrix: `docs/STAGE11_20_STATUS.md`; operator guide: 
   encrypted backup restored into a scratch database (`RESTORE_VERIFIED`), 18 Windows-specific test
   failures fixed. LAN/MacBook over HTTPS: not built.
 * **12** Cookie-based server-rendered TR/EN; sign-in, Command Center, import, company profile, documents,
-  CRM and products translated; the rest is still English (`docs/STAGE12B_BILINGUAL_SCREENS.md`).
+  CRM, products, deals and sales orders translated; the rest is still English
+  (`docs/STAGE12B_BILINGUAL_SCREENS.md`).
 * **13** CSV/XLSX import wizard (atomic, idempotent), company profile (migration 0014), TR/EN
   documents in four formats; Commerce invoices are always drafts.
 * **16** Local `qwen3:8b` fallback verified live; DeepSeek not connected (no key).
 * **18** Encrypted backups (AES-256-GCM); dependency scan (`npm audit` clean; `cryptography`
   advisory fixed by requiring 50.x). No MFA, no offsite copy.
-* **19** Playwright suite: 64 specs pass on Chromium and WebKit; one P1 found and fixed (the
-  "New counterparty" form could never open since Stage 1B).
+* **19** Playwright suite: 72 specs pass on Chromium and WebKit; two P1s found and fixed (the
+  "New counterparty" and "Open a trade deal" forms could never open), plus a conversion that the
+  API refused when done within a minute of the approval, and a phone-width page overflow in WebKit.
 * **14** Finance live check, with your permission: Finance's real server on a snapshot of the real
   ledger; Commerce read it end to end (6 browser specs on Chromium and WebKit); `C:\ai-excel` proven
   unchanged (4,173 files, 0 differences). See `docs/STAGE14_FINANCE_LIVE_CHECK.md`.

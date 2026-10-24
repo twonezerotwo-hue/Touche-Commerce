@@ -50,7 +50,7 @@ a private trade-document register.
 | Live sourcing workflow (`scripts\verify-sourcing.ps1`) | ✅ 53 checks passed |
 | Live operations workflow (`scripts\verify-operations.ps1`) | ✅ 45 checks passed |
 | Real-browser acceptance (`e2e/`, Playwright on an isolated database) | ✅ 64 specs pass on Chromium and WebKit; Firefox does not start on this PC |
-| Turkish/English interface | ⚠️ partial — shell, sign-in, Command Center, import, company profile, documents, CRM, products (`docs/STAGE12B_BILINGUAL_SCREENS.md`) |
+| Turkish/English interface | ⚠️ partial — shell, sign-in, Command Center, import, company profile, documents, CRM, products, deals, sales orders (`docs/STAGE12B_BILINGUAL_SCREENS.md`) |
 | TR/EN trade documents (PDF, DOCX, XLSX, CSV) and company profile | ✅ Stage 13; a Commerce invoice is always a DRAFT |
 | CSV/XLSX import wizard | ✅ Stage 13; atomic, idempotent by file hash |
 | Encrypted backup + restore into a scratch database | ✅ Stage 18B (`docs/STAGE18_ENCRYPTED_BACKUP.md`); no offsite copy yet |

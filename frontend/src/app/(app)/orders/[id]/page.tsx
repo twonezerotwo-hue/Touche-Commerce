@@ -27,9 +27,16 @@ import {
 import { BROWSER_API_PREFIX } from "@/lib/api/config";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { getServerT } from "@/lib/i18n/server";
+import {
+  documentTypeText,
+  fulfilmentModelText,
+  operationsStatusText,
+  transportModeText,
+} from "@/lib/i18n/value-labels";
 import { DocumentDownloads } from "@/components/documents/document-downloads";
 import { canGenerateDocuments } from "@/lib/documents/access";
-import { completionPercent, documentTypeLabel, formatBytes } from "@/lib/operations/format";
+import { completionPercent, formatBytes } from "@/lib/operations/format";
 import type {
   DocumentList,
   DocumentPreview,
@@ -44,6 +51,7 @@ export const dynamic = "force-dynamic";
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t } = await getServerT();
   const { id } = await params;
 
   const orderResult = await serverGet<SalesOrder>(`/sales-orders/${id}`);
@@ -51,11 +59,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     return (
       <div className="mx-auto max-w-[900px] space-y-4">
         <PageHeader
-          eyebrow="Sales order"
-          back={{ href: "/orders", label: "Sales orders" }}
-          title="Order unavailable"
+          eyebrow={t("ordEyebrow")}
+          back={{ href: "/orders", label: t("ordTitle") }}
+          title={t("ordDetailUnavailable")}
         />
-        <Alert variant="danger" title="Could not load this order">
+        <Alert variant="danger" title={t("ordLoadFailed")}>
           {orderResult.message}
         </Alert>
       </div>
@@ -81,17 +89,23 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   return (
     <div className="mx-auto max-w-[1240px] space-y-5">
       <PageHeader
-        eyebrow="Sales order"
-        back={{ href: "/orders", label: "Sales orders" }}
+        eyebrow={t("ordEyebrow")}
+        back={{ href: "/orders", label: t("ordTitle") }}
         meta={
           <div className="flex flex-wrap items-center gap-2">
             <OperationsStatusBadge status={order.status} />
-            <Badge variant="outline">{order.fulfilment_model.replaceAll("_", " ")}</Badge>
+            <Badge variant="outline">{fulfilmentModelText(t, order.fulfilment_model)}</Badge>
             <span className="font-mono text-[10px] text-mist-600">v{order.version}</span>
           </div>
         }
         title={`${order.order_number} · ${formatMoney(order.order_total, order.currency)}`}
-        description={`${order.customer_name} · accepted quote ${order.quote_number} r${order.sales_quote_revision} · ${order.incoterm} ${order.named_delivery_place}`}
+        description={t("ordDetailDescription", {
+          customer: order.customer_name,
+          quote: order.quote_number,
+          revision: order.sales_quote_revision,
+          incoterm: order.incoterm,
+          place: order.named_delivery_place,
+        })}
       />
       {canGenerateDocuments(state.session.session.company) ? (
         <DocumentDownloads
@@ -108,10 +122,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Accepted lines</CardTitle>
-                <CardDescription>
-                  Frozen when the deal was won. Later catalogue or quote changes do not touch them.
-                </CardDescription>
+                <CardTitle>{t("ordLinesTitle")}</CardTitle>
+                <CardDescription>{t("ordLinesDesc")}</CardDescription>
               </CardHeading>
               <Badge variant="outline">{order.currency}</Badge>
             </CardHeader>
@@ -119,11 +131,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               <Table bare>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Quantity</TableHead>
-                    <TableHead className="text-right">Unit price</TableHead>
-                    <TableHead className="text-right">Line total</TableHead>
+                    <TableHead>{t("columnSku")}</TableHead>
+                    <TableHead>{t("ordColDescription")}</TableHead>
+                    <TableHead className="text-right">{t("dfQuantity")}</TableHead>
+                    <TableHead className="text-right">{t("columnUnitPrice")}</TableHead>
+                    <TableHead className="text-right">{t("dealColLineTotal")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -154,10 +166,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Fulfilment</CardTitle>
-                <CardDescription>
-                  Derived from delivered shipment quantities, not from the order status.
-                </CardDescription>
+                <CardTitle>{t("ordFulfilmentTitle")}</CardTitle>
+                <CardDescription>{t("ordFulfilmentDesc")}</CardDescription>
               </CardHeading>
               <Badge
                 variant={fulfilment.ok && fulfilment.data.fully_delivered ? "success" : "secondary"}
@@ -172,11 +182,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   <Table bare>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>SKU</TableHead>
-                        <TableHead className="text-right">Ordered</TableHead>
-                        <TableHead className="text-right">Allocated</TableHead>
-                        <TableHead className="text-right">Delivered</TableHead>
-                        <TableHead className="text-right">Remaining</TableHead>
+                        <TableHead>{t("columnSku")}</TableHead>
+                        <TableHead className="text-right">{t("ordOrdered")}</TableHead>
+                        <TableHead className="text-right">{t("ordAllocated")}</TableHead>
+                        <TableHead className="text-right">{t("ordDelivered")}</TableHead>
+                        <TableHead className="text-right">{t("ordRemaining")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -211,10 +221,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Shipments</CardTitle>
-                <CardDescription>
-                  A partial shipment never fulfils the order; the remaining quantity stays visible.
-                </CardDescription>
+                <CardTitle>{t("opsShipments")}</CardTitle>
+                <CardDescription>{t("ordShipmentsDesc")}</CardDescription>
               </CardHeading>
               <Badge variant="outline">{shipments.ok ? shipments.data.items.length : 0}</Badge>
             </CardHeader>
@@ -233,19 +241,20 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                         {shipment.shipment_number}
                       </Link>
                       <p className="text-[10.5px] text-mist-500">
-                        {shipment.origin} → {shipment.destination} · {shipment.transport_mode}
+                        {shipment.origin} → {shipment.destination} ·{" "}
+                        {transportModeText(t, shipment.transport_mode)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {shipment.is_delayed ? <Badge variant="danger">Delayed</Badge> : null}
+                      {shipment.is_delayed ? (
+                        <Badge variant="danger">{t("ordDelayed")}</Badge>
+                      ) : null}
                       <OperationsStatusBadge status={shipment.status} />
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-[11.5px] text-mist-500">
-                  No shipment yet. Use the shipments planner to allocate part of this order.
-                </p>
+                <p className="text-[11.5px] text-mist-500">{t("ordNoShipments")}</p>
               )}
             </CardContent>
           </Card>
@@ -253,10 +262,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Trade documents</CardTitle>
-                <CardDescription>
-                  Private by default. Downloads are authorised against this company and this order.
-                </CardDescription>
+                <CardTitle>{t("ordDocsTitle")}</CardTitle>
+                <CardDescription>{t("ordDocsDesc")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -271,8 +278,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                         {document.title} <span className="text-mist-600">v{document.version}</span>
                       </p>
                       <p className="text-[10.5px] text-mist-500">
-                        {documentTypeLabel(document.document_type)} ·{" "}
-                        {formatBytes(document.size_bytes)} · {document.verification_status}
+                        {documentTypeText(t, document.document_type)} ·{" "}
+                        {formatBytes(document.size_bytes)} ·{" "}
+                        {operationsStatusText(t, document.verification_status)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -280,7 +288,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                         href={`${BROWSER_API_PREFIX}${document.download_path}`}
                         className="text-[11px] text-accent-200 hover:text-accent-100"
                       >
-                        Download
+                        {t("actionDownload")}
                       </a>
                       <DocumentActions
                         document={document}
@@ -291,9 +299,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   </div>
                 ))
               ) : (
-                <p className="text-[11.5px] text-mist-500">
-                  No documents attached to this order yet.
-                </p>
+                <p className="text-[11.5px] text-mist-500">{t("ordNoDocs")}</p>
               )}
 
               <DocumentUpload
@@ -311,10 +317,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Workflow</CardTitle>
-                <CardDescription>
-                  Cancellation and closing are recorded; fulfilment is derived from deliveries.
-                </CardDescription>
+                <CardTitle>{t("ordWorkflowTitle")}</CardTitle>
+                <CardDescription>{t("ordWorkflowDesc")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent>
@@ -329,49 +333,47 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Accepted commercial facts</CardTitle>
-                <CardDescription>
-                  The order keeps its own copy; the quote may be superseded later.
-                </CardDescription>
+                <CardTitle>{t("ordFactsTitle")}</CardTitle>
+                <CardDescription>{t("ordFactsDesc")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent>
               <dl className="space-y-2.5 text-[11.5px]">
                 <div className="flex items-baseline justify-between gap-3">
-                  <dt className="eyebrow">Customer</dt>
+                  <dt className="eyebrow">{t("ordColCustomer")}</dt>
                   <dd className="text-right text-mist-200">{order.customer_name}</dd>
                 </div>
                 <div className="flex items-baseline justify-between gap-3">
-                  <dt className="eyebrow">Quote</dt>
+                  <dt className="eyebrow">{t("ordQuote")}</dt>
                   <dd className="text-right font-mono text-[10.5px] text-mist-300">
                     {order.quote_number} r{order.sales_quote_revision}
                   </dd>
                 </div>
                 <div className="flex items-baseline justify-between gap-3">
-                  <dt className="eyebrow">Incoterm</dt>
+                  <dt className="eyebrow">{t("ordIncoterm")}</dt>
                   <dd className="text-right text-mist-200">
                     {order.incoterm} {order.named_delivery_place}
                   </dd>
                 </div>
                 <div className="flex items-baseline justify-between gap-3">
-                  <dt className="eyebrow">Payment terms</dt>
+                  <dt className="eyebrow">{t("ordPaymentTerms")}</dt>
                   <dd className="text-right text-mist-200">{order.payment_terms_snapshot}</dd>
                 </div>
                 <div className="flex items-baseline justify-between gap-3">
-                  <dt className="eyebrow">Acceptance evidence</dt>
+                  <dt className="eyebrow">{t("ordEvidence")}</dt>
                   <dd className="text-right font-mono text-[10px] text-mist-400">
                     {order.acceptance_evidence_id}
                   </dd>
                 </div>
                 <div className="flex items-baseline justify-between gap-3">
-                  <dt className="eyebrow">Confirmed</dt>
+                  <dt className="eyebrow">{t("ordConfirmed")}</dt>
                   <dd className="text-right text-mist-300">
                     {formatTimestamp(order.confirmed_at)}
                   </dd>
                 </div>
                 {order.cancelled_at ? (
                   <div className="flex items-baseline justify-between gap-3">
-                    <dt className="eyebrow">Cancelled</dt>
+                    <dt className="eyebrow">{t("ordCancelled")}</dt>
                     <dd className="text-right text-crimson-400">
                       {formatTimestamp(order.cancelled_at)}
                     </dd>
@@ -384,30 +386,30 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Draft invoice preview</CardTitle>
-                <CardDescription>Generated from the accepted order snapshot.</CardDescription>
+                <CardTitle>{t("ordPreviewTitle")}</CardTitle>
+                <CardDescription>{t("ordPreviewDesc")}</CardDescription>
               </CardHeading>
-              <Badge variant="warning">Draft</Badge>
+              <Badge variant="warning">{t("dealStatusDraft")}</Badge>
             </CardHeader>
             <CardContent className="space-y-2">
               {preview.ok ? (
                 <>
-                  <Alert variant="warning" title="Not a legal document">
+                  <Alert variant="warning" title={t("ordNotLegal")}>
                     {preview.data.header.legal_notice}
                   </Alert>
                   <dl className="space-y-1.5 text-[11.5px]">
                     <div className="flex justify-between gap-3">
-                      <dt className="eyebrow">Draft number</dt>
+                      <dt className="eyebrow">{t("ordDraftNumber")}</dt>
                       <dd className="font-mono text-[10.5px] text-mist-300">
                         {preview.data.header.document_number}
                       </dd>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <dt className="eyebrow">Buyer</dt>
+                      <dt className="eyebrow">{t("typeBuyer")}</dt>
                       <dd className="text-mist-200">{preview.data.header.buyer.name}</dd>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <dt className="eyebrow">Total</dt>
+                      <dt className="eyebrow">{t("ordColTotal")}</dt>
                       <dd className="text-mist-100">
                         {formatMoney(preview.data.header.order_total, preview.data.header.currency)}
                       </dd>
@@ -423,8 +425,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>History</CardTitle>
-                <CardDescription>Append-only transitions and amendments.</CardDescription>
+                <CardTitle>{t("ordHistoryTitle")}</CardTitle>
+                <CardDescription>{t("ordHistoryDesc")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -435,7 +437,10 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[11.5px] text-mist-200">
-                      {transition.from_status ?? "—"} → {transition.to_status}
+                      {transition.from_status
+                        ? operationsStatusText(t, transition.from_status)
+                        : "—"}{" "}
+                      → {operationsStatusText(t, transition.to_status)}
                     </span>
                     <span className="font-mono text-[9.5px] text-mist-600">
                       v{transition.version_after}
@@ -452,7 +457,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   key={`amendment-${index}`}
                   className="rounded-lg border border-amber-400/20 bg-amber-400/[0.04] px-3 py-2"
                 >
-                  <p className="text-[11.5px] text-amber-300">Amendment</p>
+                  <p className="text-[11.5px] text-amber-300">{t("ordAmendment")}</p>
                   <p className="text-[10px] text-mist-400">
                     {amendment.reason} · {formatTimestamp(amendment.created_at)}
                   </p>
