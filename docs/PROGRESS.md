@@ -29,8 +29,10 @@ Evidence, not claims. Full matrix: `docs/STAGE11_20_STATUS.md`; operator guide: 
   advisory fixed by requiring 50.x). No MFA, no offsite copy.
 * **19** Playwright suite: 64 specs pass on Chromium and WebKit; one P1 found and fixed (the
   "New counterparty" form could never open since Stage 1B).
-* **14/15/17** Finance and E-YAY not started (owner decision); read-only Finance ledger probe passed;
-  no Gmail/WhatsApp/social connector exists.
+* **14** Finance live check, with your permission: Finance's real server on a snapshot of the real
+  ledger; Commerce read it end to end (6 browser specs on Chromium and WebKit); `C:\ai-excel` proven
+  unchanged (4,173 files, 0 differences). See `docs/STAGE14_FINANCE_LIVE_CHECK.md`.
+* **15/17** E-YAY not started (owner decision); no Gmail/WhatsApp/social connector exists.
 
 ## 1. Status summary
 
