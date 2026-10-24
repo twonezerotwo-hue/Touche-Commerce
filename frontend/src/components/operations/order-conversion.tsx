@@ -10,16 +10,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { acceptanceChannelText } from "@/lib/i18n/value-labels";
 import { convertDealToOrder, recordCustomerAcceptance } from "@/lib/operations/client";
 import { newIdempotencyKey } from "@/lib/sourcing/client";
 import type { CustomerAcceptance, SalesQuoteOption } from "@/lib/operations/types";
 
 const CHANNELS = ["SIGNED_QUOTE", "PURCHASE_ORDER", "EMAIL", "PORTAL", "OTHER"] as const;
 
-function nowLocal(): string {
-  const date = new Date();
+function toLocalInput(date: Date, withSeconds: boolean): string {
   const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+  const iso = new Date(date.getTime() - offset).toISOString();
+  return withSeconds ? iso.slice(0, 19) : iso.slice(0, 16);
+}
+
+/**
+ * The pre-filled acceptance time: now (to the minute), but never earlier than the internal
+ * approval of the selected quote. The API refuses an acceptance that predates the approval, and
+ * a time rounded down to the minute can do exactly that for a conversion made right after it.
+ */
+export function defaultAcceptedAt(approvedAt: string | null | undefined, now = new Date()): string {
+  const flooredNow = new Date(Math.floor(now.getTime() / 60_000) * 60_000);
+  const approved = approvedAt ? new Date(approvedAt) : null;
+  if (approved && !Number.isNaN(approved.getTime()) && approved > flooredNow) {
+    // The input has whole-second precision; round up so the value is not before the approval.
+    return toLocalInput(new Date(Math.ceil(approved.getTime() / 1000) * 1000), true);
+  }
+  return toLocalInput(flooredNow, false);
 }
 
 /**
@@ -47,10 +64,12 @@ export function OrderConversionPanel({
   onBrokerageChange: (value: boolean) => void;
 }) {
   const router = useRouter();
+  const { t, locale } = useLocale();
   const approved = quotes.filter((quote) => quote.status === "APPROVED");
   const [quoteId, setQuoteId] = useState(approved[0]?.id ?? "");
   const [channel, setChannel] = useState<string>("SIGNED_QUOTE");
-  const [acceptedAt, setAcceptedAt] = useState(nowLocal());
+  const [acceptedAt, setAcceptedAt] = useState(() => defaultAcceptedAt(approved[0]?.approved_at));
+  const [acceptedAtEdited, setAcceptedAtEdited] = useState(false);
   const [acceptedBy, setAcceptedBy] = useState("");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
@@ -65,16 +84,16 @@ export function OrderConversionPanel({
     setError(null);
     setNotice(null);
     if (!quoteId) {
-      setError("Select the approved quote revision the customer accepted.");
+      setError(t("ocSelectQuote"));
       return;
     }
     if (!existing) {
       if (acceptedBy.trim().length < 2) {
-        setError("Record who accepted on the customer side.");
+        setError(t("ocWhoAccepted"));
         return;
       }
       if (reference.trim().length < 3) {
-        setError("An evidence reference is required (signed quote, PO number, portal receipt).");
+        setError(t("ocEvidenceRequired"));
         return;
       }
     }
@@ -97,13 +116,13 @@ export function OrderConversionPanel({
         setPending(false);
         setError(
           acceptance.code === "CONFLICT"
-            ? `${acceptance.message} Approve the exact quote revision first.`
+            ? t("ocApproveFirst", { message: acceptance.message })
             : acceptance.message,
         );
         return;
       }
       evidenceId = acceptance.data.id;
-      setNotice("Customer acceptance recorded. Converting the deal…");
+      setNotice(t("ocRecorded"));
     }
 
     const conversion = await convertDealToOrder(
@@ -117,9 +136,9 @@ export function OrderConversionPanel({
     if (!conversion.ok) {
       setError(
         conversion.code === "ALREADY_WON"
-          ? "This deal already has a sales order. Open it from Orders."
+          ? t("ocAlreadyWon")
           : conversion.code === "IDEMPOTENCY_CONFLICT"
-            ? "This conversion was already submitted with different terms. Reload the deal."
+            ? t("ocIdempotency")
             : conversion.message,
       );
       return;
@@ -131,26 +150,24 @@ export function OrderConversionPanel({
 
   if (!canWrite) {
     return (
-      <Alert variant="info" title="Read-only access">
-        Converting a deal requires <span className="font-mono">trade.write</span>.
+      <Alert variant="info" title={t("readOnlyAccess")}>
+        {t("ocReadOnly")}
       </Alert>
     );
   }
 
   if (approved.length === 0) {
     return (
-      <Alert variant="info" title="No approved quote">
-        An order can only be created from an approved sales quote revision. Submit the quote and
-        have a second person approve it.
+      <Alert variant="info" title={t("ocNoApprovedTitle")}>
+        {t("ocNoApprovedBody")}
       </Alert>
     );
   }
 
   return (
     <div className="space-y-3">
-      <Alert variant="warning" title="Approval is not acceptance">
-        TOUCHE approving a quote does not prove the customer accepted it. Record the customer’s
-        channel, timestamp and evidence reference — the conversion is refused without them.
+      <Alert variant="warning" title={t("ocNotAcceptanceTitle")}>
+        {t("ocNotAcceptanceBody")}
       </Alert>
 
       {notice ? <Alert variant="success">{notice}</Alert> : null}
@@ -158,11 +175,17 @@ export function OrderConversionPanel({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="convert-quote">Approved quote revision</Label>
+          <Label htmlFor="convert-quote">{t("ocApprovedQuote")}</Label>
           <Select
             id="convert-quote"
             value={quoteId}
-            onChange={(event) => setQuoteId(event.target.value)}
+            onChange={(event) => {
+              setQuoteId(event.target.value);
+              if (!acceptedAtEdited) {
+                const chosen = approved.find((quote) => quote.id === event.target.value);
+                setAcceptedAt(defaultAcceptedAt(chosen?.approved_at));
+              }
+            }}
           >
             {approved.map((quote) => (
               <option key={quote.id} value={quote.id}>
@@ -172,32 +195,35 @@ export function OrderConversionPanel({
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="convert-model">Commercial model</Label>
+          <Label htmlFor="convert-model">{t("ocModel")}</Label>
           <Select
             id="convert-model"
             value={brokerage ? "BROKERAGE" : "PURCHASE_RESALE"}
             onChange={(event) => onBrokerageChange(event.target.value === "BROKERAGE")}
           >
-            <option value="PURCHASE_RESALE">Purchase and resale (TOUCHE buys)</option>
-            <option value="BROKERAGE">Brokerage / sourcing (TOUCHE does not buy)</option>
+            <option value="PURCHASE_RESALE">{t("ocModelResale")}</option>
+            <option value="BROKERAGE">{t("ocModelBrokerage")}</option>
           </Select>
-          <p className="text-[10.5px] leading-relaxed text-mist-600">
-            Brokerage orders never require a supplier purchase order.
-          </p>
+          <p className="text-[10.5px] leading-relaxed text-mist-600">{t("ocBrokerageNote")}</p>
         </div>
       </div>
 
       {existing ? (
-        <Alert variant="success" title="Acceptance already recorded">
-          {existing.accepted_by_name} accepted r{existing.sales_quote_revision} via{" "}
-          {existing.channel.replaceAll("_", " ").toLowerCase()} on{" "}
-          {new Date(existing.accepted_at).toLocaleString("en-GB")}. Evidence:{" "}
-          <span className="font-mono text-[11px]">{existing.evidence_reference}</span>
+        <Alert variant="success" title={t("ocExistingTitle")}>
+          {t("ocExistingBody", {
+            name: existing.accepted_by_name,
+            revision: existing.sales_quote_revision,
+            channel: acceptanceChannelText(t, existing.channel),
+            date: new Date(existing.accepted_at).toLocaleString(
+              locale === "tr" ? "tr-TR" : "en-GB",
+            ),
+            reference: existing.evidence_reference,
+          })}
         </Alert>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="acceptance-channel">Channel</Label>
+            <Label htmlFor="acceptance-channel">{t("ocChannel")}</Label>
             <Select
               id="acceptance-channel"
               value={channel}
@@ -205,42 +231,45 @@ export function OrderConversionPanel({
             >
               {CHANNELS.map((option) => (
                 <option key={option} value={option}>
-                  {option.replaceAll("_", " ").toLowerCase()}
+                  {acceptanceChannelText(t, option)}
                 </option>
               ))}
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="acceptance-at">Customer acceptance timestamp</Label>
+            <Label htmlFor="acceptance-at">{t("ocAcceptedAt")}</Label>
             <Input
               id="acceptance-at"
               type="datetime-local"
               value={acceptedAt}
-              onChange={(event) => setAcceptedAt(event.target.value)}
+              onChange={(event) => {
+                setAcceptedAt(event.target.value);
+                setAcceptedAtEdited(true);
+              }}
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="acceptance-by">Accepted by (customer contact)</Label>
+            <Label htmlFor="acceptance-by">{t("ocAcceptedBy")}</Label>
             <Input
               id="acceptance-by"
               value={acceptedBy}
               maxLength={160}
               onChange={(event) => setAcceptedBy(event.target.value)}
-              placeholder="Name on the signed order"
+              placeholder={t("ocAcceptedByPlaceholder")}
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="acceptance-reference">Evidence reference</Label>
+            <Label htmlFor="acceptance-reference">{t("ocEvidenceRef")}</Label>
             <Input
               id="acceptance-reference"
               value={reference}
               maxLength={500}
               onChange={(event) => setReference(event.target.value)}
-              placeholder="Signed quote id, customer PO number, portal receipt"
+              placeholder={t("ocEvidencePlaceholder")}
             />
           </div>
           <div className="sm:col-span-2 space-y-1.5">
-            <Label htmlFor="acceptance-notes">Notes (optional)</Label>
+            <Label htmlFor="acceptance-notes">{t("ocNotesOptional")}</Label>
             <Textarea
               id="acceptance-notes"
               value={notes}
@@ -258,15 +287,11 @@ export function OrderConversionPanel({
           ) : (
             <FileCheck2 className="size-3.5" aria-hidden />
           )}
-          {pending
-            ? "Converting…"
-            : existing
-              ? "Convert to sales order"
-              : "Record acceptance and convert"}
+          {pending ? t("ocConverting") : existing ? t("ocConvert") : t("ocRecordConvert")}
         </Button>
         <span className="inline-flex items-center gap-1.5 text-[10.5px] text-mist-600">
           <AlertTriangle className="size-3 text-amber-400" aria-hidden />
-          One transaction: the order, the WON transition and the audit rows commit together.
+          {t("ocOneTransaction")}
         </span>
       </div>
     </div>

@@ -13,6 +13,7 @@ import { dashboardEn, dashboardTr } from "./catalog/dashboard";
 import { dealsEn, dealsTr } from "./catalog/deals";
 import { documentsEn, documentsTr } from "./catalog/documents";
 import { importsEn, importsTr } from "./catalog/imports";
+import { ordersEn, ordersTr } from "./catalog/orders";
 import { tradeEn, tradeTr } from "./catalog/trade";
 
 export const SUPPORTED_LOCALES = ["en", "tr"] as const;
@@ -59,6 +60,7 @@ const en = {
   ...tradeEn,
   ...dashboardEn,
   ...dealsEn,
+  ...ordersEn,
 } as const;
 export type MessageKey = keyof typeof en;
 type Dictionary = Record<MessageKey, string>;
@@ -72,6 +74,7 @@ const tr: Dictionary = {
   ...tradeTr,
   ...dashboardTr,
   ...dealsTr,
+  ...ordersTr,
 };
 
 const dictionaries: Record<Locale, Dictionary> = { en, tr };
