@@ -14,6 +14,7 @@ typed catalogues with parity tests) is complete. Screen coverage is not.
 | Document downloads | Panel, formats, per-download language; the documents themselves (PDF/DOCX/XLSX/CSV) are generated in the chosen language | vitest, pytest, Playwright |
 | Customers & suppliers (CRM) | List, filters, empty states, columns, status/type words, create form | vitest, Playwright |
 | Product catalogue | List, filters, empty states, columns, status words, create form | vitest, Playwright |
+| Command Center (dashboard) | Greeting, KPI tiles, recent deals, pipeline and status cards, audit trail, platform health, execution strip; the deal status words (Draft/Open/Negotiation/Won/Lost/Cancelled) are translated wherever the badge appears | vitest, Playwright |
 
 Stored trade data (names, descriptions, notes, SKUs) is never translated. Words the API stores in
 English (`active`, `buyer`, `supplier`) keep their stored value and are shown in the reader's
@@ -22,12 +23,12 @@ the API sent it, except for the sign-in failures, which are mapped by error code
 
 ## Still English only
 
-Command Center (dashboard) and its cards, deals (list, detail, new), RFQs, supplier quotes,
+Deals (list, detail, new — only the status badge is translated), RFQs, supplier quotes,
 pricing, sales quotes, FX snapshots, sales orders, purchase orders, shipments, trade documents,
 finance (ledger, reconciliation, discrepancies, intelligence), AI Office, communications, account
 and select-company pages, and the public status page. Each uses fixed English strings inside the
 page; they need the same treatment (catalogue keys + `getServerT()` / `useLocale()` + a Turkish
-test), roughly 35 screens.
+test), roughly 30 screens.
 
 ## How to translate another screen
 

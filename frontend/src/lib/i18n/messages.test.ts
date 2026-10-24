@@ -70,6 +70,7 @@ describe("Stage 12B catalogue integrity", () => {
       "documentFormatCsv",
       "profileIban",
       "profileSwift",
+      "actPlatform",
     ]);
     const same = ALL_MESSAGE_KEYS.filter(
       (key) => translate("tr", key) === translate("en", key) && !allowedSame.has(key),
