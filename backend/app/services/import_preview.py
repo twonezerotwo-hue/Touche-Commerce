@@ -15,7 +15,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Literal
 
-from openpyxl import load_workbook  # type: ignore[import-untyped]
+from openpyxl import load_workbook
 from pydantic import ValidationError
 
 from app.api.v1.schemas.trade import CounterpartyCreateRequest, ProductCreateRequest

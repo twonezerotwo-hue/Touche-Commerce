@@ -453,6 +453,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/company/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Legal details printed on this company's documents */
+        get: operations["get_profile_api_v1_company_profile_get"];
+        /**
+         * Create or replace the company profile
+         * @description The first save sends no If-Match. Later saves must send the current ETag; a stale value is 409 VERSION_CONFLICT and a missing one is 428. Blank fields are cleared.
+         */
+        put: operations["put_profile_api_v1_company_profile_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/counterparties": {
         parameters: {
             query?: never;
@@ -1175,6 +1196,26 @@ export interface paths {
         };
         /** Read one FX snapshot */
         get: operations["get_fx_rate_api_v1_fx_rates__fx_rate_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/generated-documents/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Render a trade document
+         * @description Returns the file itself. Commerce invoices are always drafts and say they are not tax invoices. Rejected, withdrawn or cancelled records produce 409, never a document.
+         */
+        get: operations["generate_document_api_v1_generated_documents__kind__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2563,6 +2604,85 @@ export interface components {
             active_company_id: string | null;
             /** Companies */
             companies: components["schemas"]["CompanyAccess"][];
+        };
+        /**
+         * CompanyProfileRequest
+         * @description Full replacement of the profile; omitted or blank fields are cleared.
+         */
+        CompanyProfileRequest: {
+            /** Address */
+            address?: string | null;
+            /** Bank Name */
+            bank_name?: string | null;
+            /** City */
+            city?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Iban */
+            iban?: string | null;
+            /** Legal Name */
+            legal_name?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Postal Code */
+            postal_code?: string | null;
+            /** Swift Bic */
+            swift_bic?: string | null;
+            /** Tax Number */
+            tax_number?: string | null;
+            /** Tax Office */
+            tax_office?: string | null;
+            /** Website */
+            website?: string | null;
+        };
+        /** CompanyProfileResponse */
+        CompanyProfileResponse: {
+            /** Address */
+            address: string | null;
+            /** Bank Name */
+            bank_name: string | null;
+            /** City */
+            city: string | null;
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /** Email */
+            email: string | null;
+            /**
+             * Exists
+             * @description False until an administrator saves the profile.
+             */
+            exists: boolean;
+            /** Iban */
+            iban: string | null;
+            /** Legal Name */
+            legal_name: string | null;
+            /**
+             * Missing Essentials
+             * @description Facts customers expect on a document that are still empty.
+             */
+            missing_essentials: ("legal_name" | "tax_number" | "address")[];
+            /** Phone */
+            phone: string | null;
+            /** Postal Code */
+            postal_code: string | null;
+            /** Swift Bic */
+            swift_bic: string | null;
+            /** Tax Number */
+            tax_number: string | null;
+            /** Tax Office */
+            tax_office: string | null;
+            /** Updated At */
+            updated_at: string | null;
+            /**
+             * Version
+             * @description 0 when no profile exists; also sent as ETag.
+             */
+            version: number;
+            /** Website */
+            website: string | null;
         };
         /**
          * CompanySwitchRequest
@@ -9494,6 +9614,95 @@ export interface operations {
             };
         };
     };
+    get_profile_api_v1_company_profile_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyProfileResponse"];
+                };
+            };
+            /** @description No active company. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    put_profile_api_v1_company_profile_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompanyProfileRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyProfileResponse"];
+                };
+            };
+            /** @description Missing settings.manage. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Stale version. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid email, IBAN or BIC. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description If-Match is required. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     list_counterparties_api_v1_counterparties_get: {
         parameters: {
             query?: {
@@ -11609,6 +11818,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_document_api_v1_generated_documents__kind__get: {
+        parameters: {
+            query?: {
+                entity_id?: string | null;
+                format?: "pdf" | "docx" | "xlsx" | "csv";
+                locale?: ("en" | "tr") | null;
+            };
+            header?: never;
+            path: {
+                kind: "rfq" | "sales_quotation" | "proforma_invoice" | "order_confirmation" | "commercial_invoice" | "purchase_order" | "packing_list" | "shipment_register";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The rendered document. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "application/pdf": unknown;
+                };
+            };
+            /** @description Missing entity_id. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Needs trade.write or finance.approve. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unknown record. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The record's state forbids a document. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Bad parameter. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

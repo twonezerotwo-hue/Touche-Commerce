@@ -122,6 +122,10 @@ class AuditAction(StrEnum):
     COMMUNICATION_SUPPRESSION_RECORDED = "communications.suppression.recorded"
     # Stage 13C: a web CSV/XLSX import was committed (counts only, never cell values).
     IMPORT_COMMITTED = "import.committed"
+    # Stage 13: the company's document details changed (field names only, never values).
+    COMPANY_PROFILE_UPDATED = "company_profile.updated"
+    # Stage 13: a customer-facing document was rendered (kind, format, locale; no content).
+    DOCUMENT_GENERATED = "document.generated"
 
 
 _AUDIT_ACTIONS = tuple(action.value for action in AuditAction)
