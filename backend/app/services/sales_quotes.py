@@ -161,6 +161,7 @@ class SalesQuoteSummaryRecord:
     status: str
     total_value: Decimal
     version: int
+    approved_at: datetime | None
     created_at: datetime
     updated_at: datetime
 
@@ -557,6 +558,7 @@ class SalesQuoteService:
                     status=quote.status,
                     total_value=money(Decimal(str(total_value or 0))),
                     version=quote.version,
+                    approved_at=quote.approved_at,
                     created_at=quote.created_at,
                     updated_at=quote.updated_at,
                 )

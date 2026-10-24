@@ -442,6 +442,7 @@ def sales_quote_summary_response(record: SalesQuoteSummaryRecord) -> SalesQuoteS
         status=record.status,
         total_value=record.total_value,
         version=record.version,
+        approved_at=record.approved_at,
         created_at=record.created_at,
         updated_at=record.updated_at,
     )

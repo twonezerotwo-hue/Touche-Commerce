@@ -609,6 +609,10 @@ class SalesQuoteSummaryResponse(BaseModel):
     status: SalesQuoteStatusValue
     total_value: Decimal
     version: int
+    approved_at: datetime | None = Field(
+        default=None,
+        description="When the internal approval was recorded; acceptance must follow it.",
+    )
     created_at: datetime
     updated_at: datetime
 
