@@ -5,6 +5,7 @@ import {
   Calculator,
   ChartNoAxesCombined,
   ClipboardCheck,
+  FilePlus2,
   FileText,
   FileWarning,
   FolderLock,
@@ -71,6 +72,13 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         href: "/crm",
         stage: "Stage 2",
         description: "Customers and suppliers for this company",
+      },
+      {
+        label: "Import",
+        icon: FilePlus2,
+        href: "/imports",
+        stage: "Stage 13",
+        description: "Bring products and companies in from CSV or Excel, checked first",
       },
       {
         label: "Products",
@@ -315,6 +323,7 @@ export function resolveWorkspaceContext(pathname: string): WorkspaceContext {
   if (pathname === "/communications") return { section: "AI", page: "Communications" };
   if (pathname === "/crm") return { section: "Workspace", page: "CRM" };
   if (pathname === "/products") return { section: "Workspace", page: "Products" };
+  if (pathname === "/imports") return { section: "Workspace", page: "Import" };
   if (pathname === "/account") return { section: "Account", page: "Profile & access" };
   if (pathname === "/select-company") return { section: "Account", page: "Select company" };
   return { section: "Workspace", page: "Workspace" };

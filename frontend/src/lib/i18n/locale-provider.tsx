@@ -1,78 +1,102 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
-  useSyncExternalStore,
+  useState,
   type ReactNode,
 } from "react";
 
+import { serializeLocaleCookie } from "./locale-cookie";
 import { normalizeLocale, translate, type Locale, type MessageKey } from "./messages";
 
-const STORAGE_KEY = "touche.commerce.locale";
-const LOCALE_EVENT = "touche-commerce-locale-changed";
+/** Choice made before the cookie existed (Stage 12A); migrated once, then ignored. */
+const LEGACY_STORAGE_KEY = "touche.commerce.locale";
+
+export type Translate = (key: MessageKey, params?: Record<string, string | number>) => string;
 
 export interface LocaleContextValue {
   locale: Locale;
   changeLocale: (next: Locale) => void;
-  t: (key: MessageKey) => string;
+  t: Translate;
 }
 
 const FALLBACK: LocaleContextValue = {
   locale: "en",
   changeLocale: () => undefined,
-  t: (key) => translate("en", key),
+  t: (key, params) => translate("en", key, params),
 };
 
 const LocaleContext = createContext<LocaleContextValue>(FALLBACK);
 
-function readLocale(): Locale {
-  try {
-    return normalizeLocale(window.localStorage.getItem(STORAGE_KEY));
-  } catch {
-    return "en";
+function writeCookie(locale: Locale): void {
+  document.cookie = serializeLocaleCookie(locale, window.location.protocol === "https:");
+}
+
+/**
+ * ``initialLocale`` comes from the cookie on the server, so the first render is already in
+ * the right language. Changing it writes the cookie and refreshes the route, which makes
+ * server components render again in the new language.
+ */
+export function LocaleProvider({
+  children,
+  initialLocale = "en",
+}: {
+  children: ReactNode;
+  initialLocale?: Locale;
+}) {
+  const router = useRouter();
+  // The server decides the language (cookie). When a refresh brings a new value, follow it:
+  // derived state, adjusted while rendering, not in an effect.
+  const [state, setState] = useState<{ initial: Locale; locale: Locale }>({
+    initial: initialLocale,
+    locale: initialLocale,
+  });
+  if (state.initial !== initialLocale) {
+    setState({ initial: initialLocale, locale: initialLocale });
   }
-}
-
-function subscribe(callback: () => void): () => void {
-  window.addEventListener("storage", callback);
-  window.addEventListener(LOCALE_EVENT, callback);
-  return () => {
-    window.removeEventListener("storage", callback);
-    window.removeEventListener(LOCALE_EVENT, callback);
-  };
-}
-
-/** Same server snapshot on SSR and first hydration to avoid mismatches. */
-function serverSnapshot(): Locale {
-  return "en";
-}
-
-export function LocaleProvider({ children }: { children: ReactNode }) {
-  const locale = useSyncExternalStore(subscribe, readLocale, serverSnapshot);
+  const locale = state.locale;
 
   useEffect(() => {
     document.documentElement.lang = locale;
   }, [locale]);
 
+  // One-time migration of a Stage 12A browser-only preference into the cookie.
+  useEffect(() => {
+    if (initialLocale !== "en") return;
+    try {
+      const legacy = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (legacy === "tr" && !document.cookie.includes("touche_locale=")) {
+        writeCookie("tr");
+        window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+        router.refresh();
+      }
+    } catch {
+      // Storage can be unavailable in private windows; the choice simply is not migrated.
+    }
+  }, [initialLocale, router]);
+
+  const changeLocale = useCallback(
+    (next: Locale) => {
+      const normalised = normalizeLocale(next);
+      writeCookie(normalised);
+      setState((current) => ({ ...current, locale: normalised }));
+      router.refresh();
+    },
+    [router],
+  );
+
   const context = useMemo<LocaleContextValue>(
     () => ({
       locale,
-      changeLocale(next) {
-        try {
-          window.localStorage.setItem(STORAGE_KEY, normalizeLocale(next));
-        } catch {
-          // Private-browser storage can be unavailable; no sensitive data is stored.
-        }
-        window.dispatchEvent(new Event(LOCALE_EVENT));
-      },
-      t(key) {
-        return translate(locale, key);
-      },
+      changeLocale,
+      t: (key, params) => translate(locale, key, params),
     }),
-    [locale],
+    [locale, changeLocale],
   );
 
   return <LocaleContext.Provider value={context}>{children}</LocaleContext.Provider>;

@@ -1,0 +1,16 @@
+# Keep LF in the repository and in Windows working copies. Prettier, Ruff, Linux CI and
+# the PowerShell scripts all expect LF; core.autocrlf=true would otherwise rewrite every
+# file to CRLF on checkout and make `prettier --check` fail on Windows.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.xlsx binary
+*.pdf binary

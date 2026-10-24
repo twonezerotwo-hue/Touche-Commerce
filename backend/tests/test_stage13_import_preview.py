@@ -75,12 +75,14 @@ def test_no_formulas_evaluated_or_silent_conversion() -> None:
 @pytest.mark.parametrize(
     ("name", "data"),
     [
-        ("data.xlsm", b"macro"),
-        ("data.xls", b"binary"),
-        ("data.csv", b""),
-        ("data.csv", b"x" * 2_000_001),
-        ("data.xlsx", b"not-a-zip"),
-        ("data.csv", b"\xff\xff"),
+        pytest.param("data.xlsm", b"macro", id="macro-workbook"),
+        pytest.param("data.xls", b"binary", id="legacy-xls"),
+        pytest.param("data.csv", b"", id="empty-csv"),
+        # An explicit id: the default id would embed 2 MB of "x" in PYTEST_CURRENT_TEST,
+        # which exceeds the 32 767-character Windows environment-variable limit.
+        pytest.param("data.csv", b"x" * 2_000_001, id="csv-over-size-limit"),
+        pytest.param("data.xlsx", b"not-a-zip", id="not-a-zip"),
+        pytest.param("data.csv", b"\xff\xff", id="invalid-utf8"),
     ],
 )
 def test_unsafe_or_unsupported_files_rejected(name: str, data: bytes) -> None:

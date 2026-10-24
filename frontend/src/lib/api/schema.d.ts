@@ -1223,6 +1223,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recent imports of the active company */
+        get: operations["list_imports_api_v1_imports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create the new rows atomically (idempotent by file hash)
+         * @description Needs the SHA-256 of the previewed file. Invalid rows block the import; existing records are never updated and need skip_existing. The same file is recorded once: a repeat returns the recorded result with replayed=true and writes nothing.
+         */
+        post: operations["commit_import_api_v1_imports_commit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/inspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read the file's headings and show how they map */
+        post: operations["inspect_import_api_v1_imports_inspect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dry run: validate every row and compare it with the company's records
+         * @description Writes nothing. Rows are NEW, EXISTS (will be skipped, never changed) or INVALID.
+         */
+        post: operations["preview_import_api_v1_imports_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/integrations/eyay/market": {
         parameters: {
             query?: never;
@@ -2192,6 +2266,47 @@ export interface components {
             name: string;
             /** Reason */
             reason: string;
+        };
+        /** Body_commit_import_api_v1_imports_commit_post */
+        Body_commit_import_api_v1_imports_commit_post: {
+            /** Expected Sha256 */
+            expected_sha256: string;
+            /** File */
+            file: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "products" | "counterparties";
+            /** Mapping */
+            mapping?: string | null;
+            /**
+             * Skip Existing
+             * @default false
+             */
+            skip_existing: boolean;
+        };
+        /** Body_inspect_import_api_v1_imports_inspect_post */
+        Body_inspect_import_api_v1_imports_inspect_post: {
+            /** File */
+            file: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "products" | "counterparties";
+        };
+        /** Body_preview_import_api_v1_imports_preview_post */
+        Body_preview_import_api_v1_imports_preview_post: {
+            /** File */
+            file: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "products" | "counterparties";
+            /** Mapping */
+            mapping?: string | null;
         };
         /** Body_upload_document_api_v1_documents_post */
         Body_upload_document_api_v1_documents_post: {
@@ -4359,6 +4474,16 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** HeaderGuessResponse */
+        HeaderGuessResponse: {
+            /**
+             * Field
+             * @description Field this column maps to automatically, or null when it needs a choice.
+             */
+            field: string | null;
+            /** Heading */
+            heading: string;
+        };
         /**
          * HealthCheckResult
          * @description Outcome of a single dependency check.
@@ -4429,6 +4554,137 @@ export interface components {
              * @description Deployed application version.
              */
             version: string;
+        };
+        /** ImportBatchListResponse */
+        ImportBatchListResponse: {
+            /** Items */
+            items: components["schemas"]["ImportBatchResponse"][];
+        };
+        /** ImportBatchResponse */
+        ImportBatchResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Created Rows */
+            created_rows: number;
+            /** Filename */
+            filename: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "products" | "counterparties";
+            /** Skipped Rows */
+            skipped_rows: number;
+            /** Source Sha256 */
+            source_sha256: string;
+            /** Total Rows */
+            total_rows: number;
+        };
+        /** ImportCommitResponse */
+        ImportCommitResponse: {
+            /**
+             * Batch Id
+             * Format: uuid
+             */
+            batch_id: string;
+            /** Created Rows */
+            created_rows: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "products" | "counterparties";
+            /**
+             * Replayed
+             * @description True when this exact file had already been imported; nothing was written now.
+             */
+            replayed: boolean;
+            /** Skipped Rows */
+            skipped_rows: number;
+            /** Source Sha256 */
+            source_sha256: string;
+            /** Total Rows */
+            total_rows: number;
+        };
+        /** ImportReportResponse */
+        ImportReportResponse: {
+            /** Already Imported */
+            already_imported: boolean;
+            /**
+             * Can Commit
+             * @description True when nothing is invalid, at least one row is new and the file was not imported before. Existing rows additionally need skip_existing.
+             */
+            can_commit: boolean;
+            /** Existing Rows */
+            existing_rows: number;
+            /** Filename */
+            filename: string;
+            /** Invalid Rows */
+            invalid_rows: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "products" | "counterparties";
+            /** New Rows */
+            new_rows: number;
+            /** Rows */
+            rows: components["schemas"]["ImportRowResponse"][];
+            /** Source Sha256 */
+            source_sha256: string;
+            /** Total Rows */
+            total_rows: number;
+        };
+        /** ImportRowResponse */
+        ImportRowResponse: {
+            /** Errors */
+            errors: string[];
+            /** Row */
+            row: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "NEW" | "EXISTS" | "INVALID";
+            /** Values */
+            values: {
+                [key: string]: string;
+            };
+        };
+        /** InspectResponse */
+        InspectResponse: {
+            /**
+             * Fields
+             * @description Every field this kind accepts.
+             */
+            fields: string[];
+            /** Headers */
+            headers: components["schemas"]["HeaderGuessResponse"][];
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "products" | "counterparties";
+            /**
+             * Required
+             * @description Fields every file must provide.
+             */
+            required: string[];
+            /** Source Sha256 */
+            source_sha256: string;
         };
         /** IntelligenceMetricResponse */
         IntelligenceMetricResponse: {
@@ -11402,6 +11658,188 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_imports_api_v1_imports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchListResponse"];
+                };
+            };
+        };
+    };
+    commit_import_api_v1_imports_commit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_commit_import_api_v1_imports_commit_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportCommitResponse"];
+                };
+            };
+            /** @description Invalid rows or an unsafe file. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Changed file, existing records or nothing new. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description File larger than 2 MB. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    inspect_import_api_v1_imports_inspect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_inspect_import_api_v1_imports_inspect_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InspectResponse"];
+                };
+            };
+            /** @description Unsupported or unsafe file. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description File larger than 2 MB. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_import_api_v1_imports_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_preview_import_api_v1_imports_preview_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportReportResponse"];
+                };
+            };
+            /** @description Unsupported, unsafe or unmappable file. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description File larger than 2 MB. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

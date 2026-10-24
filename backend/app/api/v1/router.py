@@ -14,6 +14,7 @@ from app.api.v1.routes import (
     finance,
     fx_rates,
     health,
+    imports,
     integrations,
     intelligence,
     orders,
@@ -50,6 +51,8 @@ api_router.include_router(orders.router)
 api_router.include_router(purchase_orders.router)
 api_router.include_router(shipments.router)
 api_router.include_router(documents.router)
+# Stage 13C: authenticated CSV/XLSX import wizard (inspect, preview, commit).
+api_router.include_router(imports.router)
 # Stage 6: the AI Office is read-only toward the business and human-approved.
 api_router.include_router(ai.router)
 # Stage 7A: draft discovery only. No outbound transport or send route.

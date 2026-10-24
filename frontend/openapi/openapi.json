@@ -377,6 +377,109 @@
         "title": "BlockedActionResponse",
         "type": "object"
       },
+      "Body_commit_import_api_v1_imports_commit_post": {
+        "properties": {
+          "expected_sha256": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Expected Sha256",
+            "type": "string"
+          },
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "products",
+              "counterparties"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "mapping": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mapping"
+          },
+          "skip_existing": {
+            "default": false,
+            "title": "Skip Existing",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "file",
+          "expected_sha256"
+        ],
+        "title": "Body_commit_import_api_v1_imports_commit_post",
+        "type": "object"
+      },
+      "Body_inspect_import_api_v1_imports_inspect_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "products",
+              "counterparties"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "file"
+        ],
+        "title": "Body_inspect_import_api_v1_imports_inspect_post",
+        "type": "object"
+      },
+      "Body_preview_import_api_v1_imports_preview_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "products",
+              "counterparties"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "mapping": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mapping"
+          }
+        },
+        "required": [
+          "kind",
+          "file"
+        ],
+        "title": "Body_preview_import_api_v1_imports_preview_post",
+        "type": "object"
+      },
       "Body_upload_document_api_v1_documents_post": {
         "properties": {
           "document_type": {
@@ -5577,6 +5680,32 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HeaderGuessResponse": {
+        "properties": {
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Field this column maps to automatically, or null when it needs a choice.",
+            "title": "Field"
+          },
+          "heading": {
+            "title": "Heading",
+            "type": "string"
+          }
+        },
+        "required": [
+          "heading",
+          "field"
+        ],
+        "title": "HeaderGuessResponse",
+        "type": "object"
+      },
       "HealthCheckResult": {
         "description": "Outcome of a single dependency check.",
         "properties": {
@@ -5671,6 +5800,284 @@
           "checked_at"
         ],
         "title": "HealthLiveResponse",
+        "type": "object"
+      },
+      "ImportBatchListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ImportBatchResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ImportBatchListResponse",
+        "type": "object"
+      },
+      "ImportBatchResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "format": "uuid",
+            "title": "Created By",
+            "type": "string"
+          },
+          "created_rows": {
+            "title": "Created Rows",
+            "type": "integer"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "products",
+              "counterparties"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "skipped_rows": {
+            "title": "Skipped Rows",
+            "type": "integer"
+          },
+          "source_sha256": {
+            "title": "Source Sha256",
+            "type": "string"
+          },
+          "total_rows": {
+            "title": "Total Rows",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "source_sha256",
+          "filename",
+          "total_rows",
+          "created_rows",
+          "skipped_rows",
+          "created_by",
+          "created_at"
+        ],
+        "title": "ImportBatchResponse",
+        "type": "object"
+      },
+      "ImportCommitResponse": {
+        "properties": {
+          "batch_id": {
+            "format": "uuid",
+            "title": "Batch Id",
+            "type": "string"
+          },
+          "created_rows": {
+            "title": "Created Rows",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "products",
+              "counterparties"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "replayed": {
+            "description": "True when this exact file had already been imported; nothing was written now.",
+            "title": "Replayed",
+            "type": "boolean"
+          },
+          "skipped_rows": {
+            "title": "Skipped Rows",
+            "type": "integer"
+          },
+          "source_sha256": {
+            "title": "Source Sha256",
+            "type": "string"
+          },
+          "total_rows": {
+            "title": "Total Rows",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "batch_id",
+          "kind",
+          "source_sha256",
+          "total_rows",
+          "created_rows",
+          "skipped_rows",
+          "replayed"
+        ],
+        "title": "ImportCommitResponse",
+        "type": "object"
+      },
+      "ImportReportResponse": {
+        "properties": {
+          "already_imported": {
+            "title": "Already Imported",
+            "type": "boolean"
+          },
+          "can_commit": {
+            "description": "True when nothing is invalid, at least one row is new and the file was not imported before. Existing rows additionally need skip_existing.",
+            "title": "Can Commit",
+            "type": "boolean"
+          },
+          "existing_rows": {
+            "title": "Existing Rows",
+            "type": "integer"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "invalid_rows": {
+            "title": "Invalid Rows",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "products",
+              "counterparties"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "new_rows": {
+            "title": "New Rows",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ImportRowResponse"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "source_sha256": {
+            "title": "Source Sha256",
+            "type": "string"
+          },
+          "total_rows": {
+            "title": "Total Rows",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "filename",
+          "source_sha256",
+          "total_rows",
+          "new_rows",
+          "existing_rows",
+          "invalid_rows",
+          "rows",
+          "already_imported",
+          "can_commit"
+        ],
+        "title": "ImportReportResponse",
+        "type": "object"
+      },
+      "ImportRowResponse": {
+        "properties": {
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "row": {
+            "title": "Row",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "NEW",
+              "EXISTS",
+              "INVALID"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "values": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Values",
+            "type": "object"
+          }
+        },
+        "required": [
+          "row",
+          "status",
+          "values",
+          "errors"
+        ],
+        "title": "ImportRowResponse",
+        "type": "object"
+      },
+      "InspectResponse": {
+        "properties": {
+          "fields": {
+            "description": "Every field this kind accepts.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "headers": {
+            "items": {
+              "$ref": "#/components/schemas/HeaderGuessResponse"
+            },
+            "title": "Headers",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "products",
+              "counterparties"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "required": {
+            "description": "Fields every file must provide.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Required",
+            "type": "array"
+          },
+          "source_sha256": {
+            "title": "Source Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "source_sha256",
+          "headers",
+          "fields",
+          "required"
+        ],
+        "title": "InspectResponse",
         "type": "object"
       },
       "IntelligenceMetricResponse": {
@@ -21379,6 +21786,222 @@
         "summary": "Readiness probe",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/v1/imports": {
+      "get": {
+        "operationId": "list_imports_api_v1_imports_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportBatchListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Recent imports of the active company",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/api/v1/imports/commit": {
+      "post": {
+        "description": "Needs the SHA-256 of the previewed file. Invalid rows block the import; existing records are never updated and need skip_existing. The same file is recorded once: a repeat returns the recorded result with replayed=true and writes nothing.",
+        "operationId": "commit_import_api_v1_imports_commit_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_commit_import_api_v1_imports_commit_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportCommitResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Invalid rows or an unsafe file."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Changed file, existing records or nothing new."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "File larger than 2 MB."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create the new rows atomically (idempotent by file hash)",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/api/v1/imports/inspect": {
+      "post": {
+        "operationId": "inspect_import_api_v1_imports_inspect_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_inspect_import_api_v1_imports_inspect_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InspectResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unsupported or unsafe file."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "File larger than 2 MB."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read the file's headings and show how they map",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/api/v1/imports/preview": {
+      "post": {
+        "description": "Writes nothing. Rows are NEW, EXISTS (will be skipped, never changed) or INVALID.",
+        "operationId": "preview_import_api_v1_imports_preview_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_preview_import_api_v1_imports_preview_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportReportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unsupported, unsafe or unmappable file."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "File larger than 2 MB."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Dry run: validate every row and compare it with the company's records",
+        "tags": [
+          "imports"
         ]
       }
     },

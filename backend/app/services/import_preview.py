@@ -163,6 +163,25 @@ def _csv_rows(data: bytes) -> list[list[object]]:
         raise ImportPreviewError("Invalid CSV quoting or delimiters") from exc
 
 
+def _load_raw(filename: str, data: bytes) -> tuple[str, list[list[object]]]:
+    """Validate the file envelope and return its extension and raw rows (no field logic)."""
+    suffix = Path(filename).suffix.lower()
+    if suffix not in {".csv", ".xlsx"}:
+        raise ImportPreviewError("Only .csv and .xlsx files are accepted")
+    if not data or len(data) > MAX_BYTES:
+        raise ImportPreviewError("Import file is empty or exceeds 2MB")
+    raw_rows = _csv_rows(data) if suffix == ".csv" else _sheet_rows(data)
+    if not raw_rows:
+        raise ImportPreviewError("No header row")
+    return suffix, raw_rows
+
+
+def header_row(filename: str, data: bytes) -> list[str]:
+    """The column headings of the first row, for a column-mapping step (no data returned)."""
+    _, raw_rows = _load_raw(filename, data)
+    return [str(value or "").strip() for value in raw_rows[0]]
+
+
 def preview_import(
     filename: str,
     data: bytes,
@@ -172,18 +191,11 @@ def preview_import(
 ) -> ImportPreview:
     """Review rows locally without writing data or inferring duplicate DB records."""
 
-    suffix = Path(filename).suffix.lower()
-    if suffix not in {".csv", ".xlsx"}:
-        raise ImportPreviewError("Only .csv and .xlsx files are accepted")
-    if not data or len(data) > MAX_BYTES:
-        raise ImportPreviewError("Import file is empty or exceeds 2MB")
     if kind not in FIELDS:
         raise ImportPreviewError("Unknown import kind")
     if mapping is not None and len(mapping) > MAX_COLS:
         raise ImportPreviewError("Column mapping too large")
-    raw_rows = _csv_rows(data) if suffix == ".csv" else _sheet_rows(data)
-    if not raw_rows:
-        raise ImportPreviewError("No header row")
+    suffix, raw_rows = _load_raw(filename, data)
     headings = [str(value or "") for value in raw_rows[0]]
     columns: dict[str, int] = {}
     for index, name in enumerate(headings):
