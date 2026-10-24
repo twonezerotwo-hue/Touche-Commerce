@@ -10,6 +10,7 @@
 import { authEn, authTr } from "./catalog/auth";
 import { commonEn, commonTr } from "./catalog/common";
 import { dashboardEn, dashboardTr } from "./catalog/dashboard";
+import { dealsEn, dealsTr } from "./catalog/deals";
 import { documentsEn, documentsTr } from "./catalog/documents";
 import { importsEn, importsTr } from "./catalog/imports";
 import { tradeEn, tradeTr } from "./catalog/trade";
@@ -57,6 +58,7 @@ const en = {
   ...authEn,
   ...tradeEn,
   ...dashboardEn,
+  ...dealsEn,
 } as const;
 export type MessageKey = keyof typeof en;
 type Dictionary = Record<MessageKey, string>;
@@ -69,6 +71,7 @@ const tr: Dictionary = {
   ...authTr,
   ...tradeTr,
   ...dashboardTr,
+  ...dealsTr,
 };
 
 const dictionaries: Record<Locale, Dictionary> = { en, tr };

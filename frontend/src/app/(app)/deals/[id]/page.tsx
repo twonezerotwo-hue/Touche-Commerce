@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { getServerT, type ServerTranslator } from "@/lib/i18n/server";
+import { dealStatusLabel } from "@/lib/i18n/value-labels";
 import type {
   CustomerAcceptance,
   SalesQuoteOption,
@@ -35,6 +37,7 @@ export const dynamic = "force-dynamic";
 export default async function DealDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t } = await getServerT();
 
   const { id } = await params;
   const result = await serverGet<Deal>(`/deals/${id}`);
@@ -43,12 +46,12 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
     return (
       <div className="mx-auto max-w-[1100px] space-y-4">
         <PageHeader
-          eyebrow="Deal"
-          back={{ href: "/deals", label: "Deals" }}
-          title="Deal unavailable"
-          description="The record could not be loaded for this company."
+          eyebrow={t("dealEyebrow")}
+          back={{ href: "/deals", label: t("dealsBadge") }}
+          title={t("dealUnavailable")}
+          description={t("dealUnavailableBody")}
         />
-        <Alert variant="danger" title="Deal unavailable">
+        <Alert variant="danger" title={t("dealUnavailable")}>
           {result.message}
         </Alert>
       </div>
@@ -71,7 +74,7 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
     <div className="mx-auto max-w-[1280px] space-y-5">
       <PageHeader
         eyebrow={deal.reference}
-        back={{ href: "/deals", label: "Deals" }}
+        back={{ href: "/deals", label: t("dealsBadge") }}
         meta={
           <>
             <DealStatusBadge status={deal.status} />
@@ -80,7 +83,7 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
             </Badge>
             {canWrite ? null : (
               <span className="text-[10px] tracking-[0.08em] text-mist-600 uppercase">
-                Read-only
+                {t("dealReadOnly")}
               </span>
             )}
           </>
@@ -88,7 +91,8 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
         title={deal.title}
         description={
           <>
-            {deal.counterparty_name} · expected close {formatDate(deal.expected_close_date)} ·{" "}
+            {deal.counterparty_name} ·{" "}
+            {t("dealExpectedCloseInline", { date: formatDate(deal.expected_close_date) })} ·{" "}
             <span className="data-value">{formatMoney(deal.total_value, deal.currency)}</span>
           </>
         }
@@ -96,7 +100,7 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
           <Button asChild variant="outline" size="sm">
             <Link href="/deals">
               <ArrowLeft className="size-3.5" aria-hidden />
-              All deals
+              {t("dashAllDeals")}
             </Link>
           </Button>
         }
@@ -104,25 +108,29 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat
-          label="Deal value"
+          label={t("dealStatValue")}
           value={formatMoney(deal.total_value, deal.currency)}
-          detail={`Computed from ${deal.items.length} ${deal.items.length === 1 ? "line" : "lines"}`}
+          detail={
+            deal.items.length === 1
+              ? t("dealComputedOne")
+              : t("dealComputedMany", { count: deal.items.length })
+          }
           icon={<ReceiptText className="size-3.5" aria-hidden />}
         />
         <Stat
-          label="Lines"
+          label={t("dealStatLines")}
           value={deal.items.length}
-          detail={`Priced in ${deal.currency}`}
+          detail={t("dealPricedIn", { currency: deal.currency })}
           tone="neutral"
         />
         <Stat
-          label="Version"
+          label={t("dealStatVersion")}
           value={deal.version}
-          detail="Optimistic concurrency token"
+          detail={t("dealVersionDetail")}
           tone="neutral"
         />
         <Stat
-          label="Created"
+          label={t("dealsColCreated")}
           value={formatDate(deal.created_at)}
           detail={formatTimestamp(deal.created_at)}
           tone="neutral"
@@ -132,23 +140,23 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
       <section className="panel space-y-3 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="eyebrow">Execution</p>
+            <p className="eyebrow">{t("opsEyebrow")}</p>
             <h2 className="mt-1 text-[14px] font-medium text-mist-100">
-              {deal.status === "WON" ? "This deal is won" : "Convert to a sales order"}
+              {deal.status === "WON" ? t("dealWonTitle") : t("dealConvertTitle")}
             </h2>
           </div>
           <Badge variant={deal.status === "WON" ? "success" : "outline"}>
-            {deal.status === "WON" ? "WON" : "Requires customer acceptance"}
+            {deal.status === "WON" ? t("dealStatusWon") : t("dealNeedsAcceptance")}
           </Badge>
         </div>
 
         {deal.status === "WON" ? (
           <p className="text-[11.5px] text-mist-400">
-            The deal already produced its sales order.{" "}
+            {t("dealWonBefore")}{" "}
             <Link href="/orders" className="text-accent-200 hover:text-accent-100">
-              Open the order register
+              {t("dealWonLink")}
             </Link>{" "}
-            to see the frozen commercial terms and fulfilment progress.
+            {t("dealWonAfter")}
           </p>
         ) : convertible ? (
           <ConversionCard
@@ -159,9 +167,8 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
             canWrite={canWrite}
           />
         ) : (
-          <Alert variant="info" title="Deal not convertible">
-            Only an open or negotiating deal can become an order. Move the deal to negotiation
-            first.
+          <Alert variant="info" title={t("dealNotConvertible")}>
+            {t("dealNotConvertibleBody")}
           </Alert>
         )}
       </section>
@@ -171,23 +178,25 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
           <div className="panel overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4.5 pb-3">
               <div>
-                <p className="eyebrow">Commercial lines</p>
+                <p className="eyebrow">{t("dealLinesEyebrow")}</p>
                 <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">
-                  Products on this deal
+                  {t("dealLinesTitle")}
                 </h2>
               </div>
               <span className="text-[10.5px] text-mist-500">
-                {deal.items.length} {deal.items.length === 1 ? "line" : "lines"} · {deal.currency}
+                {deal.items.length === 1
+                  ? t("dealLineCountOne", { currency: deal.currency })
+                  : t("dealLineCountMany", { count: deal.items.length, currency: deal.currency })}
               </span>
             </div>
             <div className="hairline" />
             <Table bare>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="pl-5">Product</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead className="text-right">Unit price</TableHead>
-                  <TableHead className="pr-5 text-right">Line total</TableHead>
+                  <TableHead className="pl-5">{t("columnProduct")}</TableHead>
+                  <TableHead className="text-right">{t("dfQuantity")}</TableHead>
+                  <TableHead className="text-right">{t("columnUnitPrice")}</TableHead>
+                  <TableHead className="pr-5 text-right">{t("dealColLineTotal")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -216,7 +225,7 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
             </Table>
             <div className="flex items-center justify-between gap-3 border-t border-white/[0.07] px-5 py-3">
               <span className="text-[10px] tracking-[0.14em] text-mist-600 uppercase">
-                Total value
+                {t("dealTotalValue")}
               </span>
               <span className="data-value text-[14px] text-mist-100">
                 {formatMoney(deal.total_value, deal.currency)}
@@ -226,25 +235,22 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
 
           {deal.notes ? (
             <div className="panel px-5 py-4">
-              <p className="eyebrow">Notes</p>
+              <p className="eyebrow">{t("fieldNotes")}</p>
               <p className="mt-2 text-[12px] leading-relaxed whitespace-pre-line text-mist-400">
                 {deal.notes}
               </p>
             </div>
           ) : null}
 
-          <HistoryPanel deal={deal} />
+          <HistoryPanel deal={deal} t={t} />
         </div>
 
         <aside className="space-y-4 self-start xl:sticky xl:top-20">
           <div className="panel-elevated overflow-hidden">
             <div className="px-5 pt-4.5 pb-3">
-              <p className="eyebrow">Next step</p>
-              <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">Move this deal</h2>
-              <p className="mt-1 text-[11px] leading-relaxed text-mist-500">
-                Only transitions allowed by the deal state machine are offered. Every change is
-                versioned and audited.
-              </p>
+              <p className="eyebrow">{t("dealNextEyebrow")}</p>
+              <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">{t("dealMoveTitle")}</h2>
+              <p className="mt-1 text-[11px] leading-relaxed text-mist-500">{t("dealMoveHint")}</p>
             </div>
             <div className="hairline" />
             <div className="p-5">
@@ -254,8 +260,8 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
 
           <div className="panel overflow-hidden">
             <div className="px-5 pt-4.5 pb-3">
-              <p className="eyebrow">Header</p>
-              <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">Edit deal details</h2>
+              <p className="eyebrow">{t("dealHeaderEyebrow")}</p>
+              <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">{t("dealEditTitle")}</h2>
             </div>
             <div className="hairline" />
             <div className="p-5">
@@ -268,19 +274,23 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
   );
 }
 
-function HistoryPanel({ deal }: { deal: Deal }) {
+function HistoryPanel({ deal, t }: { deal: Deal; t: ServerTranslator["t"] }) {
   return (
     <div className="panel overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4.5 pb-3">
         <div className="flex items-center gap-2">
           <History className="size-3.5 text-accent-300" aria-hidden />
           <div>
-            <p className="eyebrow">History</p>
-            <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">Recorded transitions</h2>
+            <p className="eyebrow">{t("dealHistoryEyebrow")}</p>
+            <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">
+              {t("dealHistoryTitle")}
+            </h2>
           </div>
         </div>
         <span className="text-[10.5px] text-mist-600">
-          {deal.transitions.length} {deal.transitions.length === 1 ? "entry" : "entries"}
+          {deal.transitions.length === 1
+            ? t("dealEntryOne")
+            : t("dealEntryMany", { count: deal.transitions.length })}
         </span>
       </div>
       <div className="hairline" />
@@ -307,8 +317,10 @@ function HistoryPanel({ deal }: { deal: Deal }) {
               />
               <div className="min-w-0 flex-1">
                 <p className="text-[12px] text-mist-300">
-                  {transition.from_status ? `${transition.from_status} → ` : "Created · "}
-                  <span className="text-mist-100">{transition.to_status}</span>
+                  {transition.from_status
+                    ? `${dealStatusLabel(t, transition.from_status)} → `
+                    : t("dealCreatedDot")}
+                  <span className="text-mist-100">{dealStatusLabel(t, transition.to_status)}</span>
                 </p>
                 {transition.reason ? (
                   <p className="mt-0.5 text-[11px] leading-relaxed text-mist-500">

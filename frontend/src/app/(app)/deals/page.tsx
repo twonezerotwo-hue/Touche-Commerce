@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { getServerT } from "@/lib/i18n/server";
+import { dealStatusLabel } from "@/lib/i18n/value-labels";
 import { formatDate, formatMoney, formatTimestamp, withQuery } from "@/lib/trade/format";
 import { DEAL_STATUSES, type DealList } from "@/lib/trade/types";
 import { cn } from "@/lib/utils";
@@ -34,6 +36,7 @@ export default async function DealsPage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t } = await getServerT();
 
   const params = await searchParams;
   const canWrite = state.session.session.company?.permissions.includes("trade.write") ?? false;
@@ -51,32 +54,32 @@ export default async function DealsPage({
   return (
     <div className="mx-auto max-w-[1360px] space-y-5">
       <PageHeader
-        eyebrow="Trade workspace"
-        meta={<Badge variant="secondary">Deals</Badge>}
-        title="Deals"
-        description="Every status change is a recorded transition with an actor, a version and an audit row. Won stays disabled until sales orders exist in a later stage."
+        eyebrow={t("dealsEyebrow")}
+        meta={<Badge variant="secondary">{t("dealsBadge")}</Badge>}
+        title={t("dealsBadge")}
+        description={t("dealsDescription")}
         actions={
           canWrite ? (
             <Button asChild size="sm">
               <Link href="/deals/new">
                 <Plus className="size-3.5" aria-hidden />
-                New deal
+                {t("dashNewDeal")}
               </Link>
             </Button>
           ) : (
-            <Badge variant="outline">Read-only · trade.write required</Badge>
+            <Badge variant="outline">{t("dealsReadOnlyBadge")}</Badge>
           )
         }
       />
 
       <div className="panel overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <nav aria-label="Filter by status" className="flex flex-wrap items-center gap-1.5">
+          <nav aria-label={t("filterByStatus")} className="flex flex-wrap items-center gap-1.5">
             <FilterPill
               href={withQuery("/deals", { search: filters.search })}
               active={filters.status === ""}
             >
-              All
+              {t("dealsFilterAll")}
             </FilterPill>
             {DEAL_STATUSES.map((status) => (
               <FilterPill
@@ -84,7 +87,7 @@ export default async function DealsPage({
                 href={withQuery("/deals", { search: filters.search, status })}
                 active={filters.status === status}
               >
-                {status}
+                {dealStatusLabel(t, status)}
               </FilterPill>
             ))}
           </nav>
@@ -100,17 +103,17 @@ export default async function DealsPage({
                 id="deals-search"
                 name="search"
                 defaultValue={filters.search}
-                placeholder="Reference or title"
-                aria-label="Search reference or title"
+                placeholder={t("dealsSearchPlaceholder")}
+                aria-label={t("dealsSearchLabel")}
                 maxLength={160}
                 className="h-8 w-[220px] pl-8 text-[12px]"
               />
             </div>
             <Button type="submit" size="sm" variant="subtle">
-              Search
+              {t("actionSearch")}
             </Button>
             {filters.search ? (
-              <Button asChild size="iconSm" variant="ghost" aria-label="Clear search">
+              <Button asChild size="iconSm" variant="ghost" aria-label={t("dealsClearSearch")}>
                 <Link href={withQuery("/deals", { status: filters.status })}>
                   <X className="size-3.5" aria-hidden />
                 </Link>
@@ -123,7 +126,7 @@ export default async function DealsPage({
 
         {!result.ok ? (
           <div className="p-4">
-            <Alert variant="danger" title="Deals unavailable">
+            <Alert variant="danger" title={t("dealsUnavailable")}>
               {result.message}
               {result.requestId ? (
                 <span className="ml-1 font-mono text-[11px]">({result.requestId})</span>
@@ -134,22 +137,22 @@ export default async function DealsPage({
           <div className="p-4">
             <EmptyState
               icon={<Handshake className="size-4" aria-hidden />}
-              title={filtered ? "No deals match these filters" : "No deals yet"}
+              title={filtered ? t("dealsNoMatch") : t("dealsNone")}
               description={
                 filtered
-                  ? "Adjust the status filter or search term, or clear everything to see the full workspace."
+                  ? t("dealsNoMatchHint")
                   : canWrite
-                    ? "Create the first deal to start a versioned, auditable pipeline."
-                    : "A member with trade.write can create the first deal."
+                    ? t("dealsEmptyWrite")
+                    : t("dashNoDealsRead")
               }
               action={
                 filtered ? (
                   <Button asChild variant="outline" size="sm">
-                    <Link href="/deals">Clear filters</Link>
+                    <Link href="/deals">{t("filterClear")}</Link>
                   </Button>
                 ) : canWrite ? (
                   <Button asChild size="sm">
-                    <Link href="/deals/new">New deal</Link>
+                    <Link href="/deals/new">{t("dashNewDeal")}</Link>
                   </Button>
                 ) : null
               }
@@ -160,15 +163,15 @@ export default async function DealsPage({
           <Table bare>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-4">Reference</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Counterparty</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Expected close</TableHead>
-                <TableHead className="text-right">Value</TableHead>
-                <TableHead className="pr-4 text-right">Created</TableHead>
+                <TableHead className="pl-4">{t("columnReference")}</TableHead>
+                <TableHead>{t("dealsColTitle")}</TableHead>
+                <TableHead>{t("dashColCounterparty")}</TableHead>
+                <TableHead>{t("columnStatus")}</TableHead>
+                <TableHead>{t("dealsColExpectedClose")}</TableHead>
+                <TableHead className="text-right">{t("dashColValue")}</TableHead>
+                <TableHead className="pr-4 text-right">{t("dealsColCreated")}</TableHead>
                 <TableHead className="w-8 pr-3">
-                  <span className="sr-only">Open</span>
+                  <span className="sr-only">{t("opsOpen")}</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -206,7 +209,7 @@ export default async function DealsPage({
                       </span>
                       {overdue ? (
                         <span className="mt-0.5 block text-[9.5px] tracking-[0.08em] text-amber-400 uppercase">
-                          Past expected close
+                          {t("dealsPastClose")}
                         </span>
                       ) : null}
                     </TableCell>
@@ -221,7 +224,7 @@ export default async function DealsPage({
                     <TableCell className="pr-3 text-right">
                       <Link
                         href={`/deals/${deal.id}`}
-                        aria-label={`Open ${deal.reference}`}
+                        aria-label={t("dealsOpenRef", { reference: deal.reference })}
                         className="inline-flex text-mist-600 transition-colors hover:text-accent-300"
                       >
                         <ArrowRight className="size-3.5" aria-hidden />
@@ -238,9 +241,11 @@ export default async function DealsPage({
           <p className="text-[10.5px] text-mist-600">
             {result.ok ? (
               <>
-                Showing <span className="data-value text-mist-400">{result.data.items.length}</span>{" "}
-                {result.data.items.length === 1 ? "deal" : "deals"} on this page
-                {result.data.has_more ? " · older deals available" : " · end of list"}
+                {result.data.items.length === 1
+                  ? t("dealsShowingOne")
+                  : t("dealsShowingMany", { count: result.data.items.length })}
+                {" · "}
+                {result.data.has_more ? t("dealsOlder") : t("dealsEnd")}
               </>
             ) : (
               "—"
@@ -249,13 +254,13 @@ export default async function DealsPage({
           <div className="flex items-center gap-3">
             {params.cursor ? (
               <Button asChild variant="ghost" size="xs">
-                <Link href={withQuery("/deals", filters)}>First page</Link>
+                <Link href={withQuery("/deals", filters)}>{t("pageFirst")}</Link>
               </Button>
             ) : null}
             {result.ok && result.data.has_more && result.data.next_cursor ? (
               <Button asChild variant="outline" size="sm">
                 <Link href={withQuery("/deals", { ...filters, cursor: result.data.next_cursor })}>
-                  Next page
+                  {t("pageNextPage")}
                   <ArrowRight className="size-3.5" aria-hidden />
                 </Link>
               </Button>

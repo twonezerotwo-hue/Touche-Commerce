@@ -24,3 +24,18 @@ export function counterpartyTypeLabel(t: TFn, type: string): string {
   const key = COUNTERPARTY_TYPE[type];
   return key ? t(key) : type;
 }
+
+const DEAL_STATUS: Record<string, MessageKey> = {
+  DRAFT: "dealStatusDraft",
+  OPEN: "dealStatusOpen",
+  NEGOTIATION: "dealStatusNegotiation",
+  WON: "dealStatusWon",
+  LOST: "dealStatusLost",
+  CANCELLED: "dealStatusCancelled",
+};
+
+/** Deal status codes ("OPEN") in the reader's language; unknown codes are shown as they are. */
+export function dealStatusLabel(t: TFn, status: string): string {
+  const key = DEAL_STATUS[status];
+  return key ? t(key) : status;
+}

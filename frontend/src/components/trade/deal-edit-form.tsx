@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useLocale } from "@/lib/i18n/locale-provider";
 import { updateDeal } from "@/lib/trade/client";
 import type { Deal } from "@/lib/trade/types";
 
@@ -22,6 +23,7 @@ export function DealEditForm({
   canWrite: boolean;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [title, setTitle] = useState(deal.title);
   const [currency, setCurrency] = useState(deal.currency);
   const [expectedCloseDate, setExpectedCloseDate] = useState(deal.expected_close_date ?? "");
@@ -36,8 +38,8 @@ export function DealEditForm({
 
   if (closed) {
     return (
-      <Alert variant="info" title="Closed deal">
-        Header fields cannot be edited after a deal reaches a terminal status.
+      <Alert variant="info" title={t("deClosedTitle")}>
+        {t("deClosedBody")}
       </Alert>
     );
   }
@@ -47,7 +49,7 @@ export function DealEditForm({
     setError(null);
     setNotice(null);
     if (!title.trim()) {
-      setError("A deal title is required.");
+      setError(t("dfErrTitle"));
       return;
     }
     setPending(true);
@@ -67,14 +69,14 @@ export function DealEditForm({
     if (!result.ok) {
       setError(
         result.code === "VERSION_CONFLICT"
-          ? `${result.message} Reload the page to see the current version.`
+          ? t("deConflict", { message: result.message })
           : result.requestId
-            ? `${result.message} (request ${result.requestId})`
+            ? t("requestRef", { message: result.message, id: result.requestId })
             : result.message,
       );
       return;
     }
-    setNotice("Deal updated.");
+    setNotice(t("deUpdated"));
     router.refresh();
   }
 
@@ -85,7 +87,7 @@ export function DealEditForm({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="edit-title">Title</Label>
+          <Label htmlFor="edit-title">{t("dealsColTitle")}</Label>
           <Input
             id="edit-title"
             value={title}
@@ -94,7 +96,7 @@ export function DealEditForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="edit-currency">Currency</Label>
+          <Label htmlFor="edit-currency">{t("columnCurrency")}</Label>
           <Input
             id="edit-currency"
             value={currency}
@@ -103,7 +105,7 @@ export function DealEditForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="edit-close-date">Expected close</Label>
+          <Label htmlFor="edit-close-date">{t("dealsColExpectedClose")}</Label>
           <Input
             id="edit-close-date"
             type="date"
@@ -112,7 +114,7 @@ export function DealEditForm({
           />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="edit-notes">Notes</Label>
+          <Label htmlFor="edit-notes">{t("fieldNotes")}</Label>
           <Textarea
             id="edit-notes"
             value={notes}
@@ -125,10 +127,10 @@ export function DealEditForm({
       <div className="flex items-center gap-2">
         <Button type="submit" size="sm" disabled={pending}>
           {pending ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-          {pending ? "Saving…" : "Save changes"}
+          {pending ? t("actionSaving") : t("deSave")}
         </Button>
         <span className="text-[11px] text-mist-600">
-          Sent with If-Match <span className="font-mono">v{deal.version}</span>
+          {t("deIfMatch", { version: deal.version })}
         </span>
       </div>
     </form>
