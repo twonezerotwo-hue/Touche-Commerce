@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { useLocale } from "@/lib/i18n/locale-provider";
 import { createProduct } from "@/lib/trade/client";
 import { PRODUCT_UNITS } from "@/lib/trade/types";
 
@@ -22,6 +23,7 @@ const EMPTY = {
 
 export function ProductForm({ csrfToken, canWrite }: { csrfToken: string; canWrite: boolean }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const [values, setValues] = useState({ ...EMPTY });
   const [pending, setPending] = useState(false);
@@ -30,9 +32,8 @@ export function ProductForm({ csrfToken, canWrite }: { csrfToken: string; canWri
 
   if (!canWrite) {
     return (
-      <Alert variant="info" title="Read-only access">
-        Adding a product requires <span className="font-mono">trade.write</span>. You can still
-        browse the catalogue.
+      <Alert variant="info" title={t("readOnlyAccess")}>
+        {t("productReadOnly")}
       </Alert>
     );
   }
@@ -46,11 +47,11 @@ export function ProductForm({ csrfToken, canWrite }: { csrfToken: string; canWri
     setError(null);
     setNotice(null);
     if (!values.sku.trim() || !values.name.trim()) {
-      setError("SKU and name are required.");
+      setError(t("productSkuNameRequired"));
       return;
     }
     if (Number.parseFloat(values.unit_price) < 0 || values.unit_price === "") {
-      setError("Enter a non-negative unit price.");
+      setError(t("productPriceInvalid"));
       return;
     }
     setPending(true);
@@ -68,13 +69,15 @@ export function ProductForm({ csrfToken, canWrite }: { csrfToken: string; canWri
 
     if (!result.ok) {
       setError(
-        result.requestId ? `${result.message} (request ${result.requestId})` : result.message,
+        result.requestId
+          ? t("requestRef", { message: result.message, id: result.requestId })
+          : result.message,
       );
       return;
     }
     setValues({ ...EMPTY });
     setOpen(false);
-    setNotice(`${result.data.sku} added.`);
+    setNotice(t("productAdded", { sku: result.data.sku }));
     router.refresh();
   }
 
@@ -84,7 +87,7 @@ export function ProductForm({ csrfToken, canWrite }: { csrfToken: string; canWri
         {notice ? <Alert variant="success">{notice}</Alert> : null}
         <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
           <Plus className="size-3.5" aria-hidden />
-          New product
+          {t("productNew")}
         </Button>
       </div>
     );
@@ -94,16 +97,14 @@ export function ProductForm({ csrfToken, canWrite }: { csrfToken: string; canWri
     <form onSubmit={submit} className="panel space-y-4 rounded-xl p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <span className="eyebrow">New product</span>
-          <p className="mt-1 text-[11.5px] text-mist-600">
-            SKUs are unique per company and stored in upper case.
-          </p>
+          <span className="eyebrow">{t("productNew")}</span>
+          <p className="mt-1 text-[11.5px] text-mist-600">{t("productNewHint")}</p>
         </div>
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          aria-label="Close form"
+          aria-label={t("productClose")}
           onClick={() => setOpen(false)}
         >
           <X className="size-4" aria-hidden />
@@ -114,7 +115,7 @@ export function ProductForm({ csrfToken, canWrite }: { csrfToken: string; canWri
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="product-sku">SKU</Label>
+          <Label htmlFor="product-sku">{t("productSku")}</Label>
           <Input
             id="product-sku"
             value={values.sku}
@@ -125,7 +126,7 @@ export function ProductForm({ csrfToken, canWrite }: { csrfToken: string; canWri
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="product-name">Name</Label>
+          <Label htmlFor="product-name">{t("productName")}</Label>
           <Input
             id="product-name"
             value={values.name}
@@ -136,7 +137,7 @@ export function ProductForm({ csrfToken, canWrite }: { csrfToken: string; canWri
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="product-unit">Unit</Label>
+          <Label htmlFor="product-unit">{t("productUnit")}</Label>
           <Select
             id="product-unit"
             value={values.unit}
@@ -150,7 +151,7 @@ export function ProductForm({ csrfToken, canWrite }: { csrfToken: string; canWri
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="product-currency">Currency</Label>
+          <Label htmlFor="product-currency">{t("productCurrency")}</Label>
           <Input
             id="product-currency"
             value={values.currency}
@@ -161,7 +162,7 @@ export function ProductForm({ csrfToken, canWrite }: { csrfToken: string; canWri
           />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="product-price">Unit price</Label>
+          <Label htmlFor="product-price">{t("productUnitPrice")}</Label>
           <Input
             id="product-price"
             value={values.unit_price}
@@ -176,10 +177,10 @@ export function ProductForm({ csrfToken, canWrite }: { csrfToken: string; canWri
       <div className="flex items-center gap-2">
         <Button type="submit" size="sm" disabled={pending}>
           {pending ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-          {pending ? "Saving…" : "Create product"}
+          {pending ? t("actionSaving") : t("productCreate")}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
-          Cancel
+          {t("actionCancel")}
         </Button>
       </div>
     </form>
