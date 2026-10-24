@@ -17,11 +17,13 @@ import {
 import { SourcingStatusBadge } from "@/components/sourcing/status-badge";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { getServerT, titleFor } from "@/lib/i18n/server";
+import { sourcingStatusText } from "@/lib/i18n/value-labels";
 import { SUPPLIER_QUOTE_STATUSES, type SupplierQuoteList } from "@/lib/sourcing/types";
 import { formatDate, formatMoney, formatTimestamp, withQuery } from "@/lib/trade/format";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Supplier quotes" };
+export const generateMetadata = () => titleFor("suqTitle");
 
 const PAGE_SIZE = 25;
 
@@ -32,6 +34,7 @@ export default async function SupplierQuotesPage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t, locale } = await getServerT();
 
   const params = await searchParams;
   const query = new URLSearchParams({ limit: String(PAGE_SIZE) });
@@ -45,30 +48,30 @@ export default async function SupplierQuotesPage({
   return (
     <div className="mx-auto max-w-[1360px] space-y-5">
       <PageHeader
-        eyebrow="Sourcing"
-        meta={<Badge variant="secondary">Supplier quotes</Badge>}
-        title="Supplier quotes"
-        description="Every price a supplier gave, including superseded revisions and withdrawals. A withdrawn or superseded quote can no longer be priced."
+        eyebrow={t("srcEyebrow")}
+        meta={<Badge variant="secondary">{t("suqTitle")}</Badge>}
+        title={t("suqTitle")}
+        description={t("suqDescription")}
       />
 
       <div className="panel overflow-hidden">
         <form action="/quotes" method="get" className="flex flex-wrap items-end gap-2 px-4 py-3">
           <div className="space-y-1">
             <label htmlFor="quotes-filter-search" className="eyebrow">
-              Search
+              {t("srcFilterSearch")}
             </label>
             <Input
               id="quotes-filter-search"
               name="search"
               defaultValue={filters.search}
-              placeholder="Supplier, RFQ or source"
+              placeholder={t("suqSearchPlaceholder")}
               maxLength={160}
               className="h-8 w-[240px] text-[12px]"
             />
           </div>
           <div className="space-y-1">
             <label htmlFor="quotes-filter-status" className="eyebrow">
-              Status
+              {t("srcFilterStatus")}
             </label>
             <Select
               id="quotes-filter-status"
@@ -76,20 +79,20 @@ export default async function SupplierQuotesPage({
               defaultValue={filters.status}
               className="h-8 w-[160px] text-[12px]"
             >
-              <option value="">All statuses</option>
+              <option value="">{t("filterAllStatuses")}</option>
               {SUPPLIER_QUOTE_STATUSES.map((status) => (
                 <option key={status} value={status}>
-                  {status}
+                  {sourcingStatusText(t, status)}
                 </option>
               ))}
             </Select>
           </div>
           <Button type="submit" size="sm" variant="subtle">
-            Apply
+            {t("srcApply")}
           </Button>
           {filters.search || filters.status ? (
             <Button asChild size="sm" variant="ghost">
-              <Link href="/quotes">Clear</Link>
+              <Link href="/quotes">{t("actionClear")}</Link>
             </Button>
           ) : null}
         </form>
@@ -98,15 +101,15 @@ export default async function SupplierQuotesPage({
 
         {!result.ok ? (
           <div className="p-4">
-            <Alert variant="danger" title="Quotes unavailable">
+            <Alert variant="danger" title={t("suqUnavailable")}>
               {result.message}
             </Alert>
           </div>
         ) : result.data.items.length === 0 ? (
           <div className="p-4">
             <EmptyState
-              title="No supplier quotes yet"
-              description="Record a quote from a sent RFQ. Prices are stored with their source reference and revision."
+              title={t("suqNone")}
+              description={t("suqNoneHint")}
               className="border-dashed bg-transparent py-10"
             />
           </div>
@@ -116,14 +119,14 @@ export default async function SupplierQuotesPage({
           <Table bare>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-4">RFQ</TableHead>
-                <TableHead>Supplier</TableHead>
-                <TableHead>Deal</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Revision</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead>Valid until</TableHead>
-                <TableHead className="pr-4 text-right">Received</TableHead>
+                <TableHead className="pl-4">{t("srcColRfq")}</TableHead>
+                <TableHead>{t("srcColSupplier")}</TableHead>
+                <TableHead>{t("srcColDeal")}</TableHead>
+                <TableHead>{t("columnStatus")}</TableHead>
+                <TableHead className="text-right">{t("srcColRevision")}</TableHead>
+                <TableHead className="text-right">{t("srcColTotal")}</TableHead>
+                <TableHead>{t("srcColValidUntil")}</TableHead>
+                <TableHead className="pr-4 text-right">{t("srcColReceived")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -147,7 +150,7 @@ export default async function SupplierQuotesPage({
                     <div className="flex items-center gap-1.5">
                       <SourcingStatusBadge status={quote.status} />
                       {quote.superseded_by_quote_id ? (
-                        <Badge variant="outline">superseded</Badge>
+                        <Badge variant="outline">{t("suqSuperseded")}</Badge>
                       ) : null}
                     </div>
                   </TableCell>
@@ -156,14 +159,14 @@ export default async function SupplierQuotesPage({
                   </TableCell>
                   <TableCell className="text-right whitespace-nowrap">
                     <span className="data-value text-[12px] text-mist-200">
-                      {formatMoney(quote.total_value, quote.currency)}
+                      {formatMoney(quote.total_value, quote.currency, locale)}
                     </span>
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-[11.5px] text-mist-400">
-                    {formatDate(quote.valid_until)}
+                    {formatDate(quote.valid_until, locale)}
                   </TableCell>
                   <TableCell className="pr-4 text-right font-mono text-[10.5px] whitespace-nowrap text-mist-600">
-                    {formatTimestamp(quote.received_at)}
+                    {formatTimestamp(quote.received_at, locale)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -173,18 +176,18 @@ export default async function SupplierQuotesPage({
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-3">
           <p className="text-[10.5px] text-mist-600">
-            {result.ok ? `${result.data.items.length} on this page` : "—"}
+            {result.ok ? t("listOnPage", { count: result.data.items.length }) : "—"}
           </p>
           <div className="flex items-center gap-3">
             {params.cursor ? (
               <Button asChild variant="ghost" size="xs">
-                <Link href={withQuery("/quotes", filters)}>First page</Link>
+                <Link href={withQuery("/quotes", filters)}>{t("pageFirst")}</Link>
               </Button>
             ) : null}
             {result.ok && result.data.has_more && result.data.next_cursor ? (
               <Button asChild variant="outline" size="sm">
                 <Link href={withQuery("/quotes", { ...filters, cursor: result.data.next_cursor })}>
-                  Next page
+                  {t("pageNextPage")}
                 </Link>
               </Button>
             ) : null}

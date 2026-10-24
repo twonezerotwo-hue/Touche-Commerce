@@ -19,11 +19,13 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { getServerT, titleFor } from "@/lib/i18n/server";
+import { sourcingStatusText } from "@/lib/i18n/value-labels";
 import { RFQ_STATUSES, type RfqList } from "@/lib/sourcing/types";
 import { formatDate, formatTimestamp, withQuery } from "@/lib/trade/format";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "RFQs" };
+export const generateMetadata = () => titleFor("rfqPageTitle");
 
 const PAGE_SIZE = 25;
 
@@ -34,6 +36,7 @@ export default async function RfqListPage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t, locale } = await getServerT();
 
   const params = await searchParams;
   const canWrite = state.session.session.company?.permissions.includes("trade.write") ?? false;
@@ -50,20 +53,20 @@ export default async function RfqListPage({
   return (
     <div className="mx-auto max-w-[1360px] space-y-5">
       <PageHeader
-        eyebrow="Sourcing"
-        meta={<Badge variant="secondary">RFQs</Badge>}
-        title="Supplier requests"
-        description="One RFQ per supplier, prepared as an immutable revision before it is sent. Sending records the channel and the evidence; a quote is always attributable to the request it answers."
+        eyebrow={t("srcEyebrow")}
+        meta={<Badge variant="secondary">{t("rfqPageTitle")}</Badge>}
+        title={t("rfqListTitle")}
+        description={t("rfqListDescription")}
         actions={
           canWrite ? (
             <Button asChild size="sm">
               <Link href="/rfq/new">
                 <Plus className="size-3.5" aria-hidden />
-                New RFQ
+                {t("rfqNew")}
               </Link>
             </Button>
           ) : (
-            <Badge variant="outline">Read-only · trade.write required</Badge>
+            <Badge variant="outline">{t("badgeReadOnlyTradeWrite")}</Badge>
           )
         }
       />
@@ -72,20 +75,20 @@ export default async function RfqListPage({
         <form action="/rfq" method="get" className="flex flex-wrap items-end gap-2 px-4 py-3">
           <div className="space-y-1">
             <label htmlFor="rfq-filter-search" className="eyebrow">
-              Search
+              {t("srcFilterSearch")}
             </label>
             <Input
               id="rfq-filter-search"
               name="search"
               defaultValue={filters.search}
-              placeholder="Reference, supplier or place"
+              placeholder={t("rfqSearchPlaceholder")}
               maxLength={160}
               className="h-8 w-[240px] text-[12px]"
             />
           </div>
           <div className="space-y-1">
             <label htmlFor="rfq-filter-status" className="eyebrow">
-              Status
+              {t("srcFilterStatus")}
             </label>
             <Select
               id="rfq-filter-status"
@@ -93,20 +96,20 @@ export default async function RfqListPage({
               defaultValue={filters.status}
               className="h-8 w-[160px] text-[12px]"
             >
-              <option value="">All statuses</option>
+              <option value="">{t("filterAllStatuses")}</option>
               {RFQ_STATUSES.map((status) => (
                 <option key={status} value={status}>
-                  {status.replaceAll("_", " ")}
+                  {sourcingStatusText(t, status)}
                 </option>
               ))}
             </Select>
           </div>
           <Button type="submit" size="sm" variant="subtle">
-            Apply
+            {t("srcApply")}
           </Button>
           {filtered ? (
             <Button asChild size="sm" variant="ghost">
-              <Link href="/rfq">Clear</Link>
+              <Link href="/rfq">{t("actionClear")}</Link>
             </Button>
           ) : null}
         </form>
@@ -115,7 +118,7 @@ export default async function RfqListPage({
 
         {!result.ok ? (
           <div className="p-4">
-            <Alert variant="danger" title="RFQs unavailable">
+            <Alert variant="danger" title={t("rfqUnavailable")}>
               {result.message}
             </Alert>
           </div>
@@ -123,16 +126,12 @@ export default async function RfqListPage({
           <div className="p-4">
             <EmptyState
               icon={<FileText className="size-4" aria-hidden />}
-              title={filtered ? "No RFQs match these filters" : "No RFQs yet"}
-              description={
-                filtered
-                  ? "Adjust the status filter or search term."
-                  : "Create a request from a deal to start comparing supplier offers."
-              }
+              title={filtered ? t("rfqNoMatch") : t("rfqNone")}
+              description={filtered ? t("rfqNoMatchHint") : t("rfqNoneHint")}
               action={
                 !filtered && canWrite ? (
                   <Button asChild size="sm">
-                    <Link href="/rfq/new">New RFQ</Link>
+                    <Link href="/rfq/new">{t("rfqNew")}</Link>
                   </Button>
                 ) : null
               }
@@ -145,14 +144,14 @@ export default async function RfqListPage({
           <Table bare>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-4">Reference</TableHead>
-                <TableHead>Supplier</TableHead>
-                <TableHead>Deal</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Due</TableHead>
-                <TableHead className="text-right">Lines</TableHead>
-                <TableHead className="text-right">Quotes</TableHead>
-                <TableHead className="pr-4 text-right">Updated</TableHead>
+                <TableHead className="pl-4">{t("columnReference")}</TableHead>
+                <TableHead>{t("srcColSupplier")}</TableHead>
+                <TableHead>{t("srcColDeal")}</TableHead>
+                <TableHead>{t("columnStatus")}</TableHead>
+                <TableHead>{t("srcColDue")}</TableHead>
+                <TableHead className="text-right">{t("srcColLines")}</TableHead>
+                <TableHead className="text-right">{t("srcColQuotes")}</TableHead>
+                <TableHead className="pr-4 text-right">{t("columnUpdated")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -176,7 +175,7 @@ export default async function RfqListPage({
                     <SourcingStatusBadge status={rfq.status} />
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-[11.5px] text-mist-400">
-                    {formatDate(rfq.response_due_date)}
+                    {formatDate(rfq.response_due_date, locale)}
                   </TableCell>
                   <TableCell className="text-right text-[11.5px] text-mist-300">
                     {rfq.item_count}
@@ -185,7 +184,7 @@ export default async function RfqListPage({
                     {rfq.quote_count}
                   </TableCell>
                   <TableCell className="pr-4 text-right font-mono text-[10.5px] whitespace-nowrap text-mist-600">
-                    {formatTimestamp(rfq.updated_at)}
+                    {formatTimestamp(rfq.updated_at, locale)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -196,21 +195,21 @@ export default async function RfqListPage({
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-3">
           <p className="text-[10.5px] text-mist-600">
             {result.ok
-              ? `${result.data.items.length} on this page${
-                  result.data.has_more ? " · older RFQs available" : " · end of list"
+              ? `${t("listOnPage", { count: result.data.items.length })} · ${
+                  result.data.has_more ? t("listOlder") : t("listEnd")
                 }`
               : "—"}
           </p>
           <div className="flex items-center gap-3">
             {params.cursor ? (
               <Button asChild variant="ghost" size="xs">
-                <Link href={withQuery("/rfq", filters)}>First page</Link>
+                <Link href={withQuery("/rfq", filters)}>{t("pageFirst")}</Link>
               </Button>
             ) : null}
             {result.ok && result.data.has_more && result.data.next_cursor ? (
               <Button asChild variant="outline" size="sm">
                 <Link href={withQuery("/rfq", { ...filters, cursor: result.data.next_cursor })}>
-                  Next page
+                  {t("pageNextPage")}
                   <ArrowRight className="size-3.5" aria-hidden />
                 </Link>
               </Button>

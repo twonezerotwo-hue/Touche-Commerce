@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { costTypeText } from "@/lib/i18n/value-labels";
 import { createPricingScenario } from "@/lib/sourcing/client";
 import {
   COST_TYPES,
@@ -60,6 +62,7 @@ export function PricingForm({
   csrfToken: string;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [targetCurrency, setTargetCurrency] = useState(quote.currency);
   const [method, setMethod] = useState<"margin" | "markup" | "none">("margin");
   const [percent, setPercent] = useState("20");
@@ -105,15 +108,17 @@ export function PricingForm({
     setError(null);
 
     if (conversionNeeded && !fxRateId) {
-      setError(`Select a recorded ${quote.currency}/${targetCurrency.toUpperCase()} snapshot.`);
+      setError(
+        t("pfSelectSnapshot", { pair: `${quote.currency}/${targetCurrency.toUpperCase()}` }),
+      );
       return;
     }
     if (components.some((component) => component.sourceReference.trim().length < 3)) {
-      setError("Every cost component needs a source reference of at least 3 characters.");
+      setError(t("pfSourceRefShort"));
       return;
     }
     if (components.some((component) => component.basis === "LINE" && !component.productId)) {
-      setError("A LINE cost must name the product it belongs to.");
+      setError(t("pfLineNeedsProduct"));
       return;
     }
     if (
@@ -122,7 +127,7 @@ export function PricingForm({
           component.currency.toUpperCase() !== targetCurrency.toUpperCase() && !component.fxRateId,
       )
     ) {
-      setError("A cost component in another currency needs its own FX snapshot.");
+      setError(t("pfComponentNeedsFx"));
       return;
     }
 
@@ -141,7 +146,9 @@ export function PricingForm({
 
     if (!result.ok) {
       setError(
-        result.requestId ? `${result.message} (request ${result.requestId})` : result.message,
+        result.requestId
+          ? t("srcErrWithRequest", { message: result.message, id: result.requestId })
+          : result.message,
       );
       return;
     }
@@ -156,7 +163,7 @@ export function PricingForm({
 
       <div className="grid gap-3 sm:grid-cols-4">
         <div className="space-y-1.5">
-          <Label htmlFor="pricing-target">Target currency</Label>
+          <Label htmlFor="pricing-target">{t("pfTargetCurrency")}</Label>
           <Input
             id="pricing-target"
             value={targetCurrency}
@@ -169,20 +176,20 @@ export function PricingForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="pricing-method">Pricing method</Label>
+          <Label htmlFor="pricing-method">{t("pfMethod")}</Label>
           <Select
             id="pricing-method"
             value={method}
             onChange={(event) => setMethod(event.target.value as typeof method)}
           >
-            <option value="margin">Margin on price</option>
-            <option value="markup">Markup on cost</option>
-            <option value="none">Pass through at cost</option>
+            <option value="margin">{t("pfMethodMargin")}</option>
+            <option value="markup">{t("pfMethodMarkup")}</option>
+            <option value="none">{t("pfMethodNone")}</option>
           </Select>
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="pricing-percent">Percent</Label>
+          <Label htmlFor="pricing-percent">{t("pfPercent")}</Label>
           <Input
             id="pricing-percent"
             value={percent}
@@ -193,16 +200,14 @@ export function PricingForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="pricing-fx">Quote FX snapshot</Label>
+          <Label htmlFor="pricing-fx">{t("pfQuoteFx")}</Label>
           <Select
             id="pricing-fx"
             value={fxRateId}
             disabled={!conversionNeeded}
             onChange={(event) => setFxRateId(event.target.value)}
           >
-            <option value="">
-              {conversionNeeded ? "Select a recorded rate" : "Same currency — not needed"}
-            </option>
+            <option value="">{conversionNeeded ? t("pfSelectRate") : t("pfSameCurrency")}</option>
             {quoteFx.map((rate) => (
               <option key={rate.id} value={rate.id}>
                 {rate.base_currency}/{rate.quote_currency} @ {rate.rate} ({rate.source})
@@ -213,15 +218,14 @@ export function PricingForm({
       </div>
 
       {conversionNeeded && quoteFx.length === 0 ? (
-        <Alert variant="info" title="No matching FX snapshot">
-          Record a {quote.currency}/{targetCurrency.toUpperCase()} rate on the FX page first.
-          Pricing never infers a rate.
+        <Alert variant="info" title={t("pfNoSnapshotTitle")}>
+          {t("pfNoSnapshotBody", { pair: `${quote.currency}/${targetCurrency.toUpperCase()}` })}
         </Alert>
       ) : null}
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-[12.5px] font-medium text-mist-100">Cost components</h3>
+          <h3 className="text-[12.5px] font-medium text-mist-100">{t("prcCostComponents")}</h3>
           <Button
             type="button"
             size="sm"
@@ -231,14 +235,12 @@ export function PricingForm({
             }
           >
             <Plus className="size-3.5" aria-hidden />
-            Add cost
+            {t("pfAddCost")}
           </Button>
         </div>
 
         {components.length === 0 ? (
-          <p className="text-[11.5px] text-mist-600">
-            No additional costs: the landed cost is the converted purchase value.
-          </p>
+          <p className="text-[11.5px] text-mist-600">{t("pfNoCosts")}</p>
         ) : null}
 
         {components.map((component) => {
@@ -254,9 +256,9 @@ export function PricingForm({
               className="grid gap-2 rounded-lg border border-white/[0.06] p-3 sm:grid-cols-3"
             >
               <div className="space-y-1">
-                <Label>Type</Label>
+                <Label>{t("srcColType")}</Label>
                 <Select
-                  aria-label="Cost type"
+                  aria-label={t("pfCostType")}
                   value={component.costType}
                   onChange={(event) =>
                     update(component.key, {
@@ -266,24 +268,24 @@ export function PricingForm({
                 >
                   {COST_TYPES.map((type) => (
                     <option key={type} value={type}>
-                      {type.replaceAll("_", " ")}
+                      {costTypeText(t, type)}
                     </option>
                   ))}
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label>Amount</Label>
+                <Label>{t("srcColAmount")}</Label>
                 <Input
-                  aria-label="Amount"
+                  aria-label={t("srcColAmount")}
                   value={component.amount}
                   inputMode="decimal"
                   onChange={(event) => update(component.key, { amount: event.target.value })}
                 />
               </div>
               <div className="space-y-1">
-                <Label>Currency</Label>
+                <Label>{t("columnCurrency")}</Label>
                 <Input
-                  aria-label="Component currency"
+                  aria-label={t("pfComponentCurrency")}
                   value={component.currency}
                   maxLength={3}
                   onChange={(event) =>
@@ -292,9 +294,9 @@ export function PricingForm({
                 />
               </div>
               <div className="space-y-1">
-                <Label>Basis</Label>
+                <Label>{t("srcColBasis")}</Label>
                 <Select
-                  aria-label="Cost basis"
+                  aria-label={t("pfCostBasis")}
                   value={component.basis}
                   onChange={(event) =>
                     update(component.key, {
@@ -302,19 +304,19 @@ export function PricingForm({
                     })
                   }
                 >
-                  <option value="ORDER">Whole order (pro-rata)</option>
-                  <option value="LINE">One product line</option>
+                  <option value="ORDER">{t("prcBasisOrder")}</option>
+                  <option value="LINE">{t("prcBasisLine")}</option>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label>Product</Label>
+                <Label>{t("pfProduct")}</Label>
                 <Select
-                  aria-label="Cost product"
+                  aria-label={t("pfCostProduct")}
                   value={component.productId}
                   disabled={component.basis !== "LINE"}
                   onChange={(event) => update(component.key, { productId: event.target.value })}
                 >
-                  <option value="">{component.basis === "LINE" ? "Select…" : "—"}</option>
+                  <option value="">{component.basis === "LINE" ? t("srcSelect") : "—"}</option>
                   {quote.items.map((item) => (
                     <option key={item.id} value={item.product_id}>
                       {item.sku}
@@ -323,9 +325,9 @@ export function PricingForm({
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label>Verification</Label>
+                <Label>{t("srcColVerification")}</Label>
                 <Select
-                  aria-label="Verification"
+                  aria-label={t("srcColVerification")}
                   value={component.verification}
                   onChange={(event) =>
                     update(component.key, {
@@ -333,31 +335,31 @@ export function PricingForm({
                     })
                   }
                 >
-                  <option value="ESTIMATED">Estimated</option>
-                  <option value="VERIFIED">Verified</option>
+                  <option value="ESTIMATED">{t("prcEstimated")}</option>
+                  <option value="VERIFIED">{t("prcVerified")}</option>
                 </Select>
               </div>
 
               <div className="space-y-1 sm:col-span-2">
-                <Label>Source reference</Label>
+                <Label>{t("suqSourceRef")}</Label>
                 <Input
-                  aria-label="Source reference"
+                  aria-label={t("suqSourceRef")}
                   value={component.sourceReference}
                   onChange={(event) =>
                     update(component.key, { sourceReference: event.target.value })
                   }
-                  placeholder="Freight invoice number"
+                  placeholder={t("pfSourcePlaceholder")}
                 />
               </div>
               <div className="space-y-1">
-                <Label>Component FX</Label>
+                <Label>{t("pfComponentFx")}</Label>
                 <Select
-                  aria-label="Component FX snapshot"
+                  aria-label={t("pfComponentFxSnapshot")}
                   value={component.fxRateId}
                   disabled={!needsFx}
                   onChange={(event) => update(component.key, { fxRateId: event.target.value })}
                 >
-                  <option value="">{needsFx ? "Select…" : "Not needed"}</option>
+                  <option value="">{needsFx ? t("srcSelect") : t("pfNotNeeded")}</option>
                   {componentFx.map((rate) => (
                     <option key={rate.id} value={rate.id}>
                       {rate.base_currency}/{rate.quote_currency} @ {rate.rate}
@@ -375,7 +377,7 @@ export function PricingForm({
                   }
                 >
                   <Trash2 className="size-3.5" aria-hidden />
-                  Remove
+                  {t("pfRemove")}
                 </Button>
               </div>
             </div>
@@ -386,11 +388,9 @@ export function PricingForm({
       <div className="flex items-center gap-2">
         <Button type="submit" size="sm" disabled={pending}>
           {pending ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-          {pending ? "Calculating…" : "Calculate landed cost"}
+          {pending ? t("pfCalculating") : t("pfCalculate")}
         </Button>
-        <p className="text-[11px] text-mist-600">
-          Results are stored with their inputs so the price can be reproduced later.
-        </p>
+        <p className="text-[11px] text-mist-600">{t("pfHint")}</p>
       </div>
     </form>
   );

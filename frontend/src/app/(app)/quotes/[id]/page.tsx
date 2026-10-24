@@ -23,10 +23,12 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { getServerT, titleFor } from "@/lib/i18n/server";
 import type { FxRateList, SupplierQuote } from "@/lib/sourcing/types";
 import { formatDate, formatMoney, formatQuantity, formatTimestamp } from "@/lib/trade/format";
 
 export const dynamic = "force-dynamic";
+export const generateMetadata = () => titleFor("suqEyebrow");
 
 export default async function SupplierQuoteDetailPage({
   params,
@@ -35,6 +37,7 @@ export default async function SupplierQuoteDetailPage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t, locale } = await getServerT();
   const canWrite = state.session.session.company?.permissions.includes("trade.write") ?? false;
   const { id } = await params;
 
@@ -47,11 +50,11 @@ export default async function SupplierQuoteDetailPage({
     return (
       <div className="mx-auto max-w-[900px] space-y-4">
         <PageHeader
-          eyebrow="Supplier quote"
-          back={{ href: "/quotes", label: "Supplier quotes" }}
-          title="Quote unavailable"
+          eyebrow={t("suqEyebrow")}
+          back={{ href: "/quotes", label: t("suqTitle") }}
+          title={t("suqUnavailableTitle")}
         />
-        <Alert variant="danger" title="Could not load this quote">
+        <Alert variant="danger" title={t("suqLoadFailed")}>
           {quote.message}
         </Alert>
       </div>
@@ -63,17 +66,25 @@ export default async function SupplierQuoteDetailPage({
   return (
     <div className="mx-auto max-w-[1200px] space-y-5">
       <PageHeader
-        eyebrow="Supplier quote"
-        back={{ href: "/quotes", label: "Supplier quotes" }}
+        eyebrow={t("suqEyebrow")}
+        back={{ href: "/quotes", label: t("suqTitle") }}
         meta={
           <div className="flex items-center gap-2">
             <SourcingStatusBadge status={record.status} />
             <Badge variant="outline">r{record.revision}</Badge>
-            {record.superseded_by_quote_id ? <Badge variant="outline">superseded</Badge> : null}
+            {record.superseded_by_quote_id ? (
+              <Badge variant="outline">{t("suqSuperseded")}</Badge>
+            ) : null}
           </div>
         }
-        title={`${record.supplier_name} · ${formatMoney(record.total_value, record.currency)}`}
-        description={`RFQ ${record.rfq_reference} · deal ${record.deal_reference} · ${record.incoterm} ${record.named_delivery_place} · valid until ${formatDate(record.valid_until)}`}
+        title={`${record.supplier_name} · ${formatMoney(record.total_value, record.currency, locale)}`}
+        description={t("suqHeaderDescription", {
+          rfq: record.rfq_reference,
+          deal: record.deal_reference,
+          incoterm: record.incoterm,
+          place: record.named_delivery_place,
+          date: formatDate(record.valid_until, locale),
+        })}
       />
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
@@ -81,9 +92,9 @@ export default async function SupplierQuoteDetailPage({
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Quoted lines</CardTitle>
+                <CardTitle>{t("suqQuotedLines")}</CardTitle>
                 <CardDescription>
-                  {record.lead_time_days} days lead time · {record.payment_terms}
+                  {t("suqLeadTime", { days: record.lead_time_days, terms: record.payment_terms })}
                 </CardDescription>
               </CardHeading>
               <Badge variant="outline">{record.currency}</Badge>
@@ -92,11 +103,11 @@ export default async function SupplierQuoteDetailPage({
               <Table bare>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Quantity</TableHead>
-                    <TableHead className="text-right">Unit price</TableHead>
-                    <TableHead className="text-right">Line total</TableHead>
+                    <TableHead>{t("columnSku")}</TableHead>
+                    <TableHead>{t("srcColDescription")}</TableHead>
+                    <TableHead className="text-right">{t("srcColQuantity")}</TableHead>
+                    <TableHead className="text-right">{t("columnUnitPrice")}</TableHead>
+                    <TableHead className="text-right">{t("srcColLineTotal")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -109,13 +120,13 @@ export default async function SupplierQuoteDetailPage({
                         {item.description}
                       </TableCell>
                       <TableCell className="text-right text-[12px] text-mist-200">
-                        {formatQuantity(item.quantity, item.unit)}
+                        {formatQuantity(item.quantity, item.unit, locale)}
                       </TableCell>
                       <TableCell className="text-right text-[12px] text-mist-200">
-                        {formatMoney(item.unit_price, record.currency)}
+                        {formatMoney(item.unit_price, record.currency, locale)}
                       </TableCell>
                       <TableCell className="text-right text-[12px] text-mist-100">
-                        {formatMoney(item.line_total, record.currency)}
+                        {formatMoney(item.line_total, record.currency, locale)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -127,10 +138,8 @@ export default async function SupplierQuoteDetailPage({
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Price this quote</CardTitle>
-                <CardDescription>
-                  Landed cost plus selling price. FX comes from recorded snapshots only.
-                </CardDescription>
+                <CardTitle>{t("suqPriceThis")}</CardTitle>
+                <CardDescription>{t("suqPriceHint")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent>
@@ -141,10 +150,8 @@ export default async function SupplierQuoteDetailPage({
                   csrfToken={state.session.session.csrf_token}
                 />
               ) : (
-                <Alert variant="info" title="This quote cannot be priced">
-                  {record.is_active
-                    ? "Pricing requires trade.write."
-                    : "Only a received, not superseded quote can be priced. Record a revision or a new quote first."}
+                <Alert variant="info" title={t("suqCannotPrice")}>
+                  {record.is_active ? t("suqNeedsWrite") : t("suqNotActive")}
                 </Alert>
               )}
             </CardContent>
@@ -155,39 +162,39 @@ export default async function SupplierQuoteDetailPage({
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Provenance</CardTitle>
-                <CardDescription>Where the numbers came from.</CardDescription>
+                <CardTitle>{t("suqProvenance")}</CardTitle>
+                <CardDescription>{t("suqProvenanceHint")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent>
               <dl className="space-y-2 text-[11.5px]">
                 <div>
-                  <dt className="eyebrow">Source reference</dt>
+                  <dt className="eyebrow">{t("suqSourceRef")}</dt>
                   <dd className="text-mist-200">{record.source_reference}</dd>
                 </div>
                 <div>
-                  <dt className="eyebrow">Supplier reference</dt>
+                  <dt className="eyebrow">{t("suqSupplierRef")}</dt>
                   <dd className="text-mist-200">{record.supplier_reference ?? "—"}</dd>
                 </div>
                 <div>
-                  <dt className="eyebrow">Received</dt>
-                  <dd className="text-mist-200">{formatTimestamp(record.received_at)}</dd>
+                  <dt className="eyebrow">{t("srcColReceived")}</dt>
+                  <dd className="text-mist-200">{formatTimestamp(record.received_at, locale)}</dd>
                 </div>
                 <div>
-                  <dt className="eyebrow">Supersedes</dt>
+                  <dt className="eyebrow">{t("suqSupersedes")}</dt>
                   <dd className="font-mono text-[10.5px] text-mist-400">
                     {record.supersedes_quote_id ?? "—"}
                   </dd>
                 </div>
                 <div>
-                  <dt className="eyebrow">Superseded by</dt>
+                  <dt className="eyebrow">{t("suqSupersededBy")}</dt>
                   <dd className="font-mono text-[10.5px] text-mist-400">
                     {record.superseded_by_quote_id ?? "—"}
                   </dd>
                 </div>
                 {record.notes ? (
                   <div>
-                    <dt className="eyebrow">Notes</dt>
+                    <dt className="eyebrow">{t("srcNotes")}</dt>
                     <dd className="text-mist-300">{record.notes}</dd>
                   </div>
                 ) : null}
@@ -198,8 +205,8 @@ export default async function SupplierQuoteDetailPage({
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Revision snapshots</CardTitle>
-                <CardDescription>Stored exactly as recorded.</CardDescription>
+                <CardTitle>{t("suqRevisionSnapshots")}</CardTitle>
+                <CardDescription>{t("suqRevisionSnapshotsHint")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -209,7 +216,9 @@ export default async function SupplierQuoteDetailPage({
                   className="flex items-center justify-between rounded-lg border border-white/[0.06] px-3 py-2 text-[11.5px]"
                 >
                   <span className="font-mono text-mist-300">r{revision.revision}</span>
-                  <span className="text-mist-600">{formatTimestamp(revision.created_at)}</span>
+                  <span className="text-mist-600">
+                    {formatTimestamp(revision.created_at, locale)}
+                  </span>
                 </div>
               ))}
             </CardContent>
@@ -219,7 +228,7 @@ export default async function SupplierQuoteDetailPage({
             href={`/rfq/${record.rfq_id}`}
             className="inline-flex text-[12px] text-accent-200 hover:text-accent-100"
           >
-            Open the RFQ this quote answers
+            {t("suqOpenRfq")}
           </Link>
         </div>
       </div>

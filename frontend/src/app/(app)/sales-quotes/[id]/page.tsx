@@ -25,10 +25,12 @@ import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
 import { DocumentDownloads } from "@/components/documents/document-downloads";
 import { canGenerateDocuments } from "@/lib/documents/access";
+import { getServerT, titleFor } from "@/lib/i18n/server";
 import type { SalesQuote } from "@/lib/sourcing/types";
 import { formatDate, formatMoney, formatQuantity, formatTimestamp } from "@/lib/trade/format";
 
 export const dynamic = "force-dynamic";
+export const generateMetadata = () => titleFor("slqEyebrow");
 
 export default async function SalesQuoteDetailPage({
   params,
@@ -37,6 +39,7 @@ export default async function SalesQuoteDetailPage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t, locale } = await getServerT();
   const permissions = state.session.session.company?.permissions ?? [];
   const canWrite = permissions.includes("trade.write");
   const canApprove = permissions.includes("finance.approve");
@@ -47,11 +50,11 @@ export default async function SalesQuoteDetailPage({
     return (
       <div className="mx-auto max-w-[900px] space-y-4">
         <PageHeader
-          eyebrow="Sales quote"
-          back={{ href: "/sales-quotes", label: "Sales quotes" }}
-          title="Quote unavailable"
+          eyebrow={t("slqEyebrow")}
+          back={{ href: "/sales-quotes", label: t("slqBadge") }}
+          title={t("slqUnavailableTitle")}
         />
-        <Alert variant="danger" title="Could not load this sales quote">
+        <Alert variant="danger" title={t("slqLoadFailed")}>
           {result.message}
         </Alert>
       </div>
@@ -63,8 +66,8 @@ export default async function SalesQuoteDetailPage({
   return (
     <div className="mx-auto max-w-[1200px] space-y-5">
       <PageHeader
-        eyebrow="Sales quote"
-        back={{ href: "/sales-quotes", label: "Sales quotes" }}
+        eyebrow={t("slqEyebrow")}
+        back={{ href: "/sales-quotes", label: t("slqBadge") }}
         meta={
           <div className="flex items-center gap-2">
             <SourcingStatusBadge status={quote.status} />
@@ -72,8 +75,14 @@ export default async function SalesQuoteDetailPage({
             <SourcingStatusBadge status={quote.scenario_status} />
           </div>
         }
-        title={`${quote.quote_number} · ${formatMoney(quote.total_value, quote.currency)}`}
-        description={`${quote.customer_name} · deal ${quote.deal_reference} · ${quote.incoterm} ${quote.named_delivery_place} · valid until ${formatDate(quote.valid_until)}`}
+        title={`${quote.quote_number} · ${formatMoney(quote.total_value, quote.currency, locale)}`}
+        description={t("slqHeaderDescription", {
+          customer: quote.customer_name,
+          deal: quote.deal_reference,
+          incoterm: quote.incoterm,
+          place: quote.named_delivery_place,
+          date: formatDate(quote.valid_until, locale),
+        })}
       />
       {canGenerateDocuments(state.session.session.company) ? (
         <DocumentDownloads documents={[{ kind: "sales_quotation", entityId: quote.id }]} />
@@ -84,7 +93,7 @@ export default async function SalesQuoteDetailPage({
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Quoted lines</CardTitle>
+                <CardTitle>{t("suqQuotedLines")}</CardTitle>
                 <CardDescription>{quote.payment_terms}</CardDescription>
               </CardHeading>
               <Badge variant="outline">{quote.currency}</Badge>
@@ -93,11 +102,11 @@ export default async function SalesQuoteDetailPage({
               <Table bare>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Quantity</TableHead>
-                    <TableHead className="text-right">Unit price</TableHead>
-                    <TableHead className="text-right">Line total</TableHead>
+                    <TableHead>{t("columnSku")}</TableHead>
+                    <TableHead>{t("srcColDescription")}</TableHead>
+                    <TableHead className="text-right">{t("srcColQuantity")}</TableHead>
+                    <TableHead className="text-right">{t("columnUnitPrice")}</TableHead>
+                    <TableHead className="text-right">{t("srcColLineTotal")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -110,13 +119,13 @@ export default async function SalesQuoteDetailPage({
                         {item.description}
                       </TableCell>
                       <TableCell className="text-right text-[12px] text-mist-200">
-                        {formatQuantity(item.quantity, item.unit)}
+                        {formatQuantity(item.quantity, item.unit, locale)}
                       </TableCell>
                       <TableCell className="text-right text-[12px] text-mist-200">
-                        {formatMoney(item.unit_price, quote.currency)}
+                        {formatMoney(item.unit_price, quote.currency, locale)}
                       </TableCell>
                       <TableCell className="text-right text-[12px] text-mist-100">
-                        {formatMoney(item.line_total, quote.currency)}
+                        {formatMoney(item.line_total, quote.currency, locale)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -128,18 +137,16 @@ export default async function SalesQuoteDetailPage({
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Approval trail</CardTitle>
-                <CardDescription>
-                  Submitting and approving are separate, audited steps.
-                </CardDescription>
+                <CardTitle>{t("slqApprovalTrail")}</CardTitle>
+                <CardDescription>{t("slqApprovalTrailHint")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent>
               <dl className="space-y-2 text-[11.5px]">
                 <div>
-                  <dt className="eyebrow">Submitted</dt>
+                  <dt className="eyebrow">{t("slqSubmitted")}</dt>
                   <dd className="text-mist-200">
-                    {formatTimestamp(quote.submitted_at)}
+                    {formatTimestamp(quote.submitted_at, locale)}
                     {quote.submitted_by ? (
                       <span className="ml-1 font-mono text-[10px] text-mist-500">
                         {quote.submitted_by.slice(0, 8)}…
@@ -148,9 +155,9 @@ export default async function SalesQuoteDetailPage({
                   </dd>
                 </div>
                 <div>
-                  <dt className="eyebrow">Approved</dt>
+                  <dt className="eyebrow">{t("slqApproved")}</dt>
                   <dd className="text-mist-200">
-                    {formatTimestamp(quote.approved_at)}
+                    {formatTimestamp(quote.approved_at, locale)}
                     {quote.approved_by ? (
                       <span className="ml-1 font-mono text-[10px] text-mist-500">
                         {quote.approved_by.slice(0, 8)}…
@@ -160,25 +167,25 @@ export default async function SalesQuoteDetailPage({
                 </div>
                 {quote.rejection_reason ? (
                   <div>
-                    <dt className="eyebrow">Rejection reason</dt>
+                    <dt className="eyebrow">{t("slqRejectionReason")}</dt>
                     <dd className="text-mist-300">{quote.rejection_reason}</dd>
                   </div>
                 ) : null}
                 <div>
-                  <dt className="eyebrow">Supersedes</dt>
+                  <dt className="eyebrow">{t("suqSupersedes")}</dt>
                   <dd className="font-mono text-[10.5px] text-mist-400">
                     {quote.supersedes_sales_quote_id ?? "—"}
                   </dd>
                 </div>
                 <div>
-                  <dt className="eyebrow">Superseded by</dt>
+                  <dt className="eyebrow">{t("suqSupersededBy")}</dt>
                   <dd className="font-mono text-[10.5px] text-mist-400">
                     {quote.superseded_by_sales_quote_id ?? "—"}
                   </dd>
                 </div>
                 {quote.notes ? (
                   <div>
-                    <dt className="eyebrow">Notes</dt>
+                    <dt className="eyebrow">{t("srcNotes")}</dt>
                     <dd className="text-mist-300">{quote.notes}</dd>
                   </div>
                 ) : null}
@@ -191,10 +198,8 @@ export default async function SalesQuoteDetailPage({
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Workflow</CardTitle>
-                <CardDescription>
-                  Submit, then approve or reject. Approved quotes are revised, never withdrawn.
-                </CardDescription>
+                <CardTitle>{t("slqWorkflow")}</CardTitle>
+                <CardDescription>{t("slqWorkflowHint")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent>
@@ -210,8 +215,8 @@ export default async function SalesQuoteDetailPage({
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Revision snapshots</CardTitle>
-                <CardDescription>One immutable row per customer-facing revision.</CardDescription>
+                <CardTitle>{t("suqRevisionSnapshots")}</CardTitle>
+                <CardDescription>{t("slqRevisionSnapshotsHint")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -221,7 +226,9 @@ export default async function SalesQuoteDetailPage({
                   className="flex items-center justify-between rounded-lg border border-white/[0.06] px-3 py-2 text-[11.5px]"
                 >
                   <span className="font-mono text-mist-300">r{revision.revision}</span>
-                  <span className="text-mist-600">{formatTimestamp(revision.created_at)}</span>
+                  <span className="text-mist-600">
+                    {formatTimestamp(revision.created_at, locale)}
+                  </span>
                 </div>
               ))}
             </CardContent>
@@ -231,7 +238,7 @@ export default async function SalesQuoteDetailPage({
             href={`/pricing/${quote.scenario_id}`}
             className="inline-flex text-[12px] text-accent-200 hover:text-accent-100"
           >
-            Open the pricing scenario behind this quote
+            {t("slqOpenScenario")}
           </Link>
         </div>
       </div>
