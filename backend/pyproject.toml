@@ -26,6 +26,8 @@ dependencies = [
     # Stage 13 trade documents: PDF (bundled Vera font covers Turkish) and DOCX output.
     "reportlab>=4.2,<5",
     "python-docx>=1.1,<2",
+    # Stage 18 encrypted backups (AES-256-GCM); used by scripts, not by request handling.
+    "cryptography>=44,<48",
 ]
 
 [project.optional-dependencies]
