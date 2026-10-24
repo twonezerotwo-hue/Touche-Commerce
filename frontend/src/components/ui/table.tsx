@@ -9,7 +9,9 @@ function Table({
 }: React.ComponentProps<"table"> & { bare?: boolean }) {
   return (
     <div className={bare ? "overflow-hidden" : "panel overflow-hidden"}>
-      <div className="overflow-x-auto">
+      {/* `relative` makes the scroller the containing block of absolutely positioned cells (the
+          visually hidden header text); without it WebKit lets them widen the whole page on a phone. */}
+      <div className="relative overflow-x-auto">
         <table
           data-slot="table"
           className={cn("w-full border-collapse text-left text-[12.5px]", className)}

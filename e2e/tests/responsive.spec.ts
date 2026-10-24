@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { authFile, gotoReady, stack } from "./support";
 
-const PAGES = ["/", "/imports", "/products", "/crm", "/deals"];
+const PAGES = ["/", "/imports", "/products", "/crm", "/deals", "/orders"];
 
 test.describe("responsive layout and keyboard use", () => {
   test("no page scrolls sideways on a phone and the navigation menu opens", async ({
