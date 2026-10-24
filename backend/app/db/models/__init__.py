@@ -36,6 +36,7 @@ from app.db.models.identity import (
     UserSession,
     UserStatus,
 )
+from app.db.models.imports import ImportBatch
 from app.db.models.orders import (
     AcceptanceChannel,
     CostStage,
@@ -162,6 +163,7 @@ __all__ = [
     "FulfilmentModel",
     "FxRateSnapshot",
     "IdempotencyRecord",
+    "ImportBatch",
     "Incoterm",
     "LinkedEntityType",
     "LoginAttempt",

@@ -120,6 +120,8 @@ class AuditAction(StrEnum):
     AI_PROPOSAL_REJECTED = "ai.proposal.rejected"
     # Stage 7C2: irrevocable outbound contact suppression; no contact data in audit.
     COMMUNICATION_SUPPRESSION_RECORDED = "communications.suppression.recorded"
+    # Stage 13C: a web CSV/XLSX import was committed (counts only, never cell values).
+    IMPORT_COMMITTED = "import.committed"
 
 
 _AUDIT_ACTIONS = tuple(action.value for action in AuditAction)
