@@ -39,3 +39,15 @@ def test_verify_script_fails_without_frontend_and_checks_runtime_mypy() -> None:
     assert "@('-m', 'mypy', 'app')" in source
     assert "$failures.Add('frontend: dependencies missing')" in source
     assert "if ($failures.Count -gt 0)" in source
+
+
+def test_encrypted_backup_takes_its_passphrase_from_the_environment_only() -> None:
+    backup = (ROOT / "scripts" / "backup-local.ps1").read_text(encoding="utf-8")
+    restore = (ROOT / "scripts" / "restore-test.ps1").read_text(encoding="utf-8")
+    for source in (backup, restore):
+        assert "TOUCHE_BACKUP_PASSPHRASE" in backup  # documented and enforced
+        assert "-Passphrase" not in source  # never a command-line argument (process listings)
+        assert "Remove-Item -Recurse" not in source  # nothing is bulk-deleted
+    assert "round_trip_verified" in backup  # recorded only after decrypting it again
+    assert "Test-Path $dumpPath" in backup  # an existing backup is never overwritten
+    assert "$decryptedTemp" in restore and "trap {" in restore  # plaintext never outlives a failure

@@ -45,9 +45,20 @@ export function stack(): { web: string; api: string } {
 export const authFile = (slug: Slug, browserName: string): string =>
   path.join(__dirname, "..", ".auth", `${browserName}-${slug}.json`);
 
-/** Navigate and wait until React has hydrated, so early input is not lost (seen on WebKit). */
+/**
+ * Navigate and wait until React has hydrated, so early input is not lost (seen on WebKit).
+ * A client-side refresh that is still settling can interrupt a navigation; retry that case.
+ */
 export async function gotoReady(page: Page, url: string): Promise<void> {
-  await page.goto(url);
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await page.goto(url);
+      break;
+    } catch (error) {
+      if (attempt >= 3 || !/interrupted by another navigation/.test(String(error))) throw error;
+      await page.waitForLoadState("networkidle");
+    }
+  }
   await page.waitForLoadState("networkidle");
 }
 

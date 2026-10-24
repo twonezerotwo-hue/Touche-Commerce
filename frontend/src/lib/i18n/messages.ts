@@ -7,9 +7,11 @@
  * never translated: only interface text is.
  */
 
+import { authEn, authTr } from "./catalog/auth";
 import { commonEn, commonTr } from "./catalog/common";
 import { documentsEn, documentsTr } from "./catalog/documents";
 import { importsEn, importsTr } from "./catalog/imports";
+import { tradeEn, tradeTr } from "./catalog/trade";
 
 export const SUPPORTED_LOCALES = ["en", "tr"] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
@@ -46,11 +48,25 @@ const shellTr: Record<keyof typeof shellEn, string> = {
   languageChanged: "Arayüz dili değiştirildi",
 };
 
-const en = { ...shellEn, ...commonEn, ...importsEn, ...documentsEn } as const;
+const en = {
+  ...shellEn,
+  ...commonEn,
+  ...importsEn,
+  ...documentsEn,
+  ...authEn,
+  ...tradeEn,
+} as const;
 export type MessageKey = keyof typeof en;
 type Dictionary = Record<MessageKey, string>;
 
-const tr: Dictionary = { ...shellTr, ...commonTr, ...importsTr, ...documentsTr };
+const tr: Dictionary = {
+  ...shellTr,
+  ...commonTr,
+  ...importsTr,
+  ...documentsTr,
+  ...authTr,
+  ...tradeTr,
+};
 
 const dictionaries: Record<Locale, Dictionary> = { en, tr };
 

@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { getServerT } from "@/lib/i18n/server";
+import { recordStatusLabel } from "@/lib/i18n/value-labels";
 import { formatMoney, formatTimestamp, withQuery } from "@/lib/trade/format";
 import type { ProductList } from "@/lib/trade/types";
 
@@ -34,6 +36,7 @@ export default async function ProductsPage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t } = await getServerT();
 
   const params = await searchParams;
   const canWrite = state.session.session.company?.permissions.includes("trade.write") ?? false;
@@ -50,18 +53,20 @@ export default async function ProductsPage({
   return (
     <div className="mx-auto max-w-[1360px] space-y-5">
       <PageHeader
-        eyebrow="Catalogue"
-        meta={<Badge variant="secondary">Products</Badge>}
-        title="Product catalogue"
-        description="SKU, unit of measure, currency and indicative price. Deal lines snapshot the agreed price, so editing a product never rewrites commercial history."
+        eyebrow={t("productsEyebrow")}
+        meta={<Badge variant="secondary">{t("productsBadge")}</Badge>}
+        title={t("productsTitle")}
+        description={t("productsDescription")}
         actions={<ProductForm csrfToken={state.session.session.csrf_token} canWrite={canWrite} />}
       />
 
       <div className="panel overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div>
-            <p className="eyebrow">Inventory</p>
-            <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">Tradable SKUs</h2>
+            <p className="eyebrow">{t("productsSection")}</p>
+            <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">
+              {t("productsSubtitle")}
+            </h2>
           </div>
 
           <form action="/products" method="get" className="flex flex-wrap items-center gap-2">
@@ -74,8 +79,8 @@ export default async function ProductsPage({
                 id="products-search"
                 name="search"
                 defaultValue={filters.search}
-                placeholder="SKU or product name"
-                aria-label="Search SKU or product name"
+                placeholder={t("productsSearchPlaceholder")}
+                aria-label={t("productsSearchLabel")}
                 maxLength={160}
                 className="h-8 w-[220px] pl-8 text-[12px]"
               />
@@ -85,19 +90,19 @@ export default async function ProductsPage({
                 id="products-status"
                 name="status"
                 defaultValue={filters.status}
-                aria-label="Filter by status"
+                aria-label={t("filterByStatus")}
                 className="h-8 text-[12px]"
               >
-                <option value="">All statuses</option>
-                <option value="active">Active</option>
-                <option value="archived">Archived</option>
+                <option value="">{t("filterAllStatuses")}</option>
+                <option value="active">{t("statusActive")}</option>
+                <option value="archived">{t("statusArchived")}</option>
               </Select>
             </div>
             <Button type="submit" size="sm" variant="subtle">
-              Filter
+              {t("filterButton")}
             </Button>
             {filtered ? (
-              <Button asChild size="iconSm" variant="ghost" aria-label="Clear filters">
+              <Button asChild size="iconSm" variant="ghost" aria-label={t("filterClear")}>
                 <Link href="/products">
                   <X className="size-3.5" aria-hidden />
                 </Link>
@@ -110,7 +115,7 @@ export default async function ProductsPage({
 
         {!result.ok ? (
           <div className="p-4">
-            <Alert variant="danger" title="Catalogue unavailable">
+            <Alert variant="danger" title={t("productsUnavailable")}>
               {result.message}
               {result.requestId ? (
                 <span className="ml-1 font-mono text-[11px]">({result.requestId})</span>
@@ -121,16 +126,12 @@ export default async function ProductsPage({
           <div className="p-4">
             <EmptyState
               icon={<Package className="size-4" aria-hidden />}
-              title={filtered ? "No products match" : "The catalogue is empty"}
-              description={
-                filtered
-                  ? "Adjust the search term or status filter, or clear both to list every SKU."
-                  : "Add a product before creating a deal: every deal line references a catalogue SKU."
-              }
+              title={filtered ? t("productsNoMatch") : t("productsEmpty")}
+              description={filtered ? t("productsNoMatchHint") : t("productsEmptyHint")}
               action={
                 filtered ? (
                   <Button asChild variant="outline" size="sm">
-                    <Link href="/products">Clear filters</Link>
+                    <Link href="/products">{t("filterClear")}</Link>
                   </Button>
                 ) : null
               }
@@ -141,13 +142,13 @@ export default async function ProductsPage({
           <Table bare>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-4">SKU</TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead>Unit</TableHead>
-                <TableHead className="text-right">Unit price</TableHead>
-                <TableHead>Currency</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="pr-4 text-right">Updated</TableHead>
+                <TableHead className="pl-4">{t("columnSku")}</TableHead>
+                <TableHead>{t("columnProduct")}</TableHead>
+                <TableHead>{t("columnUnit")}</TableHead>
+                <TableHead className="text-right">{t("columnUnitPrice")}</TableHead>
+                <TableHead>{t("columnCurrency")}</TableHead>
+                <TableHead>{t("columnStatus")}</TableHead>
+                <TableHead className="pr-4 text-right">{t("columnUpdated")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -174,7 +175,7 @@ export default async function ProductsPage({
                   </TableCell>
                   <TableCell>
                     <Badge dot variant={product.status === "active" ? "success" : "outline"}>
-                      {product.status}
+                      {recordStatusLabel(t, product.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="pr-4 text-right font-mono text-[10.5px] whitespace-nowrap text-mist-600">
@@ -190,8 +191,10 @@ export default async function ProductsPage({
           <p className="text-[10.5px] text-mist-600">
             {result.ok ? (
               <>
-                <span className="data-value text-mist-400">{result.data.items.length}</span> shown
-                {result.data.has_more ? " · older records available" : " · end of catalogue"}
+                <span className="data-value text-mist-400">{result.data.items.length}</span>{" "}
+                {t("listShown")}
+                {" · "}
+                {result.data.has_more ? t("productsOlder") : t("productsEnd")}
               </>
             ) : (
               "—"
@@ -200,7 +203,7 @@ export default async function ProductsPage({
           <div className="flex items-center gap-3">
             {params.cursor ? (
               <Button asChild variant="ghost" size="xs">
-                <Link href={withQuery("/products", filters)}>First page</Link>
+                <Link href={withQuery("/products", filters)}>{t("pageFirst")}</Link>
               </Button>
             ) : null}
             {result.ok && result.data.has_more && result.data.next_cursor ? (
@@ -208,7 +211,7 @@ export default async function ProductsPage({
                 <Link
                   href={withQuery("/products", { ...filters, cursor: result.data.next_cursor })}
                 >
-                  Next page
+                  {t("pageNextPage")}
                   <ArrowRight className="size-3.5" aria-hidden />
                 </Link>
               </Button>
