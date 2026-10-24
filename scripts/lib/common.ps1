@@ -14,9 +14,14 @@ function Import-DotEnv {
     <#
     .SYNOPSIS
         Load KEY=VALUE pairs from .env into the current process environment.
+    .DESCRIPTION
+        A variable that is already set in the process wins over .env (the usual dotenv
+        rule), so a launcher can override a value for one run without editing .env.
+        Pass -Force to make .env win.
     #>
     param(
-        [string] $Path = (Join-Path $script:RepoRoot '.env')
+        [string] $Path = (Join-Path $script:RepoRoot '.env'),
+        [switch] $Force
     )
 
     if (-not (Test-Path $Path)) {
@@ -34,6 +39,7 @@ function Import-DotEnv {
         if ($value.Length -ge 2 -and $value.StartsWith('"') -and $value.EndsWith('"')) {
             $value = $value.Substring(1, $value.Length - 2)
         }
+        if (-not $Force -and -not [string]::IsNullOrEmpty([Environment]::GetEnvironmentVariable($name, 'Process'))) { continue }
         [Environment]::SetEnvironmentVariable($name, $value, 'Process')
     }
 }
