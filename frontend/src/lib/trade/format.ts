@@ -6,6 +6,9 @@
  * when a value is not numeric rather than showing `NaN`.
  */
 
+import { intlTag } from "@/lib/i18n/intl";
+import type { Locale } from "@/lib/i18n/messages";
+
 import type { DealStatus } from "./types";
 
 export type BadgeTone = "default" | "secondary" | "success" | "warning" | "danger" | "outline";
@@ -38,35 +41,41 @@ export function statusTone(status: DealStatus): BadgeTone {
 
 const CURRENCY_FORMATTERS = new Map<string, Intl.NumberFormat>();
 
-function formatterFor(currency: string): Intl.NumberFormat {
-  const key = currency || "USD";
+function formatterFor(currency: string, locale: Locale): Intl.NumberFormat {
+  const code = currency || "USD";
+  const key = `${locale}:${code}`;
   const existing = CURRENCY_FORMATTERS.get(key);
   if (existing) return existing;
-  const formatter = new Intl.NumberFormat("en-GB", {
+  const formatter = new Intl.NumberFormat(intlTag(locale), {
     style: "currency",
-    currency: key,
+    currency: code,
     maximumFractionDigits: 2,
   });
   CURRENCY_FORMATTERS.set(key, formatter);
   return formatter;
 }
 
-/** Format a decimal string as money; invalid values are returned unchanged. */
-export function formatMoney(value: string, currency = "USD"): string {
+/**
+ * Format a decimal string as money; invalid values are returned unchanged. The locale changes only
+ * the separators and symbol placement, never the amount or the currency code.
+ */
+export function formatMoney(value: string, currency = "USD", locale: Locale = "en"): string {
   const parsed = Number.parseFloat(value);
   if (!Number.isFinite(parsed)) return value;
   try {
-    return formatterFor(currency).format(parsed);
+    return formatterFor(currency, locale).format(parsed);
   } catch {
     return `${value} ${currency}`;
   }
 }
 
 /** Format a decimal string without inventing precision. */
-export function formatQuantity(value: string, unit?: string): string {
+export function formatQuantity(value: string, unit?: string, locale: Locale = "en"): string {
   const parsed = Number.parseFloat(value);
   if (!Number.isFinite(parsed)) return value;
-  const formatted = new Intl.NumberFormat("en-GB", { maximumFractionDigits: 3 }).format(parsed);
+  const formatted = new Intl.NumberFormat(intlTag(locale), { maximumFractionDigits: 3 }).format(
+    parsed,
+  );
   return unit ? `${formatted} ${unit}` : formatted;
 }
 
@@ -86,22 +95,25 @@ export function sumTotals(values: readonly string[]): string {
   return (cents / 100).toFixed(2);
 }
 
-export function formatDate(value: string | null): string {
+/** A calendar date, in UTC so a stored `2026-10-24` is the same day on the server and the browser. */
+export function formatDate(value: string | null, locale: Locale = "en"): string {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat(intlTag(locale), {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: "UTC",
   }).format(date);
 }
 
-export function formatTimestamp(value: string | null): string {
+/** An instant, shown in UTC (the stored value is never shifted). */
+export function formatTimestamp(value: string | null, locale: Locale = "en"): string {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat(intlTag(locale), {
     day: "2-digit",
     month: "short",
     year: "numeric",

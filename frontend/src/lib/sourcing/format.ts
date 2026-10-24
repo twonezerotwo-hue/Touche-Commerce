@@ -5,6 +5,8 @@
  * renders a raw enum, and it never invents a tone for a status it does not know.
  */
 
+import { intlTag } from "@/lib/i18n/intl";
+import type { Locale } from "@/lib/i18n/messages";
 import type { BadgeTone } from "@/lib/trade/format";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -50,11 +52,14 @@ export function statusTone(status: string): BadgeTone {
 }
 
 /** Render a stored percentage (`20.0000`) without trailing zeros. */
-export function formatPercent(value: string | null | undefined): string {
+export function formatPercent(value: string | null | undefined, locale: Locale = "en"): string {
   if (value === null || value === undefined || value === "") return "—";
   const parsed = Number.parseFloat(value);
   if (!Number.isFinite(parsed)) return value;
-  return `${new Intl.NumberFormat("en-GB", { maximumFractionDigits: 2 }).format(parsed)}%`;
+  const formatted = new Intl.NumberFormat(intlTag(locale), { maximumFractionDigits: 2 }).format(
+    parsed,
+  );
+  return locale === "tr" ? `%${formatted}` : `${formatted}%`;
 }
 
 /** A shared `ETag: "v{n}"` header value for an optimistic update. */
