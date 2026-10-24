@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { DocumentDownloads } from "@/components/documents/document-downloads";
+import { canGenerateDocuments } from "@/lib/documents/access";
 import type { Rfq } from "@/lib/sourcing/types";
 import { formatDate, formatMoney, formatQuantity, formatTimestamp } from "@/lib/trade/format";
 
@@ -50,17 +52,24 @@ export default async function RfqDetailPage({ params }: { params: Promise<{ id: 
     );
   }
   return (
-    <RfqDetail rfq={result.data} canWrite={canWrite} csrfToken={state.session.session.csrf_token} />
+    <RfqDetail
+      rfq={result.data}
+      canWrite={canWrite}
+      canGenerate={canGenerateDocuments(state.session.session.company)}
+      csrfToken={state.session.session.csrf_token}
+    />
   );
 }
 
 function RfqDetail({
   rfq,
   canWrite,
+  canGenerate,
   csrfToken,
 }: {
   rfq: Rfq;
   canWrite: boolean;
+  canGenerate: boolean;
   csrfToken: string;
 }) {
   const canQuote = canWrite && ["SENT", "RESPONDED"].includes(rfq.status);
@@ -74,6 +83,8 @@ function RfqDetail({
         title={rfq.reference_number}
         description={`${rfq.supplier_name} · deal ${rfq.deal_reference} · ${rfq.delivery_location}`}
       />
+
+      {canGenerate ? <DocumentDownloads documents={[{ kind: "rfq", entityId: rfq.id }]} /> : null}
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-4">

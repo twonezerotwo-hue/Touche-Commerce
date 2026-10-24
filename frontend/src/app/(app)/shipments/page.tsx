@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { DocumentDownloads } from "@/components/documents/document-downloads";
+import { canGenerateDocuments } from "@/lib/documents/access";
 import { delayLabel } from "@/lib/operations/format";
 import { SHIPMENT_STATUSES, type ShipmentList } from "@/lib/operations/types";
 import { formatDate, formatTimestamp, withQuery } from "@/lib/trade/format";
@@ -55,6 +57,9 @@ export default async function ShipmentsPage({
           </Button>
         }
       />
+      {canGenerateDocuments(state.session.session.company) ? (
+        <DocumentDownloads documents={[{ kind: "shipment_register" }]} />
+      ) : null}
 
       <div className="panel overflow-hidden">
         <form action="/shipments" method="get" className="flex flex-wrap items-end gap-2 px-4 py-3">

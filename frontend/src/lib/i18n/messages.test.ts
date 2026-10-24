@@ -59,7 +59,18 @@ describe("Stage 12B catalogue integrity", () => {
 
   it("does not leave a Turkish text identical to English except for names and codes", async () => {
     const { ALL_MESSAGE_KEYS } = await import("./messages");
-    const allowedSame = new Set(["english", "turkish", "platform"]);
+    // Product names and acronyms that are the same word in both languages.
+    const allowedSame = new Set([
+      "english",
+      "turkish",
+      "platform",
+      "documentFormatPdf",
+      "documentFormatDocx",
+      "documentFormatXlsx",
+      "documentFormatCsv",
+      "profileIban",
+      "profileSwift",
+    ]);
     const same = ALL_MESSAGE_KEYS.filter(
       (key) => translate("tr", key) === translate("en", key) && !allowedSame.has(key),
     );

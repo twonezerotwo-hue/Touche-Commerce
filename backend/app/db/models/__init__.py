@@ -25,6 +25,7 @@ from app.db.models.communications import (
     SuppressionChannel,
     SuppressionReason,
 )
+from app.db.models.company_profile import CompanyProfile
 from app.db.models.finance import FinanceCompanyMapping, FinanceMappingStatus
 from app.db.models.identity import (
     Company,
@@ -132,6 +133,7 @@ __all__ = [
     "Base",
     "CommunicationSuppression",
     "Company",
+    "CompanyProfile",
     "CompanySettingEntry",
     "CompanySettings",
     "CompanyStatus",

@@ -17,6 +17,7 @@ const turkishNavigation: Record<string, string> = {
   CRM: "Müşteri ve tedarikçiler",
   Products: "Ürünler",
   Import: "İçe aktar",
+  "Company profile": "Şirket bilgileri",
   RFQs: "Teklif talepleri",
   "New RFQ": "Yeni teklif talebi",
   "RFQ detail": "Teklif talebi ayrıntısı",
