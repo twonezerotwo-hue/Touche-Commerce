@@ -1,0 +1,17 @@
+{
+  "name": "touche-commerce-e2e",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Real-browser acceptance tests. They run against the isolated acceptance stack, never the development database.",
+  "scripts": {
+    "test": "playwright test",
+    "test:chromium": "playwright test --project=chromium",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "^22",
+    "typescript": "5.9.3"
+  }
+}
