@@ -9,6 +9,8 @@ test.describe("several people at once", () => {
     browser,
     browserName,
   }) => {
+    // Six people x seven screens at once against a dev server that compiles on demand.
+    test.setTimeout(180_000);
     const routes = ["/", "/deals", "/crm", "/products", "/imports", "/orders", "/documents"];
     const contexts = await Promise.all(
       ALL.map((slug) => signedInContext(browser, slug, browserName)),

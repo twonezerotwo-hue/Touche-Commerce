@@ -60,6 +60,25 @@ export async function gotoReady(page: Page, url: string): Promise<void> {
     }
   }
   await page.waitForLoadState("networkidle");
+  await waitForHydration(page);
+}
+
+/**
+ * Wait until React has attached to the page's interactive elements. Typing or clicking before
+ * that point is silently lost (WebKit on a busy machine), and `networkidle` does not guarantee
+ * it. Pages without any interactive element fall through after the timeout.
+ */
+export async function waitForHydration(page: Page): Promise<void> {
+  await page
+    .waitForFunction(
+      () =>
+        Array.from(document.querySelectorAll("form, button, select, input")).some((element) =>
+          Object.keys(element).some((key) => key.startsWith("__reactProps$")),
+        ),
+      undefined,
+      { timeout: 20_000 },
+    )
+    .catch(() => undefined);
 }
 
 /** Sign in through the real login form. */
