@@ -41,6 +41,7 @@ import {
 import { API_URLS } from "@/lib/api/config";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { getServerT, type ServerTranslator } from "@/lib/i18n/server";
 import type { OperationsSummary } from "@/lib/operations/types";
 import { formatDate, formatMoney, formatTimestamp } from "@/lib/trade/format";
 import type { DashboardSummary } from "@/lib/trade/types";
@@ -49,11 +50,14 @@ import { cn } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Command Center" };
 
+type T = ServerTranslator["t"];
+
 const OPEN_STATUSES = new Set(["DRAFT", "OPEN", "NEGOTIATION"]);
 
 export default async function CommandCenterPage() {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t } = await getServerT();
 
   const { user, session } = state.session;
   const company = session.company;
@@ -68,20 +72,20 @@ export default async function CommandCenterPage() {
   ]);
 
   const issues: string[] = [];
-  if (!live.ok) issues.push(`API unreachable: ${live.message}`);
-  if (live.ok && !readiness.ok) issues.push(`Database not ready: ${readiness.message}`);
-  if (!contract.ok) issues.push(`OpenAPI contract unavailable: ${contract.message}`);
+  if (!live.ok) issues.push(t("dashIssueApi", { message: live.message }));
+  if (live.ok && !readiness.ok) issues.push(t("dashIssueDatabase", { message: readiness.message }));
+  if (!contract.ok) issues.push(t("dashIssueContract", { message: contract.message }));
 
   const firstName = user.display_name.split(" ")[0];
 
   return (
     <div className="mx-auto max-w-[1360px] space-y-6">
       <PageHeader
-        eyebrow="Command Center"
+        eyebrow={t("dashEyebrow")}
         meta={
           <>
             <Badge variant="info" dot>
-              Live data
+              {t("dashLive")}
             </Badge>
             {summary.ok ? (
               <span className="font-mono text-[10px] text-mist-600">
@@ -92,33 +96,28 @@ export default async function CommandCenterPage() {
         }
         title={
           <>
-            {greeting()}, <span className="text-accent-200">{firstName}</span>
+            {greeting(t)}, <span className="text-accent-200">{firstName}</span>
           </>
         }
-        description={
-          <>
-            Live trade position for {company?.name ?? "your company"}. Every figure is read from the
-            platform database, scoped to your membership — nothing is inferred in the browser.
-          </>
-        }
+        description={t("dashDescription", { company: company?.name ?? t("dashYourCompany") })}
         actions={
           <>
             <Button asChild variant="outline" size="sm">
               <Link href="/crm">
                 <Users className="size-3.5" aria-hidden />
-                CRM
+                {t("dashActionCrm")}
               </Link>
             </Button>
             <Button asChild variant="outline" size="sm">
               <Link href="/products">
                 <Package className="size-3.5" aria-hidden />
-                Products
+                {t("dashActionProducts")}
               </Link>
             </Button>
             <Button asChild size="sm">
               <Link href="/deals">
                 <Handshake className="size-3.5" aria-hidden />
-                Deals
+                {t("dashActionDeals")}
               </Link>
             </Button>
           </>
@@ -126,7 +125,7 @@ export default async function CommandCenterPage() {
       />
 
       {issues.length > 0 ? (
-        <Alert variant="warning" title="Platform attention required">
+        <Alert variant="warning" title={t("dashAttention")}>
           <ul className="list-inside list-disc space-y-1">
             {issues.map((issue) => (
               <li key={issue}>{issue}</li>
@@ -136,19 +135,19 @@ export default async function CommandCenterPage() {
       ) : null}
 
       {!summary.ok ? (
-        <Alert variant="danger" title="Dashboard unavailable">
+        <Alert variant="danger" title={t("dashUnavailable")}>
           {summary.message}
           {summary.requestId ? (
             <span className="ml-1 font-mono text-[11px]">({summary.requestId})</span>
           ) : null}
         </Alert>
       ) : (
-        <DashboardBody summary={summary.data} canWrite={canWrite} />
+        <DashboardBody summary={summary.data} canWrite={canWrite} t={t} />
       )}
 
-      <OperationsStrip operations={operations} />
+      <OperationsStrip operations={operations} t={t} />
 
-      <PlatformHealth live={live} readiness={readiness} contract={contract} />
+      <PlatformHealth live={live} readiness={readiness} contract={contract} t={t} />
 
       <footer className="flex flex-wrap items-center gap-x-6 gap-y-2 pb-2 text-[10.5px] text-mist-600">
         <span className="inline-flex items-center gap-1.5">
@@ -157,25 +156,33 @@ export default async function CommandCenterPage() {
         </span>
         <span className="inline-flex items-center gap-1.5">
           <Database className="size-3.5" aria-hidden />
-          PostgreSQL 17 · schema <span className="font-mono text-mist-500">touche</span>
+          {t("dashFooterSchema")} <span className="font-mono text-mist-500">touche</span>
         </span>
         <Link href="/status" className="inline-flex items-center gap-1.5 hover:text-mist-400">
           <ArrowUpRight className="size-3.5" aria-hidden />
-          Public status page
+          {t("dashPublicStatus")}
         </Link>
       </footer>
     </div>
   );
 }
 
-function greeting(): string {
+function greeting(t: T): string {
   const hour = new Date().getUTCHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
+  if (hour < 12) return t("dashGreetingMorning");
+  if (hour < 18) return t("dashGreetingAfternoon");
+  return t("dashGreetingEvening");
 }
 
-function DashboardBody({ summary, canWrite }: { summary: DashboardSummary; canWrite: boolean }) {
+function DashboardBody({
+  summary,
+  canWrite,
+  t,
+}: {
+  summary: DashboardSummary;
+  canWrite: boolean;
+  t: T;
+}) {
   const openDealCount = summary.status_counts
     .filter((item) => OPEN_STATUSES.has(item.status))
     .reduce((total, item) => total + item.deal_count, 0);
@@ -187,27 +194,35 @@ function DashboardBody({ summary, canWrite }: { summary: DashboardSummary; canWr
     <div className="space-y-4">
       <section className="animate-enter grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat
-          label="Deals"
+          label={t("statDeals")}
           value={summary.deals_total}
-          detail={`${openDealCount} open · ${closedDealCount} closed`}
+          detail={t("statDealsDetail", { open: openDealCount, closed: closedDealCount })}
           share={summary.deals_total === 0 ? 0 : (openDealCount / summary.deals_total) * 100}
           icon={<Handshake className="size-3.5" aria-hidden />}
         />
         <Stat
-          label="Open pipeline"
+          label={t("statPipeline")}
           value={
             !primaryPipeline
               ? "—"
               : summary.pipeline.length === 1
                 ? formatMoney(primaryPipeline.total_value, primaryPipeline.currency)
-                : `${summary.pipeline.length} currencies`
+                : t("statCurrencies", { count: summary.pipeline.length })
           }
           detail={
             !primaryPipeline
-              ? "No open deals yet"
-              : `${pipelineDeals} open ${pipelineDeals === 1 ? "deal" : "deals"}${
-                  summary.pipeline.length > 1 ? ` across ${summary.pipeline.length} currencies` : ""
-                }`
+              ? t("statNoOpen")
+              : summary.pipeline.length > 1
+                ? t("statAcross", {
+                    detail:
+                      pipelineDeals === 1
+                        ? t("statOpenDealOne")
+                        : t("statOpenDealMany", { count: pipelineDeals }),
+                    count: summary.pipeline.length,
+                  })
+                : pipelineDeals === 1
+                  ? t("statOpenDealOne")
+                  : t("statOpenDealMany", { count: pipelineDeals })
           }
           share={
             summary.deals_total === 0 ? 0 : (pipelineDeals / Math.max(summary.deals_total, 1)) * 100
@@ -216,9 +231,9 @@ function DashboardBody({ summary, canWrite }: { summary: DashboardSummary; canWr
           icon={<Banknote className="size-3.5" aria-hidden />}
         />
         <Stat
-          label="Counterparties"
+          label={t("statCounterparties")}
           value={summary.counterparties_total}
-          detail={`${summary.counterparties_active} active in CRM`}
+          detail={t("statActiveCrm", { count: summary.counterparties_active })}
           share={
             summary.counterparties_total === 0
               ? 0
@@ -228,9 +243,9 @@ function DashboardBody({ summary, canWrite }: { summary: DashboardSummary; canWr
           icon={<Users className="size-3.5" aria-hidden />}
         />
         <Stat
-          label="Products"
+          label={t("statProducts")}
           value={summary.products_total}
-          detail={`${summary.products_active} active SKUs`}
+          detail={t("statActiveSkus", { count: summary.products_active })}
           share={
             summary.products_total === 0
               ? 0
@@ -245,16 +260,16 @@ function DashboardBody({ summary, canWrite }: { summary: DashboardSummary; canWr
         <div className="panel animate-enter-late flex flex-col overflow-hidden">
           <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-4.5 pb-4">
             <div>
-              <p className="eyebrow">Recent deals</p>
+              <p className="eyebrow">{t("dashRecentEyebrow")}</p>
               <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">
-                Newest in this workspace
+                {t("dashRecentTitle")}
               </h2>
             </div>
             <Link
               href="/deals"
               className="inline-flex items-center gap-1.5 text-[11px] text-mist-500 transition-colors hover:text-accent-200"
             >
-              All deals
+              {t("dashAllDeals")}
               <ArrowRight className="size-3.5" aria-hidden />
             </Link>
           </div>
@@ -264,15 +279,13 @@ function DashboardBody({ summary, canWrite }: { summary: DashboardSummary; canWr
               <span className="mb-3 flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03]">
                 <Handshake className="size-4 text-mist-500" aria-hidden />
               </span>
-              <p className="text-[12.5px] text-mist-300">No deals yet in this company</p>
+              <p className="text-[12.5px] text-mist-300">{t("dashNoDeals")}</p>
               <p className="mt-1 max-w-xs text-[11px] leading-relaxed text-mist-600">
-                {canWrite
-                  ? "Create the first deal to start a recorded, auditable pipeline."
-                  : "A member with trade.write can create the first deal."}
+                {canWrite ? t("dashNoDealsWrite") : t("dashNoDealsRead")}
               </p>
               {canWrite ? (
                 <Button asChild size="sm" className="mt-4">
-                  <Link href="/deals/new">New deal</Link>
+                  <Link href="/deals/new">{t("dashNewDeal")}</Link>
                 </Button>
               ) : null}
             </div>
@@ -281,11 +294,11 @@ function DashboardBody({ summary, canWrite }: { summary: DashboardSummary; canWr
               <Table bare>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="pl-5">Reference</TableHead>
-                    <TableHead>Counterparty</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Close</TableHead>
-                    <TableHead className="pr-5 text-right">Value</TableHead>
+                    <TableHead className="pl-5">{t("columnReference")}</TableHead>
+                    <TableHead>{t("dashColCounterparty")}</TableHead>
+                    <TableHead>{t("columnStatus")}</TableHead>
+                    <TableHead>{t("dashColClose")}</TableHead>
+                    <TableHead className="pr-5 text-right">{t("dashColValue")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -327,33 +340,33 @@ function DashboardBody({ summary, canWrite }: { summary: DashboardSummary; canWr
         </div>
 
         <div className="space-y-4">
-          <PipelineCard summary={summary} />
-          <StatusCard summary={summary} />
+          <PipelineCard summary={summary} t={t} />
+          <StatusCard summary={summary} t={t} />
         </div>
       </section>
 
-      <ActivityCard summary={summary} />
+      <ActivityCard summary={summary} t={t} />
     </div>
   );
 }
 
-function PipelineCard({ summary }: { summary: DashboardSummary }) {
+function PipelineCard({ summary, t }: { summary: DashboardSummary; t: T }) {
   const totalDeals = summary.pipeline.reduce((total, item) => total + item.deal_count, 0);
 
   return (
     <div className="panel overflow-hidden">
       <div className="flex items-start justify-between gap-3 px-5 pt-4.5 pb-1">
         <div>
-          <p className="eyebrow">Open pipeline</p>
-          <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">Value by currency</h2>
+          <p className="eyebrow">{t("pipeEyebrow")}</p>
+          <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">{t("pipeTitle")}</h2>
         </div>
-        <Badge variant="secondary">{totalDeals} deals</Badge>
+        <Badge variant="secondary">
+          {t(totalDeals === 1 ? "dealCountOne" : "dealCountMany", { count: totalDeals })}
+        </Badge>
       </div>
 
       {summary.pipeline.length === 0 ? (
-        <p className="px-5 py-5 text-[11.5px] leading-relaxed text-mist-600">
-          No draft, open or negotiating deal carries value yet.
-        </p>
+        <p className="px-5 py-5 text-[11.5px] leading-relaxed text-mist-600">{t("pipeEmpty")}</p>
       ) : (
         <ul className="space-y-4 px-5 py-4">
           {summary.pipeline.map((item) => {
@@ -371,9 +384,13 @@ function PipelineCard({ summary }: { summary: DashboardSummary }) {
                 <Meter value={share} tone="accent" className="mt-2" />
                 <div className="mt-1.5 flex items-center justify-between text-[10px] text-mist-600">
                   <span>
-                    {item.deal_count} {item.deal_count === 1 ? "deal" : "deals"}
+                    {t(item.deal_count === 1 ? "dealCountOne" : "dealCountMany", {
+                      count: item.deal_count,
+                    })}
                   </span>
-                  <span className="data-value">{share.toFixed(0)}% of open deals</span>
+                  <span className="data-value">
+                    {t("pipeShare", { percent: share.toFixed(0) })}
+                  </span>
                 </div>
               </li>
             );
@@ -382,23 +399,23 @@ function PipelineCard({ summary }: { summary: DashboardSummary }) {
       )}
 
       <div className="border-t border-white/[0.06] px-5 py-2.5">
-        <p className="text-[10px] leading-relaxed text-mist-600">
-          Currencies are never summed together — each row is its own total.
-        </p>
+        <p className="text-[10px] leading-relaxed text-mist-600">{t("pipeNote")}</p>
       </div>
     </div>
   );
 }
 
-function StatusCard({ summary }: { summary: DashboardSummary }) {
+function StatusCard({ summary, t }: { summary: DashboardSummary; t: T }) {
   return (
     <div className="panel overflow-hidden">
       <div className="flex items-start justify-between gap-3 px-5 pt-4.5 pb-3">
         <div>
-          <p className="eyebrow">Status distribution</p>
-          <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">Where deals stand</h2>
+          <p className="eyebrow">{t("statusEyebrow")}</p>
+          <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">{t("statusTitle")}</h2>
         </div>
-        <span className="data-value text-[11px] text-mist-500">{summary.deals_total} total</span>
+        <span className="data-value text-[11px] text-mist-500">
+          {t("statusTotal", { count: summary.deals_total })}
+        </span>
       </div>
       <div className="hairline" />
       <ul className="space-y-3 px-5 py-4">
@@ -425,30 +442,27 @@ function StatusCard({ summary }: { summary: DashboardSummary }) {
         })}
       </ul>
       <div className="border-t border-white/[0.06] px-5 py-2.5">
-        <p className="text-[10px] leading-relaxed text-mist-600">
-          Counts only. Per-status values are omitted because a company may trade in several
-          currencies.
-        </p>
+        <p className="text-[10px] leading-relaxed text-mist-600">{t("statusNote")}</p>
       </div>
     </div>
   );
 }
 
-function ActivityCard({ summary }: { summary: DashboardSummary }) {
+function ActivityCard({ summary, t }: { summary: DashboardSummary; t: T }) {
   return (
     <div className="panel overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4.5 pb-3">
         <div>
-          <p className="eyebrow">Audit trail</p>
-          <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">Recent activity</h2>
+          <p className="eyebrow">{t("actEyebrow")}</p>
+          <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">{t("actTitle")}</h2>
         </div>
-        <Badge variant="secondary">{summary.recent_activity.length} events</Badge>
+        <Badge variant="secondary">
+          {t("actEvents", { count: summary.recent_activity.length })}
+        </Badge>
       </div>
       <div className="hairline" />
       {summary.recent_activity.length === 0 ? (
-        <p className="px-5 py-6 text-[11.5px] text-mist-600">
-          No audit rows yet. Every write records one, so this list fills as the team works.
-        </p>
+        <p className="px-5 py-6 text-[11.5px] text-mist-600">{t("actEmpty")}</p>
       ) : (
         <ol className="divide-y divide-white/[0.045]">
           {summary.recent_activity.map((entry, index) => (
@@ -466,12 +480,12 @@ function ActivityCard({ summary }: { summary: DashboardSummary }) {
               <div className="min-w-0 flex-1">
                 <p className="truncate font-mono text-[11px] text-mist-200">{entry.action}</p>
                 <p className="mt-0.5 truncate text-[10px] text-mist-600">
-                  {entry.resource_type ?? "platform"}
+                  {entry.resource_type ?? t("actPlatform")}
                   {entry.resource_id ? ` · ${entry.resource_id.slice(0, 8)}` : ""}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-[10.5px] text-mist-400">{entry.outcome}</p>
+                <p className="text-[10.5px] text-mist-400">{outcomeLabel(t, entry.outcome)}</p>
                 <p className="data-value mt-0.5 font-mono text-[9.5px] text-mist-600">
                   {formatTimestamp(entry.occurred_at)}
                 </p>
@@ -481,62 +495,72 @@ function ActivityCard({ summary }: { summary: DashboardSummary }) {
         </ol>
       )}
       <div className="border-t border-white/[0.06] px-5 py-2.5">
-        <p className="text-[10px] leading-relaxed text-mist-600">
-          Read-only view of the append-only audit log. Application roles cannot edit or delete rows.
-        </p>
+        <p className="text-[10px] leading-relaxed text-mist-600">{t("actNote")}</p>
       </div>
     </div>
   );
+}
+
+function outcomeLabel(t: T, outcome: string): string {
+  if (outcome === "success") return t("actOutcomeSuccess");
+  if (outcome === "failure") return t("actOutcomeFailure");
+  return outcome;
 }
 
 function PlatformHealth({
   live,
   readiness,
   contract,
+  t,
 }: {
   live: ApiResult<HealthLive>;
   readiness: ApiResult<HealthReadiness>;
   contract: ApiResult<OpenApiContract>;
+  t: T;
 }) {
   return (
     <section className="panel overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4.5 pb-3">
         <div>
-          <p className="eyebrow">Platform health</p>
-          <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">Observed on this request</h2>
+          <p className="eyebrow">{t("healthEyebrow")}</p>
+          <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">{t("healthTitle")}</h2>
         </div>
         <span className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.08em] text-mist-500 uppercase">
           <ShieldCheck className="size-3 text-jade-400" aria-hidden />
-          Probed live
+          {t("healthProbed")}
         </span>
       </div>
       <div className="hairline" />
       <div className="grid divide-y divide-white/[0.05] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         <HealthCell
           ok={live.ok}
-          label="API liveness"
-          detail={live.ok ? `Responded in ${live.latencyMs} ms` : live.message}
+          label={t("healthApi")}
+          detail={live.ok ? t("healthApiOk", { ms: live.latencyMs }) : live.message}
           endpoint="GET /api/v1/health/live"
+          t={t}
         />
         <HealthCell
           ok={readiness.ok}
-          label="Database readiness"
+          label={t("healthDatabase")}
           detail={
-            readiness.ok
-              ? `PostgreSQL probe passed in ${readiness.latencyMs} ms`
-              : readiness.message
+            readiness.ok ? t("healthDatabaseOk", { ms: readiness.latencyMs }) : readiness.message
           }
           endpoint="GET /api/v1/health/ready"
+          t={t}
         />
         <HealthCell
           ok={contract.ok}
-          label="OpenAPI contract"
+          label={t("healthContract")}
           detail={
             contract.ok
-              ? `${contract.data.operationCount} operations · OpenAPI ${contract.data.version ?? "3"}`
+              ? t("healthContractOk", {
+                  count: contract.data.operationCount,
+                  version: contract.data.version ?? "3",
+                })
               : contract.message
           }
           endpoint="GET /api/v1/openapi.json"
+          t={t}
         />
       </div>
     </section>
@@ -548,11 +572,13 @@ function HealthCell({
   label,
   detail,
   endpoint,
+  t,
 }: {
   ok: boolean;
   label: string;
   detail: string;
   endpoint: string;
+  t: T;
 }) {
   return (
     <div className="flex items-start gap-3 px-5 py-4">
@@ -571,16 +597,16 @@ function HealthCell({
           ok ? "bg-jade-400/10 text-jade-400" : "bg-crimson-400/10 text-crimson-400",
         )}
       >
-        {ok ? "ok" : "fail"}
+        {ok ? t("healthOk") : t("healthFail")}
       </span>
     </div>
   );
 }
 
-function OperationsStrip({ operations }: { operations: ApiResult<OperationsSummary> }) {
+function OperationsStrip({ operations, t }: { operations: ApiResult<OperationsSummary>; t: T }) {
   if (!operations.ok) {
     return (
-      <Alert variant="warning" title="Operations summary unavailable">
+      <Alert variant="warning" title={t("opsUnavailable")}>
         {operations.message}
       </Alert>
     );
@@ -593,20 +619,18 @@ function OperationsStrip({ operations }: { operations: ApiResult<OperationsSumma
     <section className="panel animate-enter overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4.5 pb-3">
         <div>
-          <p className="eyebrow">Execution</p>
-          <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">
-            Orders, shipments and documents
-          </h2>
+          <p className="eyebrow">{t("opsEyebrow")}</p>
+          <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">{t("opsTitle")}</h2>
         </div>
         <div className="flex flex-wrap items-center gap-3 text-[10.5px]">
           <Link href="/orders" className="text-accent-200 hover:text-accent-100">
-            Orders
+            {t("opsOrders")}
           </Link>
           <Link href="/shipments" className="text-accent-200 hover:text-accent-100">
-            Shipments
+            {t("opsShipments")}
           </Link>
           <Link href="/documents" className="text-accent-200 hover:text-accent-100">
-            Documents
+            {t("opsDocuments")}
           </Link>
           <span className="font-mono text-mist-600">{formatTimestamp(data.generated_at)}</span>
         </div>
@@ -614,42 +638,50 @@ function OperationsStrip({ operations }: { operations: ApiResult<OperationsSumma
       <div className="hairline" />
       <div className="grid divide-y divide-white/[0.05] sm:grid-cols-2 xl:grid-cols-5 sm:divide-x sm:divide-y-0">
         <OperationsCell
-          label="Orders created"
+          label={t("opsOrdersCreated")}
           value={data.orders_total}
           detail={
             primary
-              ? `${formatMoney(primary.total_value, primary.currency)}${data.order_value_by_currency.length > 1 ? ` +${data.order_value_by_currency.length - 1} currencies` : ""}`
-              : "No orders yet"
+              ? `${formatMoney(primary.total_value, primary.currency)}${data.order_value_by_currency.length > 1 ? ` ${t("opsMoreCurrencies", { count: data.order_value_by_currency.length - 1 })}` : ""}`
+              : t("opsNoOrders")
           }
           href="/orders"
+          openLabel={t("opsOpen")}
           icon={<ClipboardCheck className="size-3.5" aria-hidden />}
         />
         <OperationsCell
-          label="In fulfillment"
+          label={t("opsInFulfillment")}
           value={data.orders_in_fulfillment}
-          detail={`${data.orders_confirmed} confirmed · ${data.orders_fulfilled} fulfilled`}
+          detail={t("opsFulfillmentDetail", {
+            confirmed: data.orders_confirmed,
+            fulfilled: data.orders_fulfilled,
+          })}
           href="/orders"
+          openLabel={t("opsOpen")}
           icon={<Package className="size-3.5" aria-hidden />}
         />
         <OperationsCell
-          label="Active shipments"
+          label={t("opsActiveShipments")}
           value={data.active_shipments}
-          detail={`${data.delivered_shipments} delivered`}
+          detail={t("opsDelivered", { count: data.delivered_shipments })}
           href="/shipments"
+          openLabel={t("opsOpen")}
           icon={<Truck className="size-3.5" aria-hidden />}
         />
         <OperationsCell
-          label="Delayed shipments"
+          label={t("opsDelayed")}
           value={data.delayed_shipments}
-          detail="Documented ETA has passed"
+          detail={t("opsDelayedDetail")}
           href="/shipments"
+          openLabel={t("opsOpen")}
           tone={data.delayed_shipments > 0 ? "danger" : "neutral"}
         />
         <OperationsCell
-          label="Missing evidence"
+          label={t("opsMissingEvidence")}
           value={data.delivered_shipments_without_evidence}
-          detail={`${data.documents_total} active documents on file`}
+          detail={t("opsDocsOnFile", { count: data.documents_total })}
           href="/documents"
+          openLabel={t("opsOpen")}
           tone={data.delivered_shipments_without_evidence > 0 ? "warning" : "neutral"}
         />
       </div>
@@ -664,6 +696,7 @@ function OperationsCell({
   href,
   tone = "neutral",
   icon,
+  openLabel,
 }: {
   label: string;
   value: number;
@@ -671,6 +704,7 @@ function OperationsCell({
   href: string;
   tone?: "neutral" | "warning" | "danger";
   icon?: ReactNode;
+  openLabel: string;
 }) {
   return (
     <div className="px-5 py-4">
@@ -695,7 +729,7 @@ function OperationsCell({
         href={href}
         className="mt-2 inline-flex items-center gap-1 text-[10.5px] text-accent-200 hover:text-accent-100"
       >
-        Open
+        {openLabel}
         <ArrowRight className="size-3" aria-hidden />
       </Link>
     </div>
