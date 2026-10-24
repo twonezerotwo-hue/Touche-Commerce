@@ -335,6 +335,19 @@ class TestCompanyProfile:
         assert "tax_number" in details["changed_fields"] and "iban" in details["changed_fields"]
         assert "1234567890" not in str(details) and "GB82" not in str(details)
 
+    def test_a_write_from_a_foreign_origin_is_refused_and_changes_nothing(
+        self, company_admin: tuple[TestClient, str], trader: tuple[TestClient, str]
+    ) -> None:
+        """Cross-site requests are stopped by the Origin guard that covers every PUT."""
+        client, csrf = company_admin
+        forged = client.put(
+            PROFILE,
+            json={"legal_name": "Injected Ltd"},
+            headers={**csrf_headers(csrf), "Origin": "https://evil.example"},
+        )
+        assert forged.status_code == 403, forged.text
+        assert trader[0].get(PROFILE).json()["legal_name"] is None
+
     def test_documents_use_the_profile_and_warn_when_it_is_missing(
         self, world: OrderWorld, company_admin: tuple[TestClient, str]
     ) -> None:
