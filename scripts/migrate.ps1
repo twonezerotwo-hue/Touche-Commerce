@@ -20,17 +20,9 @@ Import-DotEnv
 $python = Get-BackendPython
 
 Write-Step "Alembic upgrade -> $Revision"
-Push-Location (Join-Path $repoRoot 'backend')
-try {
-    if ($Offline) {
-        & $python -m alembic upgrade $Revision --sql
-    }
-    else {
-        & $python -m alembic upgrade $Revision
-    }
-    if ($LASTEXITCODE -ne 0) { throw "alembic upgrade failed with exit code $LASTEXITCODE" }
-}
-finally {
-    Pop-Location
-}
+$alembicArgs = @('-m', 'alembic', 'upgrade', $Revision)
+if ($Offline) { $alembicArgs += '--sql' }
+# Invoke-Native checks the real exit code: Alembic logs progress to stderr, which Windows
+# PowerShell would otherwise turn into a terminating error before the migration finishes.
+Invoke-Native -FilePath $python -Arguments $alembicArgs -WorkingDirectory (Join-Path $repoRoot 'backend')
 Write-Ok "database is at revision $Revision"
