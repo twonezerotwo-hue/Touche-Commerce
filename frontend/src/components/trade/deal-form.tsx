@@ -145,170 +145,170 @@ export function DealForm({
         first.
       </Alert>
     );
+  }
 
-    return (
-      <form onSubmit={submit} className="space-y-5">
-        {error ? <Alert variant="danger">{error}</Alert> : null}
+  return (
+    <form onSubmit={submit} className="space-y-5">
+      {error ? <Alert variant="danger">{error}</Alert> : null}
 
-        <section className="panel rounded-xl p-6">
-          <span className="eyebrow">Deal header</span>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="deal-title">Title</Label>
-              <Input
-                id="deal-title"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                placeholder="50 MT aluminium ingots, Q4 shipment"
-                maxLength={160}
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="deal-counterparty">Counterparty</Label>
-              <Select
-                id="deal-counterparty"
-                value={counterpartyId}
-                onChange={(event) => setCounterpartyId(event.target.value)}
-                required
-              >
-                {counterparties.map((counterparty) => (
-                  <option key={counterparty.id} value={counterparty.id}>
-                    {counterparty.name} · {counterparty.type}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="deal-currency">Currency</Label>
-              <Input
-                id="deal-currency"
-                value={currency}
-                onChange={(event) => setCurrency(event.target.value)}
-                maxLength={3}
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="deal-close-date">Expected close</Label>
-              <Input
-                id="deal-close-date"
-                type="date"
-                value={expectedCloseDate}
-                onChange={(event) => setExpectedCloseDate(event.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="deal-notes">Notes</Label>
-              <Textarea
-                id="deal-notes"
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                maxLength={2000}
-                placeholder="Incoterm, payment terms, logistics constraints…"
-              />
-            </div>
+      <section className="panel rounded-xl p-6">
+        <span className="eyebrow">Deal header</span>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="deal-title">Title</Label>
+            <Input
+              id="deal-title"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="50 MT aluminium ingots, Q4 shipment"
+              maxLength={160}
+              required
+            />
           </div>
-        </section>
-
-        <section className="panel rounded-xl p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <span className="eyebrow">Lines</span>
-              <p className="mt-1 text-[11.5px] text-mist-600">
-                One line per product. Lines are immutable once the deal exists.
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] uppercase tracking-[0.16em] text-mist-600">Deal value</p>
-              <p className="font-display text-xl text-mist-100">{formatMoney(total, currency)}</p>
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="deal-counterparty">Counterparty</Label>
+            <Select
+              id="deal-counterparty"
+              value={counterpartyId}
+              onChange={(event) => setCounterpartyId(event.target.value)}
+              required
+            >
+              {counterparties.map((counterparty) => (
+                <option key={counterparty.id} value={counterparty.id}>
+                  {counterparty.name} · {counterparty.type}
+                </option>
+              ))}
+            </Select>
           </div>
-
-          <div className="mt-4 space-y-3">
-            {lines.map((line, index) => {
-              const product = productById.get(line.productId);
-              return (
-                <div
-                  key={line.key}
-                  className="grid gap-3 rounded-lg border border-white/[0.06] bg-white/[0.015] p-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"
-                >
-                  <div className="space-y-1.5">
-                    <Label htmlFor={`line-product-${index}`}>Product</Label>
-                    <Select
-                      id={`line-product-${index}`}
-                      value={line.productId}
-                      onChange={(event) => chooseProduct(line.key, event.target.value)}
-                    >
-                      {products.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.sku} · {item.name}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor={`line-quantity-${index}`}>
-                      Quantity {product ? `(${product.unit})` : ""}
-                    </Label>
-                    <Input
-                      id={`line-quantity-${index}`}
-                      value={line.quantity}
-                      onChange={(event) => updateLine(line.key, { quantity: event.target.value })}
-                      inputMode="decimal"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor={`line-price-${index}`}>Unit price</Label>
-                    <Input
-                      id={`line-price-${index}`}
-                      value={line.unitPrice}
-                      onChange={(event) => updateLine(line.key, { unitPrice: event.target.value })}
-                      inputMode="decimal"
-                    />
-                  </div>
-                  <div className="flex items-end justify-between gap-2 sm:flex-col sm:items-end">
-                    <p className="text-[12px] text-mist-300">
-                      {formatMoney(lineTotal(line.quantity, line.unitPrice), currency)}
-                    </p>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Remove line"
-                      onClick={() => removeLine(line.key)}
-                      disabled={lines.length === 1}
-                    >
-                      <Trash2 className="size-4" aria-hidden />
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="space-y-1.5">
+            <Label htmlFor="deal-currency">Currency</Label>
+            <Input
+              id="deal-currency"
+              value={currency}
+              onChange={(event) => setCurrency(event.target.value)}
+              maxLength={3}
+              required
+            />
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="deal-close-date">Expected close</Label>
+            <Input
+              id="deal-close-date"
+              type="date"
+              value={expectedCloseDate}
+              onChange={(event) => setExpectedCloseDate(event.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="deal-notes">Notes</Label>
+            <Textarea
+              id="deal-notes"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              maxLength={2000}
+              placeholder="Incoterm, payment terms, logistics constraints…"
+            />
+          </div>
+        </div>
+      </section>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={addLine}>
-              <Plus className="size-3.5" aria-hidden />
-              Add line
-            </Button>
-            <p className="text-[11px] text-mist-600">
-              Created as <span className="font-mono">DRAFT</span>; status changes go through the
-              transition endpoint.
+      <section className="panel rounded-xl p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <span className="eyebrow">Lines</span>
+            <p className="mt-1 text-[11.5px] text-mist-600">
+              One line per product. Lines are immutable once the deal exists.
             </p>
           </div>
-        </section>
-
-        <div className="flex items-center gap-2">
-          <Button type="submit" disabled={pending}>
-            {pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-            {pending ? "Creating…" : "Create deal"}
-          </Button>
-          <Button type="button" variant="ghost" onClick={() => router.back()}>
-            Cancel
-          </Button>
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-[0.16em] text-mist-600">Deal value</p>
+            <p className="font-display text-xl text-mist-100">{formatMoney(total, currency)}</p>
+          </div>
         </div>
-      </form>
-    );
-  }
+
+        <div className="mt-4 space-y-3">
+          {lines.map((line, index) => {
+            const product = productById.get(line.productId);
+            return (
+              <div
+                key={line.key}
+                className="grid gap-3 rounded-lg border border-white/[0.06] bg-white/[0.015] p-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"
+              >
+                <div className="space-y-1.5">
+                  <Label htmlFor={`line-product-${index}`}>Product</Label>
+                  <Select
+                    id={`line-product-${index}`}
+                    value={line.productId}
+                    onChange={(event) => chooseProduct(line.key, event.target.value)}
+                  >
+                    {products.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.sku} · {item.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor={`line-quantity-${index}`}>
+                    Quantity {product ? `(${product.unit})` : ""}
+                  </Label>
+                  <Input
+                    id={`line-quantity-${index}`}
+                    value={line.quantity}
+                    onChange={(event) => updateLine(line.key, { quantity: event.target.value })}
+                    inputMode="decimal"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor={`line-price-${index}`}>Unit price</Label>
+                  <Input
+                    id={`line-price-${index}`}
+                    value={line.unitPrice}
+                    onChange={(event) => updateLine(line.key, { unitPrice: event.target.value })}
+                    inputMode="decimal"
+                  />
+                </div>
+                <div className="flex items-end justify-between gap-2 sm:flex-col sm:items-end">
+                  <p className="text-[12px] text-mist-300">
+                    {formatMoney(lineTotal(line.quantity, line.unitPrice), currency)}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Remove line"
+                    onClick={() => removeLine(line.key)}
+                    disabled={lines.length === 1}
+                  >
+                    <Trash2 className="size-4" aria-hidden />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={addLine}>
+            <Plus className="size-3.5" aria-hidden />
+            Add line
+          </Button>
+          <p className="text-[11px] text-mist-600">
+            Created as <span className="font-mono">DRAFT</span>; status changes go through the
+            transition endpoint.
+          </p>
+        </div>
+      </section>
+
+      <div className="flex items-center gap-2">
+        <Button type="submit" disabled={pending}>
+          {pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+          {pending ? "Creating…" : "Create deal"}
+        </Button>
+        <Button type="button" variant="ghost" onClick={() => router.back()}>
+          Cancel
+        </Button>
+      </div>
+    </form>
+  );
 }
