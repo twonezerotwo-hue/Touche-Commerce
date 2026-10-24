@@ -48,6 +48,6 @@ def test_encrypted_backup_takes_its_passphrase_from_the_environment_only() -> No
         assert "TOUCHE_BACKUP_PASSPHRASE" in backup  # documented and enforced
         assert "-Passphrase" not in source  # never a command-line argument (process listings)
         assert "Remove-Item -Recurse" not in source  # nothing is bulk-deleted
-    assert "round_trip_verified" in backup  # an encrypted copy is only recorded once decrypted again
+    assert "round_trip_verified" in backup  # recorded only after decrypting it again
     assert "Test-Path $dumpPath" in backup  # an existing backup is never overwritten
     assert "$decryptedTemp" in restore and "trap {" in restore  # plaintext never outlives a failure
