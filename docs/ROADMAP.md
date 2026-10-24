@@ -497,3 +497,18 @@ jobs) and PR #8 merged. LOCAL_ACCEPTED and PRODUCTION_APPROVED remain
 unverified and blocked by operational prerequisites. No CLI argument
 is allowed to fabricate external-source, financial, delivery or production
 validation.
+
+
+## Stage 12 — Complete bilingual interface (in progress, in batches)
+
+Owner decision (R-10): fully supported Turkish and English, dates and numbers in the reader's
+locale, stable codes and UTC timestamps stored. Delivered in small, separately merged batches;
+`docs/STAGE12B_BILINGUAL_SCREENS.md` is the per-screen coverage record.
+
+| Batch | Scope | State |
+|---|---|---|
+| 12A–12D | Mechanism, shell, sign-in, dashboard, import, company, documents, CRM, products, deals, sales orders | merged |
+| 12E | Sourcing and pricing: RFQ, supplier quotes, landed cost, sales quotes, FX; locale-aware money, numbers, dates | this batch |
+| 12F | Purchase orders, shipments, trade-document register | planned |
+| 12G | Finance, intelligence, AI Office, communications | planned |
+| 12H | Account, company selection, status page, page titles, remaining dates, final audit | planned |
