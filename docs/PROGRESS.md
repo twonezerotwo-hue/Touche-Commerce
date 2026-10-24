@@ -1,7 +1,7 @@
 # TOUCHE COMMERCE — Progress
 
-**Last updated:** 2026-10-23 (local)
-**Current stage:** Stage 9 — safe local startup and CI (IN_PROGRESS; CI pending)
+**Last updated:** 2026-10-24 (local)
+**Current stage:** Stages 11–20 local mission — LOCAL_OPERATIONAL candidate, not accepted (see the 2026-10-24 entry and `docs/STAGE11_20_STATUS.md`)
 **Current milestone:** Stage 10 GitHub Actions 40030032968 PASS (585 backend / 192 frontend; 4/4 CI jobs)
 **Stage 6:** PASSED on Stage 6 local reported evidence (551 backend / 192 frontend, mock provider)
 **Stage 7A:** PASSED in GitHub CI (555 backend / 192 frontend, OpenAPI current; PR #1 merged); Windows browser acceptance not run
@@ -12,6 +12,25 @@ Statuses are restricted to `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PASSED`,
 `FAILED`. Nothing is marked `PASSED` without an executed command in this file.
 
 ---
+
+## 2026-10-24 — Stages 11–20 engineering mission (local, one Windows PC)
+
+Evidence, not claims. Full matrix: `docs/STAGE11_20_STATUS.md`; operator guide: `docs/LOCAL_RELEASE.md`.
+
+* **11** Launcher survives port collisions (`-AutoPorts`), isolated acceptance stack, plain and
+  encrypted backup restored into a scratch database (`RESTORE_VERIFIED`), 18 Windows-specific test
+  failures fixed. LAN/MacBook over HTTPS: not built.
+* **12** Cookie-based server-rendered TR/EN; sign-in, import, company profile, documents, CRM and
+  products translated; the rest is still English (`docs/STAGE12B_BILINGUAL_SCREENS.md`).
+* **13** CSV/XLSX import wizard (atomic, idempotent), company profile (migration 0014), TR/EN
+  documents in four formats; Commerce invoices are always drafts.
+* **16** Local `qwen3:8b` fallback verified live; DeepSeek not connected (no key).
+* **18** Encrypted backups (AES-256-GCM); dependency scan (`npm audit` clean; `cryptography`
+  advisory fixed by requiring 50.x). No MFA, no offsite copy.
+* **19** Playwright suite: 62 specs pass on Chromium and WebKit; one P1 found and fixed (the
+  "New counterparty" form could never open since Stage 1B).
+* **14/15/17** Finance and E-YAY not started (owner decision); read-only Finance ledger probe passed;
+  no Gmail/WhatsApp/social connector exists.
 
 ## 1. Status summary
 

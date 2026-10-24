@@ -1,9 +1,14 @@
 # TOUCHE COMMERCE
 
 Independent, premium international trade management — **Stages 0–6 completed
-in isolated local acceptance; Stage 7A/7B draft-only communications CI verified**.
-Trade operations, Finance evidence and a mock-verified AI Trade Director share the
-same tenant-scoped business services. No external message sending is enabled.
+in isolated local acceptance; Stage 7A/7B draft-only communications CI verified;
+Stages 11–20 are a LOCAL_OPERATIONAL candidate on one Windows PC** (not production,
+not accepted, nothing external connected live except the local AI model).
+Trade operations, Finance evidence and an AI Trade Director share the same
+tenant-scoped business services. No external message sending is enabled.
+
+**Running it on your PC:** `docs/LOCAL_RELEASE.md` (open, close, add a person, back up,
+update). **What is real and what is not:** `docs/STAGE11_20_STATUS.md`.
 
 A Next.js 16 web application, a FastAPI service and PostgreSQL 17 with real
 health probes, structured logging, a standard error contract, a typed OpenAPI
@@ -32,7 +37,7 @@ a private trade-document register.
 | API (`127.0.0.1:8000`) incl. CRM, catalogue, deals, dashboard | ✅ verified |
 | Sourcing API + screens (RFQs, supplier quotes, pricing, sales quotes, FX) | ✅ verified at API/integration level |
 | Execution API + screens (orders, purchase orders, shipments, documents) | ✅ verified at API/integration/SSR level |
-| PostgreSQL 17 + migrations `0001_foundation` … `0010_ai_office` | ✅ verified |
+| PostgreSQL 17 + migrations `0001_foundation` … `0014_company_profile` | ✅ verified |
 | `/api/v1/health/live` · `/api/v1/health/ready` | ✅ 200 |
 | Backend tests (unit + live DB incl. RLS matrix) | ✅ 551 passed |
 | Frontend tests / lint / typecheck / build | ✅ 192 passed, clean |
@@ -44,9 +49,18 @@ a private trade-document register.
 | Live trade workflow (`scripts\verify-trade.ps1`) | ✅ 39 checks passed |
 | Live sourcing workflow (`scripts\verify-sourcing.ps1`) | ✅ 53 checks passed |
 | Live operations workflow (`scripts\verify-operations.ps1`) | ✅ 45 checks passed |
+| Real-browser acceptance (`e2e/`, Playwright on an isolated database) | ✅ 62 specs pass on Chromium and WebKit; Firefox does not start on this PC |
+| Turkish/English interface | ⚠️ partial — shell, sign-in, import, company profile, documents, CRM, products (`docs/STAGE12B_BILINGUAL_SCREENS.md`) |
+| TR/EN trade documents (PDF, DOCX, XLSX, CSV) and company profile | ✅ Stage 13; a Commerce invoice is always a DRAFT |
+| CSV/XLSX import wizard | ✅ Stage 13; atomic, idempotent by file hash |
+| Encrypted backup + restore into a scratch database | ✅ Stage 18B (`docs/STAGE18_ENCRYPTED_BACKUP.md`); no offsite copy yet |
+| Local AI fallback (Ollama `qwen3:8b`) | ✅ verified live; DeepSeek primary needs your API key |
+| Finance / E-YAY live connection | ❌ services not running; read-only ledger probe passed |
+| Gmail / WhatsApp / Instagram / LinkedIn | ❌ no connector exists; needs your accounts |
+| MFA (TOTP), MacBook/LAN over HTTPS | ❌ not built |
 | Docker Compose path | ⚠️ not executed — Docker is not installed on this workstation |
-| GitHub Actions run | ⚠️ workflow authored, no remote run performed |
-| Browser automation | ⚠️ unavailable — verified at HTTP/integration/SSR level only |
+| GitHub Actions run | ✅ four jobs (API contract, backend with PostgreSQL, frontend, Windows script parse) run on every pull request |
+| Browser automation | ✅ Playwright (see above); the built-in browser pane is also used for spot checks |
 
 Details, commands and raw results: **`docs/PROGRESS.md`**.
 
