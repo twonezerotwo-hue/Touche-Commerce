@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { chromium, firefox, webkit, type FullConfig } from "@playwright/test";
 
-import { authFile, credentials, loginViaUi, stack, type Slug } from "./support";
+import { authFile, credentials, signIn, stack, type Slug } from "./support";
 
 /**
  * Sign every synthetic user in once per browser engine through the real login form and
@@ -26,8 +26,7 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
       for (const slug of Object.keys(credentials()) as Slug[]) {
         const context = await browser.newContext({ baseURL: stack().web });
         const page = await context.newPage();
-        await loginViaUi(page, slug);
-        await page.waitForURL((url) => !url.pathname.startsWith("/login"));
+        await signIn(page, slug);
         await context.storageState({ path: authFile(slug, name) });
         await context.close();
       }

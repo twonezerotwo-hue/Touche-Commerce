@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { gotoReady, loginViaUi } from "./support";
+import { gotoReady, signIn } from "./support";
 
 /**
  * Opt-in: needs a running Finance service, a verified mapping for the acceptance company
@@ -12,8 +12,7 @@ test.skip(!process.env.E2E_FINANCE_LIVE, "set E2E_FINANCE_LIVE=1 with a live Fin
 
 test.describe("Finance, read-only, live", () => {
   test("the mapped company reads the real ledger through Commerce", async ({ page }) => {
-    await loginViaUi(page, "owner");
-    await page.waitForURL((url) => !url.pathname.startsWith("/login"));
+    await signIn(page, "owner");
 
     const status = await (await page.request.get("/api/v1/finance/status")).json();
     expect(status.state).toBe("connected");
@@ -51,8 +50,7 @@ test.describe("Finance, read-only, live", () => {
   });
 
   test("a company without a mapping sees no Finance data", async ({ page }) => {
-    await loginViaUi(page, "outsider");
-    await page.waitForURL((url) => !url.pathname.startsWith("/login"));
+    await signIn(page, "outsider");
     const status = await (await page.request.get("/api/v1/finance/status")).json();
     expect(status.state).toBe("not_configured");
     expect(status.mapping).toBeNull();
@@ -62,8 +60,7 @@ test.describe("Finance, read-only, live", () => {
   });
 
   test("Commerce offers no way to write to Finance", async ({ page }) => {
-    await loginViaUi(page, "owner");
-    await page.waitForURL((url) => !url.pathname.startsWith("/login"));
+    await signIn(page, "owner");
     for (const path of ["/api/v1/finance/summary", "/api/v1/finance/accounts"]) {
       const response = await page.request.post(path, { data: {} });
       expect([404, 405, 403]).toContain(response.status());
