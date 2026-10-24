@@ -23,12 +23,16 @@ Evidence, not claims. Full matrix: `docs/STAGE11_20_STATUS.md`; operator guide: 
 * **12** Cookie-based server-rendered TR/EN; sign-in, Command Center, import, company profile, documents,
   CRM, products, deals and sales orders translated; the rest is still English
   (`docs/STAGE12B_BILINGUAL_SCREENS.md`).
+* **12E** Sourcing and pricing in Turkish (RFQ, supplier quotes, landed cost, sales quotes, FX), with
+  locale-aware numbers and dates (`tr-TR` separators and month names; UTC; amounts unchanged).
+  Frontend 266 tests, backend 724 collected.
 * **13** CSV/XLSX import wizard (atomic, idempotent), company profile (migration 0014), TR/EN
   documents in four formats; Commerce invoices are always drafts.
 * **16** Local `qwen3:8b` fallback verified live; DeepSeek not connected (no key).
 * **18** Encrypted backups (AES-256-GCM); dependency scan (`npm audit` clean; `cryptography`
   advisory fixed by requiring 50.x). No MFA, no offsite copy.
-* **19** Playwright suite: 72 specs pass on Chromium and WebKit; two P1s found and fixed (the
+* **19** Playwright suite: 88 specs on Chromium and WebKit (87 passed in the last full run, one
+  timing-related failure in the concurrency spec passed on re-run); two P1s found and fixed (the
   "New counterparty" and "Open a trade deal" forms could never open), plus a conversion that the
   API refused when done within a minute of the approval, and a phone-width page overflow in WebKit.
 * **14** Finance live check, with your permission: Finance's real server on a snapshot of the real

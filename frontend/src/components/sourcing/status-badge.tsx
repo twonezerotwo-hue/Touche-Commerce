@@ -1,7 +1,12 @@
+"use client";
+
 import { Badge } from "@/components/ui/badge";
-import { statusLabel, statusTone } from "@/lib/sourcing/format";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { sourcingStatusText } from "@/lib/i18n/value-labels";
+import { statusTone } from "@/lib/sourcing/format";
 
 /** One place that decides how any sourcing status is labelled and coloured. */
 export function SourcingStatusBadge({ status }: { status: string }) {
-  return <Badge variant={statusTone(status)}>{statusLabel(status)}</Badge>;
+  const { t } = useLocale();
+  return <Badge variant={statusTone(status)}>{sourcingStatusText(t, status)}</Badge>;
 }

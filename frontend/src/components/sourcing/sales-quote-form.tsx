@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useLocale } from "@/lib/i18n/locale-provider";
 import { createSalesQuote } from "@/lib/sourcing/client";
 import { INCOTERMS, type PricingScenario, type SalesQuoteCreate } from "@/lib/sourcing/types";
 import type { Counterparty } from "@/lib/trade/types";
@@ -25,13 +26,14 @@ export function SalesQuoteForm({
   csrfToken: string;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [customerId, setCustomerId] = useState(buyers[0]?.id ?? "");
   const [validUntil, setValidUntil] = useState("");
   const [incoterm, setIncoterm] = useState<SalesQuoteCreate["incoterm"]>(
     scenario.sales_incoterm ?? "CIF",
   );
   const [place, setPlace] = useState(scenario.sales_named_place ?? "");
-  const [paymentTerms, setPaymentTerms] = useState("30 days net");
+  const [paymentTerms, setPaymentTerms] = useState(t("srcDefaultPayment"));
   const [notes, setNotes] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,11 +43,11 @@ export function SalesQuoteForm({
     setError(null);
 
     if (!customerId) {
-      setError("Select the customer this quote is for.");
+      setError(t("sqfSelectCustomer"));
       return;
     }
     if (!validUntil) {
-      setError("A validity date is required.");
+      setError(t("sqfValidityRequired"));
       return;
     }
 
@@ -65,7 +67,9 @@ export function SalesQuoteForm({
 
     if (!result.ok) {
       setError(
-        result.requestId ? `${result.message} (request ${result.requestId})` : result.message,
+        result.requestId
+          ? t("srcErrWithRequest", { message: result.message, id: result.requestId })
+          : result.message,
       );
       return;
     }
@@ -80,13 +84,13 @@ export function SalesQuoteForm({
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="space-y-1.5">
-          <Label htmlFor="sq-customer">Customer</Label>
+          <Label htmlFor="sq-customer">{t("sqfCustomer")}</Label>
           <Select
             id="sq-customer"
             value={customerId}
             onChange={(event) => setCustomerId(event.target.value)}
           >
-            {buyers.length === 0 ? <option value="">No buyers in CRM</option> : null}
+            {buyers.length === 0 ? <option value="">{t("sqfNoBuyers")}</option> : null}
             {buyers.map((buyer) => (
               <option key={buyer.id} value={buyer.id}>
                 {buyer.name}
@@ -95,7 +99,7 @@ export function SalesQuoteForm({
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="sq-valid">Valid until</Label>
+          <Label htmlFor="sq-valid">{t("srcValidUntilLabel")}</Label>
           <Input
             id="sq-valid"
             type="date"
@@ -104,7 +108,7 @@ export function SalesQuoteForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="sq-incoterm">Incoterm</Label>
+          <Label htmlFor="sq-incoterm">{t("srcIncoterm")}</Label>
           <Select
             id="sq-incoterm"
             value={incoterm}
@@ -118,7 +122,7 @@ export function SalesQuoteForm({
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="sq-place">Named place</Label>
+          <Label htmlFor="sq-place">{t("srcNamedPlace")}</Label>
           <Input
             id="sq-place"
             value={place}
@@ -128,7 +132,7 @@ export function SalesQuoteForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="sq-payment">Payment terms</Label>
+          <Label htmlFor="sq-payment">{t("srcPaymentTerms")}</Label>
           <Input
             id="sq-payment"
             value={paymentTerms}
@@ -137,7 +141,7 @@ export function SalesQuoteForm({
           />
         </div>
         <div className="space-y-1.5 sm:col-span-3">
-          <Label htmlFor="sq-notes">Notes</Label>
+          <Label htmlFor="sq-notes">{t("srcNotes")}</Label>
           <Textarea
             id="sq-notes"
             value={notes}
@@ -150,12 +154,9 @@ export function SalesQuoteForm({
       <div className="flex items-center gap-2">
         <Button type="submit" size="sm" disabled={pending}>
           {pending ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-          {pending ? "Drafting…" : "Draft sales quote"}
+          {pending ? t("sqfDrafting") : t("sqfDraft")}
         </Button>
-        <p className="text-[11px] text-mist-600">
-          Prices are copied from the scenario results. Approval needs verified inputs and a second
-          person with finance.approve.
-        </p>
+        <p className="text-[11px] text-mist-600">{t("sqfHint")}</p>
       </div>
     </form>
   );

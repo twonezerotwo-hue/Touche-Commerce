@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useLocale } from "@/lib/i18n/locale-provider";
 import { createRfqs } from "@/lib/sourcing/client";
 import type { RfqCreate } from "@/lib/sourcing/types";
 import type { Counterparty, DealSummary, Product } from "@/lib/trade/types";
@@ -51,6 +52,7 @@ export function RfqForm({
   defaultCurrency: string;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [dealId, setDealId] = useState(deals[0]?.id ?? "");
   const [supplierIds, setSupplierIds] = useState<string[]>([]);
   const [currency, setCurrency] = useState(defaultCurrency);
@@ -87,19 +89,19 @@ export function RfqForm({
     setError(null);
 
     if (!dealId) {
-      setError("Select the deal this RFQ belongs to.");
+      setError(t("rfqfSelectDeal"));
       return;
     }
     if (supplierIds.length === 0) {
-      setError("Select at least one supplier.");
+      setError(t("rfqfSelectSupplier"));
       return;
     }
     if (deliveryLocation.trim().length < 2) {
-      setError("A delivery location is required.");
+      setError(t("rfqfLocationRequired"));
       return;
     }
     if (lines.some((line) => !line.productId || !line.description.trim())) {
-      setError("Every line needs a product and a description.");
+      setError(t("rfqfLineIncomplete"));
       return;
     }
 
@@ -125,7 +127,9 @@ export function RfqForm({
 
     if (!result.ok) {
       setError(
-        result.requestId ? `${result.message} (request ${result.requestId})` : result.message,
+        result.requestId
+          ? t("srcErrWithRequest", { message: result.message, id: result.requestId })
+          : result.message,
       );
       return;
     }
@@ -140,17 +144,17 @@ export function RfqForm({
       {error ? <Alert variant="danger">{error}</Alert> : null}
 
       <div className="panel space-y-4 p-4">
-        <h2 className="text-[13px] font-medium text-mist-100">Request</h2>
+        <h2 className="text-[13px] font-medium text-mist-100">{t("rfqfRequest")}</h2>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="rfq-deal">Deal</Label>
+            <Label htmlFor="rfq-deal">{t("rfqfDeal")}</Label>
             <Select
               id="rfq-deal"
               value={dealId}
               onChange={(event) => setDealId(event.target.value)}
             >
-              {deals.length === 0 ? <option value="">No deals available</option> : null}
+              {deals.length === 0 ? <option value="">{t("rfqfNoDeals")}</option> : null}
               {deals.map((deal) => (
                 <option key={deal.id} value={deal.id}>
                   {deal.reference} · {deal.title}
@@ -160,7 +164,7 @@ export function RfqForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="rfq-currency">Requested currency</Label>
+            <Label htmlFor="rfq-currency">{t("rfqfCurrency")}</Label>
             <Input
               id="rfq-currency"
               value={currency}
@@ -170,7 +174,7 @@ export function RfqForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="rfq-location">Delivery location</Label>
+            <Label htmlFor="rfq-location">{t("rfqfLocation")}</Label>
             <Input
               id="rfq-location"
               value={deliveryLocation}
@@ -181,13 +185,13 @@ export function RfqForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="rfq-terms">Delivery terms</Label>
+            <Label htmlFor="rfq-terms">{t("rfqfTerms")}</Label>
             <Select
               id="rfq-terms"
               value={deliveryTerms}
               onChange={(event) => setDeliveryTerms(event.target.value)}
             >
-              <option value="">Not specified</option>
+              <option value="">{t("rfqfNotSpecified")}</option>
               {["EXW", "FCA", "FOB", "CFR", "CIF", "CPT", "CIP", "DAP", "DDP"].map((term) => (
                 <option key={term} value={term}>
                   {term}
@@ -197,7 +201,7 @@ export function RfqForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="rfq-due">Response due</Label>
+            <Label htmlFor="rfq-due">{t("rfqfDue")}</Label>
             <Input
               id="rfq-due"
               type="date"
@@ -207,27 +211,24 @@ export function RfqForm({
           </div>
 
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="rfq-notes">Notes</Label>
+            <Label htmlFor="rfq-notes">{t("srcNotes")}</Label>
             <Textarea
               id="rfq-notes"
               value={notes}
               maxLength={2000}
               onChange={(event) => setNotes(event.target.value)}
-              placeholder="Packaging, certificates, tolerances…"
+              placeholder={t("rfqfNotesPlaceholder")}
             />
           </div>
         </div>
       </div>
 
       <div className="panel space-y-3 p-4">
-        <h2 className="text-[13px] font-medium text-mist-100">Suppliers</h2>
-        <p className="text-[11px] text-mist-600">
-          One RFQ is created per supplier. Quotes are therefore always attributable to a single
-          supplier and a single request.
-        </p>
+        <h2 className="text-[13px] font-medium text-mist-100">{t("rfqfSuppliers")}</h2>
+        <p className="text-[11px] text-mist-600">{t("rfqfSuppliersHint")}</p>
         {suppliers.length === 0 ? (
-          <Alert variant="info" title="No suppliers">
-            Add a counterparty with type supplier or both in CRM first.
+          <Alert variant="info" title={t("rfqfNoSuppliers")}>
+            {t("rfqfNoSuppliersBody")}
           </Alert>
         ) : (
           <div className="flex flex-wrap gap-2">
@@ -252,7 +253,7 @@ export function RfqForm({
 
       <div className="panel space-y-3 p-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-[13px] font-medium text-mist-100">Lines</h2>
+          <h2 className="text-[13px] font-medium text-mist-100">{t("rfqfLines")}</h2>
           <Button
             type="button"
             size="sm"
@@ -265,7 +266,7 @@ export function RfqForm({
             disabled={products.length === 0}
           >
             <Plus className="size-3.5" aria-hidden />
-            Add line
+            {t("rfqfAddLine")}
           </Button>
         </div>
 
@@ -273,7 +274,7 @@ export function RfqForm({
           {lines.map((line, index) => (
             <div key={line.key} className="grid gap-2 sm:grid-cols-[1.4fr_2fr_0.7fr_auto]">
               <Select
-                aria-label={`Line ${index + 1} product`}
+                aria-label={t("rfqfLineProduct", { n: index + 1 })}
                 value={line.productId}
                 onChange={(event) => chooseProduct(line.key, event.target.value)}
               >
@@ -284,13 +285,13 @@ export function RfqForm({
                 ))}
               </Select>
               <Input
-                aria-label={`Line ${index + 1} description`}
+                aria-label={t("rfqfLineDescription", { n: index + 1 })}
                 value={line.description}
                 maxLength={500}
                 onChange={(event) => updateLine(line.key, { description: event.target.value })}
               />
               <Input
-                aria-label={`Line ${index + 1} quantity`}
+                aria-label={t("rfqfLineQuantity", { n: index + 1 })}
                 value={line.quantity}
                 inputMode="decimal"
                 onChange={(event) => updateLine(line.key, { quantity: event.target.value })}
@@ -299,7 +300,7 @@ export function RfqForm({
                 type="button"
                 size="iconSm"
                 variant="ghost"
-                aria-label={`Remove line ${index + 1}`}
+                aria-label={t("rfqfRemoveLine", { n: index + 1 })}
                 disabled={lines.length === 1}
                 onClick={() =>
                   setLines((current) => current.filter((item) => item.key !== line.key))
@@ -315,11 +316,9 @@ export function RfqForm({
       <div className="flex items-center gap-2">
         <Button type="submit" size="sm" disabled={pending}>
           {pending ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-          {pending ? "Creating…" : "Create RFQs"}
+          {pending ? t("rfqfCreating") : t("rfqfCreate")}
         </Button>
-        <p className="text-[11px] text-mist-600">
-          Created in one transaction. The RFQ starts as DRAFT and is not sent.
-        </p>
+        <p className="text-[11px] text-mist-600">{t("rfqfCreateHint")}</p>
       </div>
     </form>
   );

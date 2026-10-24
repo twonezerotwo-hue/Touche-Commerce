@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useLocale } from "@/lib/i18n/locale-provider";
 import { recordSupplierQuote } from "@/lib/sourcing/client";
 import { INCOTERMS, type Rfq, type SupplierQuoteCreate } from "@/lib/sourcing/types";
 import { formatQuantity } from "@/lib/trade/format";
@@ -30,10 +31,11 @@ export function QuoteForm({
   defaultCurrency: string;
 }) {
   const router = useRouter();
+  const { t, locale } = useLocale();
   const [currency, setCurrency] = useState(defaultCurrency);
   const [incoterm, setIncoterm] = useState("CIF");
   const [place, setPlace] = useState(rfq.delivery_location);
-  const [paymentTerms, setPaymentTerms] = useState("30 days net");
+  const [paymentTerms, setPaymentTerms] = useState(t("srcDefaultPayment"));
   const [leadTime, setLeadTime] = useState("21");
   const [validUntil, setValidUntil] = useState("");
   const [sourceReference, setSourceReference] = useState("");
@@ -51,11 +53,11 @@ export function QuoteForm({
     setError(null);
 
     if (!validUntil) {
-      setError("The quote validity date is required.");
+      setError(t("qfValidityRequired"));
       return;
     }
     if (sourceReference.trim().length < 3) {
-      setError("Record where the quote came from (email, file or portal message).");
+      setError(t("qfSourceRequired"));
       return;
     }
     const items = rfq.items
@@ -67,7 +69,7 @@ export function QuoteForm({
         moq: (moqs[item.product_id] ?? "").trim() || null,
       }));
     if (items.length === 0) {
-      setError("Enter a unit price for at least one line.");
+      setError(t("qfPriceRequired"));
       return;
     }
 
@@ -90,7 +92,9 @@ export function QuoteForm({
 
     if (!result.ok) {
       setError(
-        result.requestId ? `${result.message} (request ${result.requestId})` : result.message,
+        result.requestId
+          ? t("srcErrWithRequest", { message: result.message, id: result.requestId })
+          : result.message,
       );
       return;
     }
@@ -107,7 +111,7 @@ export function QuoteForm({
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="space-y-1.5">
-          <Label htmlFor="quote-currency">Currency</Label>
+          <Label htmlFor="quote-currency">{t("columnCurrency")}</Label>
           <Input
             id="quote-currency"
             value={currency}
@@ -116,7 +120,7 @@ export function QuoteForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="quote-incoterm">Incoterm</Label>
+          <Label htmlFor="quote-incoterm">{t("srcIncoterm")}</Label>
           <Select
             id="quote-incoterm"
             value={incoterm}
@@ -130,7 +134,7 @@ export function QuoteForm({
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="quote-place">Named place</Label>
+          <Label htmlFor="quote-place">{t("srcNamedPlace")}</Label>
           <Input
             id="quote-place"
             value={place}
@@ -139,7 +143,7 @@ export function QuoteForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="quote-payment">Payment terms</Label>
+          <Label htmlFor="quote-payment">{t("srcPaymentTerms")}</Label>
           <Input
             id="quote-payment"
             value={paymentTerms}
@@ -148,7 +152,7 @@ export function QuoteForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="quote-lead">Lead time (days)</Label>
+          <Label htmlFor="quote-lead">{t("qfLeadTime")}</Label>
           <Input
             id="quote-lead"
             value={leadTime}
@@ -157,7 +161,7 @@ export function QuoteForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="quote-valid">Valid until</Label>
+          <Label htmlFor="quote-valid">{t("srcValidUntilLabel")}</Label>
           <Input
             id="quote-valid"
             type="date"
@@ -166,17 +170,17 @@ export function QuoteForm({
           />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="quote-source">Source (required)</Label>
+          <Label htmlFor="quote-source">{t("qfSource")}</Label>
           <Input
             id="quote-source"
             value={sourceReference}
             maxLength={200}
             onChange={(event) => setSourceReference(event.target.value)}
-            placeholder="email: quote 2026-10-22 from Supplier One"
+            placeholder={t("qfSourcePlaceholder")}
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="quote-supplier-ref">Supplier reference</Label>
+          <Label htmlFor="quote-supplier-ref">{t("qfSupplierRef")}</Label>
           <Input
             id="quote-supplier-ref"
             value={supplierReference}
@@ -185,7 +189,7 @@ export function QuoteForm({
           />
         </div>
         <div className="space-y-1.5 sm:col-span-3">
-          <Label htmlFor="quote-notes">Notes</Label>
+          <Label htmlFor="quote-notes">{t("srcNotes")}</Label>
           <Textarea
             id="quote-notes"
             value={notes}
@@ -202,23 +206,23 @@ export function QuoteForm({
               <span className="font-mono text-[11px] text-mist-500">{item.sku}</span>{" "}
               {item.description}
               <span className="ml-1 text-mist-600">
-                ({formatQuantity(item.quantity, item.unit)} requested)
+                {t("qfRequested", { qty: formatQuantity(item.quantity, item.unit, locale) })}
               </span>
             </div>
             <Input
-              aria-label={`Unit price for ${item.sku}`}
+              aria-label={t("qfUnitPriceFor", { sku: item.sku })}
               value={prices[item.product_id] ?? ""}
               inputMode="decimal"
-              placeholder="Unit price"
+              placeholder={t("qfUnitPrice")}
               onChange={(event) =>
                 setPrices((current) => ({ ...current, [item.product_id]: event.target.value }))
               }
             />
             <Input
-              aria-label={`MOQ for ${item.sku}`}
+              aria-label={t("qfMoqFor", { sku: item.sku })}
               value={moqs[item.product_id] ?? ""}
               inputMode="decimal"
-              placeholder="MOQ (optional)"
+              placeholder={t("qfMoq")}
               onChange={(event) =>
                 setMoqs((current) => ({ ...current, [item.product_id]: event.target.value }))
               }
@@ -230,11 +234,9 @@ export function QuoteForm({
       <div className="flex items-center gap-2">
         <Button type="submit" size="sm" disabled={pending}>
           {pending ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-          {pending ? "Recording…" : "Record quote"}
+          {pending ? t("qfRecording") : t("qfRecord")}
         </Button>
-        <p className="text-[11px] text-mist-600">
-          Only lines with a price are quoted. The RFQ moves to RESPONDED.
-        </p>
+        <p className="text-[11px] text-mist-600">{t("qfHint")}</p>
       </div>
     </form>
   );

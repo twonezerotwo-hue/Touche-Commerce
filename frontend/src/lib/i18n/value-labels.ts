@@ -119,3 +119,59 @@ export const fulfilmentModelText = (t: TFn, code: string): string =>
   lookup(t, FULFILMENT_MODEL, code);
 export const acceptanceChannelText = (t: TFn, code: string): string =>
   lookup(t, ACCEPTANCE_CHANNEL, code);
+
+const SOURCING_STATUS: Record<string, MessageKey> = {
+  DRAFT: "srcStDraft",
+  PREPARED: "srcStPrepared",
+  SENT: "srcStSent",
+  RESPONDED: "srcStResponded",
+  CLOSED: "srcStClosed",
+  CANCELLED: "srcStCancelled",
+  RECEIVED: "srcStReceived",
+  WITHDRAWN: "srcStWithdrawn",
+  INCOMPLETE: "srcStIncomplete",
+  ESTIMATED: "srcStEstimated",
+  VERIFIED_INPUTS: "srcStVerifiedInputs",
+  PENDING_APPROVAL: "srcStPendingApproval",
+  APPROVED: "srcStApproved",
+  REJECTED: "srcStRejected",
+};
+
+/** RFQ, supplier-quote, pricing-scenario and sales-quote status codes as words. */
+export function sourcingStatusText(t: TFn, status: string): string {
+  const key = SOURCING_STATUS[status];
+  return key ? t(key) : status;
+}
+
+const COST_TYPE: Record<string, MessageKey> = {
+  FREIGHT: "costFreight",
+  DOMESTIC_TRANSPORT: "costDomesticTransport",
+  INSURANCE: "costInsurance",
+  CUSTOMS_DUTY: "costCustomsDuty",
+  CUSTOMS_BROKERAGE: "costCustomsBrokerage",
+  QUALITY_INSPECTION: "costQualityInspection",
+  BANKING_FINANCE: "costBankingFinance",
+  OTHER: "costOther",
+  CONTINGENCY: "costContingency",
+  VAT_CASHFLOW: "costVatCashflow",
+};
+
+/** A landed-cost component type ("CUSTOMS_DUTY") in the reader's language. */
+export function costTypeText(t: TFn, type: string): string {
+  const key = COST_TYPE[type];
+  return key ? t(key) : type.replaceAll("_", " ");
+}
+
+/** How a cost is spread: the whole order or one product line. */
+export function costBasisText(t: TFn, basis: string): string {
+  if (basis === "ORDER") return t("prcBasisOrder");
+  if (basis === "LINE") return t("prcBasisLine");
+  return basis;
+}
+
+/** Whether a cost is an estimate or backed by a document. */
+export function verificationText(t: TFn, status: string): string {
+  if (status === "VERIFIED") return t("prcVerified");
+  if (status === "ESTIMATED") return t("prcEstimated");
+  return status;
+}
