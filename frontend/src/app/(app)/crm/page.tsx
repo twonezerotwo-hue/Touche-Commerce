@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { getServerT } from "@/lib/i18n/server";
+import { counterpartyTypeLabel, recordStatusLabel } from "@/lib/i18n/value-labels";
 import { formatTimestamp, withQuery } from "@/lib/trade/format";
 import type { CounterpartyList } from "@/lib/trade/types";
 
@@ -34,6 +36,7 @@ export default async function CrmPage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t } = await getServerT();
 
   const params = await searchParams;
   const company = state.session.session.company;
@@ -51,10 +54,10 @@ export default async function CrmPage({
   return (
     <div className="mx-auto max-w-[1360px] space-y-5">
       <PageHeader
-        eyebrow="Relationships"
-        meta={<Badge variant="secondary">Counterparties</Badge>}
-        title="Customers & suppliers"
-        description="Every record belongs to the active company only. Reads are open to all roles; changes require the trader permission and are audited."
+        eyebrow={t("crmEyebrow")}
+        meta={<Badge variant="secondary">{t("crmBadge")}</Badge>}
+        title={t("crmTitle")}
+        description={t("crmDescription")}
         actions={
           <CounterpartyForm csrfToken={state.session.session.csrf_token} canWrite={canWrite} />
         }
@@ -63,8 +66,8 @@ export default async function CrmPage({
       <div className="panel overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div>
-            <p className="eyebrow">Directory</p>
-            <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">Trading partners</h2>
+            <p className="eyebrow">{t("crmSection")}</p>
+            <h2 className="mt-1.5 text-[14px] font-medium text-mist-100">{t("crmSubtitle")}</h2>
           </div>
 
           <form action="/crm" method="get" className="flex flex-wrap items-center gap-2">
@@ -77,8 +80,8 @@ export default async function CrmPage({
                 id="crm-search"
                 name="search"
                 defaultValue={filters.search}
-                placeholder="Search by name"
-                aria-label="Search by name"
+                placeholder={t("crmSearch")}
+                aria-label={t("crmSearch")}
                 maxLength={160}
                 className="h-8 w-[220px] pl-8 text-[12px]"
               />
@@ -88,19 +91,19 @@ export default async function CrmPage({
                 id="crm-status"
                 name="status"
                 defaultValue={filters.status}
-                aria-label="Filter by status"
+                aria-label={t("filterByStatus")}
                 className="h-8 text-[12px]"
               >
-                <option value="">All statuses</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="">{t("filterAllStatuses")}</option>
+                <option value="active">{t("statusActive")}</option>
+                <option value="inactive">{t("statusInactive")}</option>
               </Select>
             </div>
             <Button type="submit" size="sm" variant="subtle">
-              Filter
+              {t("filterButton")}
             </Button>
             {filtered ? (
-              <Button asChild size="iconSm" variant="ghost" aria-label="Clear filters">
+              <Button asChild size="iconSm" variant="ghost" aria-label={t("filterClear")}>
                 <Link href="/crm">
                   <X className="size-3.5" aria-hidden />
                 </Link>
@@ -113,7 +116,7 @@ export default async function CrmPage({
 
         {!result.ok ? (
           <div className="p-4">
-            <Alert variant="danger" title="Counterparties unavailable">
+            <Alert variant="danger" title={t("crmUnavailable")}>
               {result.message}
               {result.requestId ? (
                 <span className="ml-1 font-mono text-[11px]">({result.requestId})</span>
@@ -124,16 +127,12 @@ export default async function CrmPage({
           <div className="p-4">
             <EmptyState
               icon={<Users className="size-4" aria-hidden />}
-              title={filtered ? "No counterparties match" : "No counterparties yet"}
-              description={
-                filtered
-                  ? "Adjust the search term or status filter, or clear both to list the full directory."
-                  : "Create the first customer or supplier to start linking deals. Nothing is pre-seeded; every row comes from the API."
-              }
+              title={filtered ? t("crmNoMatch") : t("crmEmpty")}
+              description={filtered ? t("crmNoMatchHint") : t("crmEmptyHint")}
               action={
                 filtered ? (
                   <Button asChild variant="outline" size="sm">
-                    <Link href="/crm">Clear filters</Link>
+                    <Link href="/crm">{t("filterClear")}</Link>
                   </Button>
                 ) : null
               }
@@ -144,12 +143,12 @@ export default async function CrmPage({
           <Table bare>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-4">Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Country</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="pr-4 text-right">Updated</TableHead>
+                <TableHead className="pl-4">{t("columnName")}</TableHead>
+                <TableHead>{t("columnType")}</TableHead>
+                <TableHead>{t("columnCountry")}</TableHead>
+                <TableHead>{t("columnContact")}</TableHead>
+                <TableHead>{t("columnStatus")}</TableHead>
+                <TableHead className="pr-4 text-right">{t("columnUpdated")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -165,7 +164,7 @@ export default async function CrmPage({
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary" className="capitalize">
-                      {counterparty.type}
+                      {counterpartyTypeLabel(t, counterparty.type)}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono text-[11px] text-mist-400">
@@ -174,7 +173,7 @@ export default async function CrmPage({
                   <TableCell className="text-[12px]">{counterparty.contact_name ?? "—"}</TableCell>
                   <TableCell>
                     <Badge dot variant={counterparty.status === "active" ? "success" : "outline"}>
-                      {counterparty.status}
+                      {recordStatusLabel(t, counterparty.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="pr-4 text-right font-mono text-[10.5px] whitespace-nowrap text-mist-600">
@@ -190,8 +189,10 @@ export default async function CrmPage({
           <p className="text-[10.5px] text-mist-600">
             {result.ok ? (
               <>
-                <span className="data-value text-mist-400">{result.data.items.length}</span> shown
-                {result.data.has_more ? " · older records available" : " · end of directory"}
+                <span className="data-value text-mist-400">{result.data.items.length}</span>{" "}
+                {t("listShown")}
+                {" · "}
+                {result.data.has_more ? t("productsOlder") : t("crmEnd")}
               </>
             ) : (
               "—"
@@ -200,13 +201,13 @@ export default async function CrmPage({
           <div className="flex items-center gap-3">
             {params.cursor ? (
               <Button asChild variant="ghost" size="xs">
-                <Link href={withQuery("/crm", filters)}>First page</Link>
+                <Link href={withQuery("/crm", filters)}>{t("pageFirst")}</Link>
               </Button>
             ) : null}
             {result.ok && result.data.has_more && result.data.next_cursor ? (
               <Button asChild variant="outline" size="sm">
                 <Link href={withQuery("/crm", { ...filters, cursor: result.data.next_cursor })}>
-                  Next page
+                  {t("pageNextPage")}
                   <ArrowRight className="size-3.5" aria-hidden />
                 </Link>
               </Button>

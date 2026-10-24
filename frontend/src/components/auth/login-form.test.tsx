@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LoginForm } from "./login-form";
+import { LocaleProvider } from "@/lib/i18n/locale-provider";
 
 const replaceMock = vi.fn();
 const refreshMock = vi.fn();
@@ -153,5 +154,30 @@ describe("LoginForm", () => {
 
     await waitFor(() => expect(replaceMock).toHaveBeenCalled());
     expect(setItemSpy).not.toHaveBeenCalled();
+  });
+
+  it("speaks Turkish when the interface language is Turkish, including server messages", async () => {
+    const user = userEvent.setup();
+    loginMock.mockResolvedValue({
+      ok: false,
+      code: "UNAUTHORIZED",
+      message: "Email or password is incorrect.",
+      retryAfterSeconds: null,
+    });
+    render(
+      <LocaleProvider initialLocale="tr">
+        <LoginForm nextPath="/" />
+      </LocaleProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Giriş yap" }));
+    expect(await screen.findByText("İş e-posta adresinizi girin.")).toBeInTheDocument();
+    expect(screen.getByText("Parolanızı girin.")).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("E-posta"), "amina@touche.example");
+    await user.type(screen.getByLabelText("Parola"), "wrong");
+    await user.click(screen.getByRole("button", { name: "Parolayı göster" }));
+    await user.click(screen.getByRole("button", { name: "Giriş yap" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("E-posta veya parola hatalı.");
   });
 });

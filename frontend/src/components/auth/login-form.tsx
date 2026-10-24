@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { login } from "@/lib/auth/client";
 import { safeNextPath } from "@/lib/auth/guard";
 import type { ActionResultFailure } from "@/lib/auth/client";
+import { useLocale, type Translate } from "@/lib/i18n/locale-provider";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -19,19 +20,19 @@ interface FieldErrors {
   password?: string;
 }
 
-export function failureMessage(failure: ActionResultFailure): string {
+export function failureMessage(failure: ActionResultFailure, t: Translate): string {
   switch (failure.code) {
     case "RATE_LIMITED":
       return failure.retryAfterSeconds
-        ? `Too many sign-in attempts. Try again in ${failure.retryAfterSeconds} seconds.`
-        : "Too many sign-in attempts. Try again later.";
+        ? t("loginRateLimitedSeconds", { seconds: failure.retryAfterSeconds })
+        : t("loginRateLimited");
     case "ORIGIN_REJECTED":
     case "CSRF_REJECTED":
-      return "The sign-in request was rejected by the server. Reload the page and try again.";
+      return t("loginRejected");
     case "VALIDATION_ERROR":
-      return "Check the email address and password, then try again.";
-    case "UNREACHABLE":
-      return failure.message;
+      return t("loginCheckFields");
+    case "UNAUTHORIZED":
+      return t("loginInvalidCredentials");
     default:
       return failure.message;
   }
@@ -39,6 +40,7 @@ export function failureMessage(failure: ActionResultFailure): string {
 
 export function LoginForm({ nextPath }: { nextPath: string }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -49,9 +51,9 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
   function validate(): boolean {
     const next: FieldErrors = {};
     const trimmed = email.trim();
-    if (!trimmed) next.email = "Enter your work email.";
-    else if (!EMAIL_PATTERN.test(trimmed)) next.email = "Enter a valid email address.";
-    if (!password) next.password = "Enter your password.";
+    if (!trimmed) next.email = t("loginEmailRequired");
+    else if (!EMAIL_PATTERN.test(trimmed)) next.email = t("loginEmailInvalid");
+    if (!password) next.password = t("loginPasswordRequired");
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -66,7 +68,7 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
     setPending(false);
 
     if (!result.ok) {
-      setFailure(failureMessage(result));
+      setFailure(failureMessage(result, t));
       return;
     }
 
@@ -84,7 +86,7 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
       ) : null}
 
       <div className="space-y-1.5">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t("loginEmail")}</Label>
         <Input
           id="email"
           name="email"
@@ -107,7 +109,7 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{t("loginPassword")}</Label>
         <div className="relative">
           <Input
             id="password"
@@ -125,7 +127,7 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
           <button
             type="button"
             onClick={() => setShowPassword((visible) => !visible)}
-            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-label={showPassword ? t("loginHidePassword") : t("loginShowPassword")}
             className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-mist-500 transition-colors hover:text-mist-200"
           >
             {showPassword ? (
@@ -146,20 +148,17 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
         {pending ? (
           <>
             <Loader2 className="size-4 animate-spin" aria-hidden />
-            Signing in…
+            {t("loginSubmitting")}
           </>
         ) : (
           <>
-            Sign in
+            {t("loginSubmit")}
             <ArrowRight className="size-4" aria-hidden />
           </>
         )}
       </Button>
 
-      <p className="text-[11px] leading-relaxed text-mist-600">
-        Sessions are held server-side and expire after 30 minutes of inactivity or 12 hours in
-        total. Credentials are verified with Argon2id; failed attempts are rate limited.
-      </p>
+      <p className="text-[11px] leading-relaxed text-mist-600">{t("loginSessionNote")}</p>
     </form>
   );
 }
