@@ -35,6 +35,20 @@ from app.services import admin
 from tests.support import ORIGIN, TEST_PASSWORD
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_configure(config: pytest.Config) -> None:
+    """Keep pytest scratch files inside the git-ignored ``backend/var`` directory.
+
+    On Windows a stale or ACL-restricted ``pytest-of-<user>`` folder in the temp
+    directory (left behind by another tool that ran with a different security context)
+    makes every ``tmp_path`` test fail with ``PermissionError``. A repository-local base
+    directory is private to this checkout, cleaned at the start of each session and
+    never committed.
+    """
+    if config.option.basetemp is None:
+        config.option.basetemp = BACKEND_ROOT / "var" / "pytest-tmp"
 UNREACHABLE_DSN = "postgresql+psycopg://touche_app:unused_password@127.0.0.1:59999/touche_test"
 
 
