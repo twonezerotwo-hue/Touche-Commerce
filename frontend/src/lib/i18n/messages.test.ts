@@ -72,6 +72,9 @@ describe("Stage 12B catalogue integrity", () => {
       "profileSwift",
       "actPlatform",
       "channelPortal",
+      "srcIncoterm",
+      "srcColRfq",
+      "rfqEyebrow",
       "ordColModel",
       "ordIncoterm",
     ]);

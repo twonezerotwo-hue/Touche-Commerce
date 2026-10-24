@@ -10,7 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { transitionRfq } from "@/lib/sourcing/client";
-import { etagFor, statusLabel } from "@/lib/sourcing/format";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { sourcingStatusText } from "@/lib/i18n/value-labels";
+import { etagFor } from "@/lib/sourcing/format";
 import type { Rfq, RfqStatus } from "@/lib/sourcing/types";
 
 const REASON_REQUIRED = new Set<RfqStatus>(["CANCELLED"]);
@@ -33,6 +35,8 @@ export function RfqActions({
   canWrite: boolean;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
+  const statusLabel = (value: string): string => sourcingStatusText(t, value);
   const [target, setTarget] = useState<RfqStatus | null>(null);
   const [channel, setChannel] = useState("email");
   const [evidence, setEvidence] = useState("");
@@ -46,11 +50,11 @@ export function RfqActions({
     setNotice(null);
 
     if (to === SEND_TARGET && (channel.trim().length < 2 || evidence.trim().length < 3)) {
-      setError("Sending needs a channel and recorded evidence (for example the message id).");
+      setError(t("rfqaNeedsEvidence"));
       return;
     }
     if (REASON_REQUIRED.has(to) && reason.trim().length < 3) {
-      setError("Cancelling an RFQ requires a reason of at least 3 characters.");
+      setError(t("rfqaCancelNeedsReason"));
       return;
     }
 
@@ -71,7 +75,7 @@ export function RfqActions({
     if (!result.ok) {
       setError(
         result.code === "VERSION_CONFLICT"
-          ? `${result.message} Reload the RFQ before retrying.`
+          ? t("rfqaVersionConflict", { message: result.message })
           : result.message,
       );
       return;
@@ -80,22 +84,22 @@ export function RfqActions({
     setTarget(null);
     setEvidence("");
     setReason("");
-    setNotice(`RFQ moved to ${statusLabel(result.data.status)}.`);
+    setNotice(t("rfqaMoved", { status: statusLabel(result.data.status) }));
     router.refresh();
   }
 
   if (!canWrite) {
     return (
-      <Alert variant="info" title="Read-only access">
-        Changing an RFQ requires <span className="font-mono">trade.write</span>.
+      <Alert variant="info" title={t("readOnlyAccess")}>
+        {t("rfqaReadOnly")}
       </Alert>
     );
   }
 
   if (rfq.allowed_transitions.length === 0) {
     return (
-      <Alert variant="info" title={`RFQ ${statusLabel(rfq.status)}`}>
-        No further transitions are available from this status.
+      <Alert variant="info" title={t("rfqaStatusTitle", { status: statusLabel(rfq.status) })}>
+        {t("rfqaNoTransitions")}
       </Alert>
     );
   }
@@ -124,21 +128,18 @@ export function RfqActions({
             ) : (
               <ArrowRight className="size-3.5" aria-hidden />
             )}
-            {status === "PREPARED" ? "Prepare snapshot" : statusLabel(status)}
+            {status === "PREPARED" ? t("rfqaPrepare") : statusLabel(status)}
           </Button>
         ))}
       </div>
 
-      <p className="text-[11px] leading-relaxed text-mist-600">
-        Preparing writes an immutable revision of the lines. Sending additionally records the
-        channel, the time and the evidence that it left the building.
-      </p>
+      <p className="text-[11px] leading-relaxed text-mist-600">{t("rfqaHint")}</p>
 
       {target ? (
         <div className="rounded-lg border border-white/[0.07] bg-white/[0.015] p-3">
           <div className="flex items-center justify-between gap-3">
             <p className="text-[12.5px] text-mist-200">
-              Move to <span className="font-medium">{statusLabel(target)}</span>
+              {t("rfqaMoveTo")} <span className="font-medium">{statusLabel(target)}</span>
             </p>
             <Button
               type="button"
@@ -150,30 +151,30 @@ export function RfqActions({
                 setEvidence("");
               }}
             >
-              Cancel
+              {t("actionCancel")}
             </Button>
           </div>
 
           {target === SEND_TARGET ? (
             <div className="mt-3 space-y-3">
               <div className="space-y-1.5">
-                <Label htmlFor="rfq-channel">Channel</Label>
+                <Label htmlFor="rfq-channel">{t("rfqaChannel")}</Label>
                 <Input
                   id="rfq-channel"
                   value={channel}
                   maxLength={40}
                   onChange={(event) => setChannel(event.target.value)}
-                  placeholder="email"
+                  placeholder={t("rfqaChannelPlaceholder")}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="rfq-evidence">Evidence (required)</Label>
+                <Label htmlFor="rfq-evidence">{t("rfqaEvidence")}</Label>
                 <Input
                   id="rfq-evidence"
                   value={evidence}
                   maxLength={500}
                   onChange={(event) => setEvidence(event.target.value)}
-                  placeholder="Message id or thread reference"
+                  placeholder={t("rfqaEvidencePlaceholder")}
                 />
               </div>
             </div>
@@ -181,13 +182,13 @@ export function RfqActions({
 
           {REASON_REQUIRED.has(target) ? (
             <div className="mt-3 space-y-1.5">
-              <Label htmlFor="rfq-reason">Reason (required)</Label>
+              <Label htmlFor="rfq-reason">{t("rfqaReason")}</Label>
               <Textarea
                 id="rfq-reason"
                 value={reason}
                 maxLength={500}
                 onChange={(event) => setReason(event.target.value)}
-                placeholder="Why is this RFQ being cancelled?"
+                placeholder={t("rfqaReasonPlaceholder")}
               />
             </div>
           ) : null}
@@ -200,7 +201,7 @@ export function RfqActions({
             onClick={() => apply(target)}
           >
             {pending ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-            {pending ? "Applying…" : `Confirm ${statusLabel(target)}`}
+            {pending ? t("rfqaApplying") : t("rfqaConfirm", { status: statusLabel(target) })}
           </Button>
         </div>
       ) : null}

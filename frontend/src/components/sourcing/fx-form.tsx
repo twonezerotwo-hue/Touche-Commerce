@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { parseErrorEnvelope } from "@/lib/api/client";
 import { BROWSER_API_PREFIX } from "@/lib/api/config";
+import { useLocale } from "@/lib/i18n/locale-provider";
 import { newIdempotencyKey } from "@/lib/sourcing/client";
 
 /**
@@ -20,6 +21,7 @@ import { newIdempotencyKey } from "@/lib/sourcing/client";
  */
 export function FxRateForm({ csrfToken }: { csrfToken: string }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [base, setBase] = useState("EUR");
   const [quote, setQuote] = useState("USD");
   const [rate, setRate] = useState("");
@@ -35,15 +37,15 @@ export function FxRateForm({ csrfToken }: { csrfToken: string }) {
     setNotice(null);
 
     if (base.length !== 3 || quote.length !== 3 || base === quote) {
-      setError("Use two different three-letter currency codes.");
+      setError(t("fxfCurrencyCodes"));
       return;
     }
     if (!effectiveAt) {
-      setError("Record when the rate was effective.");
+      setError(t("fxfEffectiveRequired"));
       return;
     }
     if (source.trim().length < 3) {
-      setError("Name the source of the rate.");
+      setError(t("fxfSourceRequired"));
       return;
     }
 
@@ -69,15 +71,15 @@ export function FxRateForm({ csrfToken }: { csrfToken: string }) {
       });
       const payload: unknown = await response.json().catch(() => null);
       if (!response.ok) {
-        setError(parseErrorEnvelope(payload)?.error.message ?? "The rate could not be recorded.");
+        setError(parseErrorEnvelope(payload)?.error.message ?? t("fxfFailed"));
         return;
       }
       setRate("");
       setSource("");
-      setNotice("Snapshot recorded.");
+      setNotice(t("fxfRecorded"));
       router.refresh();
     } catch {
-      setError("Cannot reach the API.");
+      setError(t("fxfUnreachable"));
     } finally {
       setPending(false);
     }
@@ -90,7 +92,7 @@ export function FxRateForm({ csrfToken }: { csrfToken: string }) {
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="space-y-1.5">
-          <Label htmlFor="fx-base">Base</Label>
+          <Label htmlFor="fx-base">{t("fxfBase")}</Label>
           <Input
             id="fx-base"
             value={base}
@@ -99,7 +101,7 @@ export function FxRateForm({ csrfToken }: { csrfToken: string }) {
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="fx-quote">Quote</Label>
+          <Label htmlFor="fx-quote">{t("fxfQuote")}</Label>
           <Input
             id="fx-quote"
             value={quote}
@@ -108,7 +110,7 @@ export function FxRateForm({ csrfToken }: { csrfToken: string }) {
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="fx-rate">Rate</Label>
+          <Label htmlFor="fx-rate">{t("fxfRate")}</Label>
           <Input
             id="fx-rate"
             value={rate}
@@ -118,7 +120,7 @@ export function FxRateForm({ csrfToken }: { csrfToken: string }) {
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="fx-effective">Effective</Label>
+          <Label htmlFor="fx-effective">{t("fxfEffective")}</Label>
           <Input
             id="fx-effective"
             type="date"
@@ -127,20 +129,20 @@ export function FxRateForm({ csrfToken }: { csrfToken: string }) {
           />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="fx-source">Source</Label>
+          <Label htmlFor="fx-source">{t("fxfSource")}</Label>
           <Input
             id="fx-source"
             value={source}
             maxLength={160}
             onChange={(event) => setSource(event.target.value)}
-            placeholder="ECB reference rate 2026-10-22"
+            placeholder={t("fxfSourcePlaceholder")}
           />
         </div>
       </div>
 
       <Button type="submit" size="sm" disabled={pending}>
         {pending ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-        {pending ? "Recording…" : "Record snapshot"}
+        {pending ? t("fxfRecording") : t("fxfRecord")}
       </Button>
     </form>
   );

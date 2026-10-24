@@ -20,15 +20,17 @@ import {
 import { FxRateForm } from "@/components/sourcing/fx-form";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { getServerT, titleFor } from "@/lib/i18n/server";
 import type { FxRateList } from "@/lib/sourcing/types";
 import { formatTimestamp } from "@/lib/trade/format";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "FX snapshots" };
+export const generateMetadata = () => titleFor("fxTitle");
 
 export default async function FxRatesPage() {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t, locale } = await getServerT();
   const canWrite = state.session.session.company?.permissions.includes("trade.write") ?? false;
 
   const result = await serverGet<FxRateList>("/fx-rates?limit=50");
@@ -36,21 +38,18 @@ export default async function FxRatesPage() {
   return (
     <div className="mx-auto max-w-[1100px] space-y-5">
       <PageHeader
-        eyebrow="Sourcing"
-        meta={<Badge variant="secondary">FX</Badge>}
-        title="FX snapshots"
-        description="Recorded observations only. Every converted price points at one of these rows, which is what makes a landed cost reproducible months later."
+        eyebrow={t("srcEyebrow")}
+        meta={<Badge variant="secondary">{t("fxBadge")}</Badge>}
+        title={t("fxTitle")}
+        description={t("fxDescription")}
       />
 
       {canWrite ? (
         <Card>
           <CardHeader>
             <CardHeading>
-              <CardTitle>Record a rate</CardTitle>
-              <CardDescription>
-                The pair and effective time are unique per company; recording the same observation
-                twice is rejected rather than silently duplicated.
-              </CardDescription>
+              <CardTitle>{t("fxRecordRate")}</CardTitle>
+              <CardDescription>{t("fxRecordRateHint")}</CardDescription>
             </CardHeading>
           </CardHeader>
           <CardContent>
@@ -62,28 +61,26 @@ export default async function FxRatesPage() {
       <Card>
         <CardHeader>
           <CardHeading>
-            <CardTitle>Recent snapshots</CardTitle>
-            <CardDescription>Newest recording first.</CardDescription>
+            <CardTitle>{t("fxRecent")}</CardTitle>
+            <CardDescription>{t("fxRecentHint")}</CardDescription>
           </CardHeading>
         </CardHeader>
         <CardContent>
           {!result.ok ? (
-            <Alert variant="danger" title="FX snapshots unavailable">
+            <Alert variant="danger" title={t("fxUnavailable")}>
               {result.message}
             </Alert>
           ) : result.data.items.length === 0 ? (
-            <p className="text-[11.5px] text-mist-600">
-              No snapshots yet. Cross-currency pricing will be blocked until one exists.
-            </p>
+            <p className="text-[11.5px] text-mist-600">{t("fxNone")}</p>
           ) : (
             <Table bare>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Pair</TableHead>
-                  <TableHead className="text-right">Rate</TableHead>
-                  <TableHead>Effective</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead className="text-right">Recorded</TableHead>
+                  <TableHead>{t("srcColPair")}</TableHead>
+                  <TableHead className="text-right">{t("srcColRate")}</TableHead>
+                  <TableHead>{t("srcColEffective")}</TableHead>
+                  <TableHead>{t("srcColSource")}</TableHead>
+                  <TableHead className="text-right">{t("srcColRecorded")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -96,13 +93,13 @@ export default async function FxRatesPage() {
                       {rate.rate}
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-[11.5px] text-mist-400">
-                      {formatTimestamp(rate.effective_at)}
+                      {formatTimestamp(rate.effective_at, locale)}
                     </TableCell>
                     <TableCell className="max-w-[260px] truncate text-[11.5px] text-mist-400">
                       {rate.source}
                     </TableCell>
                     <TableCell className="text-right font-mono text-[10.5px] whitespace-nowrap text-mist-600">
-                      {formatTimestamp(rate.recorded_at)}
+                      {formatTimestamp(rate.recorded_at, locale)}
                     </TableCell>
                   </TableRow>
                 ))}

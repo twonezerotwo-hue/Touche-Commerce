@@ -24,12 +24,15 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { getServerT, titleFor } from "@/lib/i18n/server";
+import { costBasisText, costTypeText, verificationText } from "@/lib/i18n/value-labels";
 import { formatPercent } from "@/lib/sourcing/format";
 import type { PricingScenario } from "@/lib/sourcing/types";
 import type { CounterpartyList } from "@/lib/trade/types";
 import { formatMoney, formatQuantity, formatTimestamp } from "@/lib/trade/format";
 
 export const dynamic = "force-dynamic";
+export const generateMetadata = () => titleFor("prcEyebrow");
 
 interface ResultLine {
   product_id: string;
@@ -55,6 +58,7 @@ interface ResultTotals {
 export default async function PricingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t, locale } = await getServerT();
   const canWrite = state.session.session.company?.permissions.includes("trade.write") ?? false;
   const { id } = await params;
 
@@ -67,11 +71,11 @@ export default async function PricingDetailPage({ params }: { params: Promise<{ 
     return (
       <div className="mx-auto max-w-[900px] space-y-4">
         <PageHeader
-          eyebrow="Pricing scenario"
-          back={{ href: "/pricing", label: "Pricing" }}
-          title="Scenario unavailable"
+          eyebrow={t("prcEyebrow")}
+          back={{ href: "/pricing", label: t("prcBadge") }}
+          title={t("prcUnavailableTitle")}
         />
-        <Alert variant="danger" title="Could not load this scenario">
+        <Alert variant="danger" title={t("prcLoadFailed")}>
           {scenario.message}
         </Alert>
       </div>
@@ -85,12 +89,13 @@ export default async function PricingDetailPage({ params }: { params: Promise<{ 
   };
   const totals = results.totals;
   const currency = record.target_currency;
+  const money = (value: string, code: string = currency) => formatMoney(value, code, locale);
 
   return (
     <div className="mx-auto max-w-[1200px] space-y-5">
       <PageHeader
-        eyebrow="Pricing scenario"
-        back={{ href: "/pricing", label: "Pricing" }}
+        eyebrow={t("prcEyebrow")}
+        back={{ href: "/pricing", label: t("prcBadge") }}
         meta={
           <div className="flex items-center gap-2">
             <SourcingStatusBadge status={record.status} />
@@ -98,35 +103,47 @@ export default async function PricingDetailPage({ params }: { params: Promise<{ 
           </div>
         }
         title={`${record.supplier_name} · ${currency}`}
-        description={`RFQ ${record.rfq_reference} · quote ${record.quote_currency} r${record.quote_revision} · updated ${formatTimestamp(record.updated_at)}`}
+        description={t("prcHeaderDescription", {
+          rfq: record.rfq_reference,
+          currency: record.quote_currency,
+          revision: record.quote_revision,
+          when: formatTimestamp(record.updated_at, locale),
+        })}
       />
 
       {totals ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Stat
-            label="Landed cost"
-            value={formatMoney(totals.landed_total, currency)}
-            detail={`Purchase ${formatMoney(totals.purchase_total, currency)} + costs ${formatMoney(totals.additional_cost_total, currency)}`}
+            label={t("prcStatLanded")}
+            value={money(totals.landed_total)}
+            detail={t("prcStatLandedDetail", {
+              purchase: money(totals.purchase_total),
+              costs: money(totals.additional_cost_total),
+            })}
           />
           <Stat
-            label="Sales value"
-            value={formatMoney(totals.sales_total, currency)}
-            detail="Sum of the rounded line prices"
+            label={t("prcStatSales")}
+            value={money(totals.sales_total)}
+            detail={t("prcStatSalesDetail")}
             tone="jade"
           />
           <Stat
-            label="Gross margin"
-            value={formatMoney(totals.gross_margin, currency)}
-            detail={`${formatPercent(totals.gross_margin_pct)} of sales`}
+            label={t("prcStatMargin")}
+            value={money(totals.gross_margin)}
+            detail={t("prcStatMarginDetail", {
+              pct: formatPercent(totals.gross_margin_pct, locale),
+            })}
             tone="neutral"
           />
           <Stat
-            label="FX applied"
+            label={t("prcStatFx")}
             value={String(record.pricing_inputs.fx_rate ?? "1")}
             detail={
               record.pricing_inputs.fx_snapshot_id
-                ? `snapshot ${String(record.pricing_inputs.fx_snapshot_id).slice(0, 8)}…`
-                : "Same currency — no conversion"
+                ? t("prcStatFxSnapshot", {
+                    id: String(record.pricing_inputs.fx_snapshot_id).slice(0, 8),
+                  })
+                : t("prcStatFxSame")
             }
             tone="amber"
           />
@@ -138,22 +155,20 @@ export default async function PricingDetailPage({ params }: { params: Promise<{ 
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Priced lines</CardTitle>
-                <CardDescription>
-                  Landed unit cost includes the pro-rata or line-specific costs below.
-                </CardDescription>
+                <CardTitle>{t("prcPricedLines")}</CardTitle>
+                <CardDescription>{t("prcPricedLinesHint")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent>
               <Table bare>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Quantity</TableHead>
-                    <TableHead className="text-right">Allocated</TableHead>
-                    <TableHead className="text-right">Landed unit</TableHead>
-                    <TableHead className="text-right">Sale unit</TableHead>
-                    <TableHead className="text-right">Line margin</TableHead>
+                    <TableHead>{t("srcColDescription")}</TableHead>
+                    <TableHead className="text-right">{t("srcColQuantity")}</TableHead>
+                    <TableHead className="text-right">{t("srcColAllocated")}</TableHead>
+                    <TableHead className="text-right">{t("srcColLandedUnit")}</TableHead>
+                    <TableHead className="text-right">{t("srcColSaleUnit")}</TableHead>
+                    <TableHead className="text-right">{t("srcColLineMargin")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -163,19 +178,19 @@ export default async function PricingDetailPage({ params }: { params: Promise<{ 
                         {line.description}
                       </TableCell>
                       <TableCell className="text-right text-[11.5px] text-mist-300">
-                        {formatQuantity(line.quantity, line.unit)}
+                        {formatQuantity(line.quantity, line.unit, locale)}
                       </TableCell>
                       <TableCell className="text-right text-[11.5px] text-mist-300">
-                        {formatMoney(line.allocated_cost, currency)}
+                        {money(line.allocated_cost)}
                       </TableCell>
                       <TableCell className="text-right text-[11.5px] text-mist-200">
-                        {formatMoney(line.landed_unit_cost, currency)}
+                        {money(line.landed_unit_cost)}
                       </TableCell>
                       <TableCell className="text-right text-[11.5px] text-mist-100">
-                        {formatMoney(line.unit_sale_price, currency)}
+                        {money(line.unit_sale_price)}
                       </TableCell>
                       <TableCell className="text-right text-[11.5px] text-mist-300">
-                        {formatMoney(line.line_margin, currency)}
+                        {money(line.line_margin)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -187,28 +202,26 @@ export default async function PricingDetailPage({ params }: { params: Promise<{ 
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Cost components</CardTitle>
-                <CardDescription>
-                  Every cost carries its source and whether it was estimated or verified.
-                </CardDescription>
+                <CardTitle>{t("prcCostComponents")}</CardTitle>
+                <CardDescription>{t("prcCostComponentsHint")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent>
               <Table bare>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead>Basis</TableHead>
-                    <TableHead>Verification</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>{t("srcColType")}</TableHead>
+                    <TableHead>{t("srcColSource")}</TableHead>
+                    <TableHead>{t("srcColBasis")}</TableHead>
+                    <TableHead>{t("srcColVerification")}</TableHead>
+                    <TableHead className="text-right">{t("srcColAmount")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {record.components.map((component) => (
                     <TableRow key={component.id}>
                       <TableCell className="text-[11.5px] text-mist-100">
-                        {component.cost_type.replaceAll("_", " ")}
+                        {costTypeText(t, component.cost_type)}
                         {component.product_sku ? (
                           <span className="ml-1 font-mono text-[10px] text-mist-500">
                             {component.product_sku}
@@ -218,18 +231,20 @@ export default async function PricingDetailPage({ params }: { params: Promise<{ 
                       <TableCell className="max-w-[220px] truncate text-[11px] text-mist-400">
                         {component.source_reference}
                       </TableCell>
-                      <TableCell className="text-[11px] text-mist-400">{component.basis}</TableCell>
+                      <TableCell className="text-[11px] text-mist-400">
+                        {costBasisText(t, component.basis)}
+                      </TableCell>
                       <TableCell className="text-[11px]">
                         <Badge
                           variant={
                             component.verification_status === "VERIFIED" ? "success" : "warning"
                           }
                         >
-                          {component.verification_status}
+                          {verificationText(t, component.verification_status)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right whitespace-nowrap text-[11.5px] text-mist-200">
-                        {formatMoney(component.amount, component.currency)}
+                        {money(component.amount, component.currency)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -243,10 +258,8 @@ export default async function PricingDetailPage({ params }: { params: Promise<{ 
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Draft a sales quote</CardTitle>
-                <CardDescription>
-                  Prices come from this scenario. Submission needs verified inputs.
-                </CardDescription>
+                <CardTitle>{t("prcDraftSalesQuote")}</CardTitle>
+                <CardDescription>{t("prcDraftSalesQuoteHint")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent>
@@ -257,8 +270,8 @@ export default async function PricingDetailPage({ params }: { params: Promise<{ 
                   csrfToken={state.session.session.csrf_token}
                 />
               ) : (
-                <Alert variant="info" title="Read-only access">
-                  Drafting a sales quote requires <span className="font-mono">trade.write</span>.
+                <Alert variant="info" title={t("readOnlyAccess")}>
+                  {t("prcDraftNeedsWrite")}
                 </Alert>
               )}
             </CardContent>
@@ -267,30 +280,32 @@ export default async function PricingDetailPage({ params }: { params: Promise<{ 
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Completeness</CardTitle>
-                <CardDescription>What the engine knew when it calculated.</CardDescription>
+                <CardTitle>{t("prcCompleteness")}</CardTitle>
+                <CardDescription>{t("prcCompletenessHint")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent>
               <dl className="space-y-2 text-[11.5px]">
                 <div>
-                  <dt className="eyebrow">Lines / components</dt>
+                  <dt className="eyebrow">{t("prcLinesComponents")}</dt>
                   <dd className="text-mist-200">
-                    {String(record.completeness.line_count ?? "—")} lines ·{" "}
-                    {String(record.completeness.component_count ?? "—")} costs
+                    {t("prcLinesCosts", {
+                      lines: String(record.completeness.line_count ?? "—"),
+                      costs: String(record.completeness.component_count ?? "—"),
+                    })}
                   </dd>
                 </div>
                 <div>
-                  <dt className="eyebrow">Estimated components</dt>
+                  <dt className="eyebrow">{t("prcEstimatedComponents")}</dt>
                   <dd className="text-mist-200">
                     {String(record.completeness.estimated_component_count ?? "—")}
                   </dd>
                 </div>
                 <div>
-                  <dt className="eyebrow">Realised margin / markup</dt>
+                  <dt className="eyebrow">{t("prcRealised")}</dt>
                   <dd className="text-mist-200">
-                    {formatPercent(String(record.completeness.realised_margin_pct ?? ""))} /{" "}
-                    {formatPercent(String(record.completeness.realised_markup_pct ?? ""))}
+                    {formatPercent(String(record.completeness.realised_margin_pct ?? ""), locale)} /{" "}
+                    {formatPercent(String(record.completeness.realised_markup_pct ?? ""), locale)}
                   </dd>
                 </div>
               </dl>
@@ -301,7 +316,7 @@ export default async function PricingDetailPage({ params }: { params: Promise<{ 
             href={`/quotes/${record.supplier_quote_id}`}
             className="inline-flex text-[12px] text-accent-200 hover:text-accent-100"
           >
-            Open the supplier quote behind this scenario
+            {t("prcOpenQuote")}
           </Link>
         </div>
       </div>

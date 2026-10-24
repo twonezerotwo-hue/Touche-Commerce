@@ -16,11 +16,13 @@ import {
 import { SourcingStatusBadge } from "@/components/sourcing/status-badge";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { getServerT, titleFor } from "@/lib/i18n/server";
+import { sourcingStatusText } from "@/lib/i18n/value-labels";
 import { SALES_QUOTE_STATUSES, type SalesQuoteList } from "@/lib/sourcing/types";
 import { formatDate, formatMoney, formatTimestamp, withQuery } from "@/lib/trade/format";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Sales quotes" };
+export const generateMetadata = () => titleFor("slqBadge");
 
 const PAGE_SIZE = 25;
 
@@ -31,6 +33,7 @@ export default async function SalesQuotesPage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t, locale } = await getServerT();
 
   const params = await searchParams;
   const query = new URLSearchParams({ limit: String(PAGE_SIZE) });
@@ -43,10 +46,10 @@ export default async function SalesQuotesPage({
   return (
     <div className="mx-auto max-w-[1360px] space-y-5">
       <PageHeader
-        eyebrow="Sourcing"
-        meta={<Badge variant="secondary">Sales quotes</Badge>}
-        title="Customer quotations"
-        description="Drafted from a priced scenario, then submitted, approved or rejected. Approval requires finance.approve and a different person from the submitter."
+        eyebrow={t("srcEyebrow")}
+        meta={<Badge variant="secondary">{t("slqBadge")}</Badge>}
+        title={t("slqTitle")}
+        description={t("slqDescription")}
       />
 
       <div className="panel overflow-hidden">
@@ -57,7 +60,7 @@ export default async function SalesQuotesPage({
         >
           <div className="space-y-1">
             <label htmlFor="sq-filter-status" className="eyebrow">
-              Status
+              {t("srcFilterStatus")}
             </label>
             <Select
               id="sq-filter-status"
@@ -65,20 +68,20 @@ export default async function SalesQuotesPage({
               defaultValue={filters.status}
               className="h-8 w-[190px] text-[12px]"
             >
-              <option value="">All statuses</option>
+              <option value="">{t("filterAllStatuses")}</option>
               {SALES_QUOTE_STATUSES.map((status) => (
                 <option key={status} value={status}>
-                  {status.replaceAll("_", " ")}
+                  {sourcingStatusText(t, status)}
                 </option>
               ))}
             </Select>
           </div>
           <Button type="submit" size="sm" variant="subtle">
-            Apply
+            {t("srcApply")}
           </Button>
           {filters.status ? (
             <Button asChild size="sm" variant="ghost">
-              <Link href="/sales-quotes">Clear</Link>
+              <Link href="/sales-quotes">{t("actionClear")}</Link>
             </Button>
           ) : null}
         </form>
@@ -87,15 +90,15 @@ export default async function SalesQuotesPage({
 
         {!result.ok ? (
           <div className="p-4">
-            <Alert variant="danger" title="Sales quotes unavailable">
+            <Alert variant="danger" title={t("slqUnavailable")}>
               {result.message}
             </Alert>
           </div>
         ) : result.data.items.length === 0 ? (
           <div className="p-4">
             <EmptyState
-              title="No sales quotes yet"
-              description="Price a supplier quote, then draft a customer quotation from the scenario."
+              title={t("slqNone")}
+              description={t("slqNoneHint")}
               className="border-dashed bg-transparent py-10"
             />
           </div>
@@ -105,14 +108,14 @@ export default async function SalesQuotesPage({
           <Table bare>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-4">Number</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Deal</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Inputs</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead>Valid until</TableHead>
-                <TableHead className="pr-4 text-right">Updated</TableHead>
+                <TableHead className="pl-4">{t("srcColNumber")}</TableHead>
+                <TableHead>{t("srcColCustomer")}</TableHead>
+                <TableHead>{t("srcColDeal")}</TableHead>
+                <TableHead>{t("columnStatus")}</TableHead>
+                <TableHead>{t("srcColInputs")}</TableHead>
+                <TableHead className="text-right">{t("srcColTotal")}</TableHead>
+                <TableHead>{t("srcColValidUntil")}</TableHead>
+                <TableHead className="pr-4 text-right">{t("columnUpdated")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -139,13 +142,13 @@ export default async function SalesQuotesPage({
                     <SourcingStatusBadge status={quote.scenario_status} />
                   </TableCell>
                   <TableCell className="text-right whitespace-nowrap text-[12px] text-mist-200">
-                    {formatMoney(quote.total_value, quote.currency)}
+                    {formatMoney(quote.total_value, quote.currency, locale)}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-[11.5px] text-mist-400">
-                    {formatDate(quote.valid_until)}
+                    {formatDate(quote.valid_until, locale)}
                   </TableCell>
                   <TableCell className="pr-4 text-right font-mono text-[10.5px] whitespace-nowrap text-mist-600">
-                    {formatTimestamp(quote.updated_at)}
+                    {formatTimestamp(quote.updated_at, locale)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -155,12 +158,12 @@ export default async function SalesQuotesPage({
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-3">
           <p className="text-[10.5px] text-mist-600">
-            {result.ok ? `${result.data.items.length} on this page` : "—"}
+            {result.ok ? t("listOnPage", { count: result.data.items.length }) : "—"}
           </p>
           <div className="flex items-center gap-3">
             {params.cursor ? (
               <Button asChild variant="ghost" size="xs">
-                <Link href={withQuery("/sales-quotes", filters)}>First page</Link>
+                <Link href={withQuery("/sales-quotes", filters)}>{t("pageFirst")}</Link>
               </Button>
             ) : null}
             {result.ok && result.data.has_more && result.data.next_cursor ? (
@@ -171,7 +174,7 @@ export default async function SalesQuotesPage({
                     cursor: result.data.next_cursor,
                   })}
                 >
-                  Next page
+                  {t("pageNextPage")}
                 </Link>
               </Button>
             ) : null}

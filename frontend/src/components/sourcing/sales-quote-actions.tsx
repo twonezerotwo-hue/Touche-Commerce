@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { sourcingStatusText } from "@/lib/i18n/value-labels";
 import { actOnSalesQuote, type SalesQuoteAction } from "@/lib/sourcing/client";
 import { etagFor } from "@/lib/sourcing/format";
 import type { SalesQuote } from "@/lib/sourcing/types";
@@ -32,6 +34,7 @@ export function SalesQuoteActions({
   canApprove: boolean;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [action, setAction] = useState<SalesQuoteAction | null>(null);
   const [reason, setReason] = useState("");
   const [validUntil, setValidUntil] = useState("");
@@ -67,9 +70,9 @@ export function SalesQuoteActions({
     if (!result.ok) {
       setError(
         result.code === "VERSION_CONFLICT"
-          ? `${result.message} Reload the quote before retrying.`
+          ? t("sqaVersionConflict", { message: result.message })
           : result.code === "FORBIDDEN"
-            ? `${result.message} Approving requires finance.approve and a different person from the submitter.`
+            ? t("sqaForbidden", { message: result.message })
             : result.message,
       );
       return;
@@ -78,15 +81,14 @@ export function SalesQuoteActions({
     setAction(null);
     setReason("");
     setValidUntil("");
-    setNotice(`Quote is now ${result.data.status.replaceAll("_", " ").toLowerCase()}.`);
+    setNotice(t("sqaNowStatus", { status: sourcingStatusText(t, result.data.status) }));
     router.refresh();
   }
 
   if (!canWrite && !canApprove) {
     return (
-      <Alert variant="info" title="Read-only access">
-        The workflow requires <span className="font-mono">trade.write</span>, and approval requires{" "}
-        <span className="font-mono">finance.approve</span>.
+      <Alert variant="info" title={t("readOnlyAccess")}>
+        {t("sqaReadOnly")}
       </Alert>
     );
   }
@@ -100,14 +102,14 @@ export function SalesQuoteActions({
         {canSubmit && canWrite ? (
           <Button type="button" size="sm" disabled={pending} onClick={() => setAction("submit")}>
             <Send className="size-3.5" aria-hidden />
-            Submit for approval
+            {t("sqaSubmit")}
           </Button>
         ) : null}
         {canDecide ? (
           <>
             <Button type="button" size="sm" disabled={pending} onClick={() => setAction("approve")}>
               <Check className="size-3.5" aria-hidden />
-              Approve
+              {t("sqaApprove")}
             </Button>
             <Button
               type="button"
@@ -117,7 +119,7 @@ export function SalesQuoteActions({
               onClick={() => setAction("reject")}
             >
               <X className="size-3.5" aria-hidden />
-              Reject
+              {t("sqaReject")}
             </Button>
           </>
         ) : null}
@@ -130,7 +132,7 @@ export function SalesQuoteActions({
             onClick={() => setAction("withdraw")}
           >
             <Undo2 className="size-3.5" aria-hidden />
-            Withdraw
+            {t("sqaWithdraw")}
           </Button>
         ) : null}
         {canRevise ? (
@@ -142,44 +144,43 @@ export function SalesQuoteActions({
             onClick={() => setAction("revisions")}
           >
             <RotateCcw className="size-3.5" aria-hidden />
-            New revision
+            {t("sqaNewRevision")}
           </Button>
         ) : null}
       </div>
 
       {action === "submit" && !quote.can_submit ? (
-        <Alert variant="info" title="Inputs are not verified">
-          The pricing scenario is {quote.scenario_status.replaceAll("_", " ").toLowerCase()}. Verify
-          every cost component before requesting approval.
+        <Alert variant="info" title={t("sqaNotVerifiedTitle")}>
+          {t("sqaNotVerifiedBody", { status: sourcingStatusText(t, quote.scenario_status) })}
         </Alert>
       ) : null}
 
       {action ? (
         <div className="rounded-lg border border-white/[0.07] bg-white/[0.015] p-3">
           <p className="text-[12.5px] text-mist-200">
-            {action === "submit" ? "Submit this quote for approval?" : null}
-            {action === "approve" ? "Approve this quote?" : null}
-            {action === "reject" ? "Reject this quote" : null}
-            {action === "withdraw" ? "Withdraw this quote" : null}
-            {action === "revisions" ? "Open the next revision" : null}
+            {action === "submit" ? t("sqaAskSubmit") : null}
+            {action === "approve" ? t("sqaAskApprove") : null}
+            {action === "reject" ? t("sqaAskReject") : null}
+            {action === "withdraw" ? t("sqaAskWithdraw") : null}
+            {action === "revisions" ? t("sqaAskRevision") : null}
           </p>
 
           {action === "reject" ? (
             <div className="mt-2 space-y-1.5">
-              <Label htmlFor="sq-reason">Reason (required)</Label>
+              <Label htmlFor="sq-reason">{t("sqaReasonRequired")}</Label>
               <Textarea
                 id="sq-reason"
                 value={reason}
                 maxLength={500}
                 onChange={(event) => setReason(event.target.value)}
-                placeholder="Why is this quote rejected?"
+                placeholder={t("sqaRejectPlaceholder")}
               />
             </div>
           ) : null}
 
           {action === "withdraw" ? (
             <div className="mt-2 space-y-1.5">
-              <Label htmlFor="sq-withdraw-reason">Reason (optional)</Label>
+              <Label htmlFor="sq-withdraw-reason">{t("sqaReasonOptional")}</Label>
               <Input
                 id="sq-withdraw-reason"
                 value={reason}
@@ -191,7 +192,7 @@ export function SalesQuoteActions({
 
           {action === "revisions" ? (
             <div className="mt-2 space-y-1.5">
-              <Label htmlFor="sq-valid-until">New validity date (required)</Label>
+              <Label htmlFor="sq-valid-until">{t("sqaNewValidity")}</Label>
               <Input
                 id="sq-valid-until"
                 type="date"
@@ -208,11 +209,11 @@ export function SalesQuoteActions({
               disabled={pending}
               onClick={() => {
                 if (action === "reject" && reason.trim().length < 3) {
-                  setError("A rejection requires a reason of at least 3 characters.");
+                  setError(t("sqaRejectNeedsReason"));
                   return;
                 }
                 if (action === "revisions" && !validUntil) {
-                  setError("Choose the new validity date.");
+                  setError(t("sqaChooseValidity"));
                   return;
                 }
                 void run(
@@ -228,7 +229,7 @@ export function SalesQuoteActions({
               }}
             >
               {pending ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-              {pending ? "Applying…" : "Confirm"}
+              {pending ? t("sqaApplying") : t("sqaConfirm")}
             </Button>
             <Button
               type="button"
@@ -241,7 +242,7 @@ export function SalesQuoteActions({
                 setValidUntil("");
               }}
             >
-              Cancel
+              {t("actionCancel")}
             </Button>
           </div>
         </div>

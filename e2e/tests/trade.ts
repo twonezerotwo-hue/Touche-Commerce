@@ -46,6 +46,12 @@ export interface ApprovedQuote {
   dealReference: string;
   quoteNumber: string;
   customerName: string;
+  supplierName: string;
+  rfqId: string;
+  rfqReference: string;
+  supplierQuoteId: string;
+  scenarioId: string;
+  salesQuoteId: string;
 }
 
 export async function prepareApprovedQuote(
@@ -170,6 +176,12 @@ export async function prepareApprovedQuote(
       dealReference: String(deal.reference),
       quoteNumber: String(salesQuote.quote_number),
       customerName,
+      supplierName: String(supplier.name),
+      rfqId: String(rfq.id),
+      rfqReference: String(rfq.reference_number),
+      supplierQuoteId: String(quote.id),
+      scenarioId: String(scenario.id),
+      salesQuoteId: String(salesQuote.id),
     };
   } finally {
     await sales.close();
