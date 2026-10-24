@@ -55,7 +55,8 @@ a private trade-document register.
 | CSV/XLSX import wizard | ✅ Stage 13; atomic, idempotent by file hash |
 | Encrypted backup + restore into a scratch database | ✅ Stage 18B (`docs/STAGE18_ENCRYPTED_BACKUP.md`); no offsite copy yet |
 | Local AI fallback (Ollama `qwen3:8b`) | ✅ verified live; DeepSeek primary needs your API key |
-| Finance / E-YAY live connection | ❌ services not running; read-only ledger probe passed |
+| Finance live connection | ✅ read-only, verified end to end on a snapshot of the real ledger (`docs/STAGE14_FINANCE_LIVE_CHECK.md`); `C:\ai-excel` proven unchanged |
+| E-YAY live connection | ❌ service not running |
 | Gmail / WhatsApp / Instagram / LinkedIn | ❌ no connector exists; needs your accounts |
 | MFA (TOTP), MacBook/LAN over HTTPS | ❌ not built |
 | Docker Compose path | ⚠️ not executed — Docker is not installed on this workstation |

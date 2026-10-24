@@ -13,7 +13,7 @@ owner can unblock.
 | 11 Windows workspace, backup/restore | ✅ launcher with port-collision handling, `backup-local`, `restore-test`, acceptance stack | ✅ contract tests, `verify.ps1`, restore drill | ✅ started on moved ports, health OK; restore of plain **and** encrypted backup into a scratch DB = `RESTORE_VERIFIED` | n/a | **MacBook / LAN over HTTPS not built and not tested.** Firefox does not start on this PC (Playwright build, side-by-side error). |
 | 12 Bilingual UI | ✅ cookie-based server-rendered TR/EN, typed catalogues | ✅ parity tests, EN+TR component tests, Playwright | ✅ | n/a | **Partial:** shell, sign-in, Command Center, import, company profile, document panel, CRM, products, deal status words. Deals, sourcing, orders, shipments, finance, AI, communications and the public status page are English only (`STAGE12B_BILINGUAL_SCREENS.md`). Timestamps still show English month names. |
 | 13 Trade operations | ✅ CRM, catalogue, CSV/XLSX import wizard, RFQ → quote → pricing → sales quote → order → PO → shipment (Stages 3–4), 8 TR/EN document kinds in PDF/DOCX/XLSX/CSV, company profile | ✅ 705 backend + 226 frontend tests incl. API, RLS and concurrency tests | ✅ real-browser journeys (import, documents, concurrent users) | n/a | **Not built:** supplier price lists with validity and revision history, product attachments, a separate contacts table (one contact per counterparty today), a "supplier quotation" document sheet, import of other record types. A Commerce invoice is always a **DRAFT**; it posts nothing. |
-| 14 Finance (read-only) | ✅ connector, reconciliation, intelligence (Stage 5) | ✅ against stubs and a fixture ledger | ✅ read-only probe of the real ledger: 31 tables, compatible, database and workbook hashes unchanged after the read | ❌ HTTP service not running | Starting the Finance service writes to its own files; needs the owner's go-ahead. `C:\ai-excel` was never modified. Company mapping from real records is possible (3 activities exist) but not applied. |
+| 14 Finance (read-only) | ✅ connector, reconciliation, intelligence (Stage 5) | ✅ fixtures, plus `finance-live.spec.ts` (6 specs, Chromium + WebKit) | ✅ real Finance server on `127.0.0.1:8765`; Commerce → Finance read the real ledger end to end | ✅ **FINANCE_LIVE_VERIFIED on a snapshot of the real ledger** (`STAGE14_FINANCE_LIVE_CHECK.md`) | Run against a throw-away **snapshot**, not inside `C:\ai-excel`, because Finance's startup recovery scan and its key/audit files would have written there. `C:\ai-excel` proven unchanged (4,173 files, 0 differences, hashes equal). Only the acceptance company was mapped; which real Commerce company maps to which Finance company is your decision. Only 1 of 3 Finance companies has postings. |
 | 15 E-YAY (read-only, paper-safe) | ✅ read-only adapter (Stage 8), loopback only | ✅ against a stub | — | ❌ service not running | Owner must start it. `D:\Clean E-yAy` was never touched; no trading or portfolio function is called. |
 | 16 AI Trade Director | ✅ DeepSeek-compatible primary, local Ollama fallback, monthly cost reservation, human-approved proposals | ✅ provider, fallback and budget tests | ✅ **real local `qwen3:8b` fallback verified** (answered "evet", flagged `LOCAL_FALLBACK_USED`, 16.6 s) | ❌ DeepSeek: no API key, prepaid balance and spend limit not checked | Needs your key and a look at the DeepSeek dashboard. Per-user and per-company consumption *views* were not verified. |
 | 17 Communications | ✅ draft-only preflight, suppression list (opt-out) | ✅ API tests | ✅ | ❌ | **No Gmail, WhatsApp, Instagram or LinkedIn connector exists.** Each needs an account, OAuth authorization or a key from you, plus opt-in/templates/webhook design. Nothing was sent anywhere. |
@@ -25,7 +25,7 @@ owner can unblock.
 
 | Integration | Implemented | Tested | Connected live | Why not connected |
 |---|---|---|---|---|
-| Finance (`C:\ai-excel`) | yes, read-only | stub + real ledger probe | no | service not running; owner decision |
+| Finance (`C:\ai-excel`) | yes, read-only | stub, real-ledger probe, live HTTP specs | **yes, on a snapshot of the real ledger** | not run inside `C:\ai-excel` (it would write there); no real Commerce company mapped yet |
 | E-YAY (`C:\dev\clean-e-yay`) | yes, read-only | stub | no | service not running; owner decision |
 | DeepSeek API | yes | stub | no | no API key; prepaid balance unverified |
 | Ollama / Qwen3 8B | yes | yes | **yes (local)** | — |
@@ -42,7 +42,7 @@ owner can unblock.
 ## Owner decisions that block progress
 
 1. Should the owner role also be able to trade? (Today `admin` cannot, by design.)
-2. May the Finance and E-YAY services be started for a read-only live check?
+2. May E-YAY be started for a read-only live check? (Finance is done on a snapshot. Running it inside `C:\ai-excel` means accepting its startup recovery scan on the live files, and you must choose which Commerce company maps to which Finance company.)
 3. Provide the DeepSeek key (and check the prepaid balance), or keep the local model only?
 4. Which messaging channels matter first, and will you create the accounts?
 5. Is an offsite backup location available, and who holds the backup passphrase?
