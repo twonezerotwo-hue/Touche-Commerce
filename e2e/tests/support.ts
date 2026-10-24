@@ -71,6 +71,23 @@ export async function loginViaUi(page: Page, slug: Slug, password?: string): Pro
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
 }
 
+/**
+ * Sign in and wait until the app has left the login page. A click that lands before React is
+ * interactive does nothing (seen on WebKit under load), so retry the whole form a few times;
+ * only attempts that never submitted are repeated, never a wrong-password failure.
+ */
+export async function signIn(page: Page, slug: Slug): Promise<void> {
+  for (let attempt = 1; ; attempt += 1) {
+    await loginViaUi(page, slug);
+    try {
+      await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 12_000 });
+      return;
+    } catch (error) {
+      if (attempt >= 3) throw error;
+    }
+  }
+}
+
 export async function signedInContext(
   browser: Browser,
   slug: Slug,

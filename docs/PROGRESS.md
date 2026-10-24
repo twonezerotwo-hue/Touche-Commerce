@@ -32,7 +32,12 @@ Evidence, not claims. Full matrix: `docs/STAGE11_20_STATUS.md`; operator guide: 
 * **14** Finance live check, with your permission: Finance's real server on a snapshot of the real
   ledger; Commerce read it end to end (6 browser specs on Chromium and WebKit); `C:\ai-excel` proven
   unchanged (4,173 files, 0 differences). See `docs/STAGE14_FINANCE_LIVE_CHECK.md`.
-* **15/17** E-YAY not started (owner decision); no Gmail/WhatsApp/social connector exists.
+* **15** E-YAY live check, with your permission: only its HTTP API, from a code-only copy, paper-only
+  and on its mock price feed; Commerce read it (4 browser runs on Chromium and WebKit) and degraded
+  cleanly when it stopped; 27 requests served, all `GET` of the two documented endpoints;
+  `C:\dev\clean-e-yay` proven unchanged (49,997 files, 0 differences). See
+  `docs/STAGE15_EYAY_LIVE_CHECK.md`.
+* **17** No Gmail/WhatsApp/social connector exists.
 
 ## 1. Status summary
 
