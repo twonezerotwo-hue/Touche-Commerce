@@ -31,14 +31,38 @@ param(
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\lib\common.ps1"
 
+# A decrypted temporary file must not outlive a failure anywhere below.
+$decryptedTemp = $null
+trap {
+    if ($decryptedTemp -and (Test-Path $decryptedTemp)) { Remove-Item -LiteralPath $decryptedTemp -Force }
+    break
+}
+
 Import-DotEnv
 if ($ScratchDatabase -notmatch '^touche_restore_check[A-Za-z0-9_]{0,30}$') {
     throw "Refusing to restore into '$ScratchDatabase': a scratch database name must start with touche_restore_check."
 }
 if (-not (Test-Path $BackupFile)) { throw "Backup file not found: $BackupFile" }
-$manifestPath = "$BackupFile.manifest.json"
-if (-not (Test-Path $manifestPath)) { throw "Manifest not found next to the backup: $manifestPath" }
-$manifest = Get-Content -Raw -Path $manifestPath | ConvertFrom-Json
+if ($BackupFile -like '*.enc') {
+    $plainPath = $BackupFile.Substring(0, $BackupFile.Length - 4)
+    $manifestPath = "$plainPath.manifest.json"
+    if (-not (Test-Path $manifestPath)) { throw "Manifest not found next to the backup: $manifestPath" }
+    $manifest = Get-Content -Raw -Path $manifestPath | ConvertFrom-Json
+    if (-not $manifest.encrypted_copy) { throw 'The manifest has no encrypted copy; this .enc file is not a recorded backup.' }
+    Write-Step 'Verifying and decrypting the encrypted copy'
+    $encHash = (Get-FileHash -Algorithm SHA256 -Path $BackupFile).Hash.ToLowerInvariant()
+    if ($encHash -ne $manifest.encrypted_copy.sha256) { throw 'The encrypted file does not match the manifest: it is corrupt or was replaced.' }
+    $decryptedTemp = "$plainPath.restore-$([guid]::NewGuid().ToString('N').Substring(0, 8)).tmp"
+    Invoke-Native -FilePath (Get-BackendPython) -Arguments @('-m', 'app.ops.backup_crypt', 'decrypt', $BackupFile, $decryptedTemp) `
+        -WorkingDirectory (Join-Path (Get-RepoRoot) 'backend')
+    $BackupFile = $decryptedTemp
+    Write-Ok 'decrypted to a temporary file (removed when this script ends)'
+}
+else {
+    $manifestPath = "$BackupFile.manifest.json"
+    if (-not (Test-Path $manifestPath)) { throw "Manifest not found next to the backup: $manifestPath" }
+    $manifest = Get-Content -Raw -Path $manifestPath | ConvertFrom-Json
+}
 
 Write-Step 'Verifying the dump against its manifest'
 $hash = (Get-FileHash -Algorithm SHA256 -Path $BackupFile).Hash.ToLowerInvariant()
@@ -121,6 +145,7 @@ try {
     Write-Ok "$checked tables compared, $rls with row level security, audit trigger present"
 }
 finally {
+    if ($decryptedTemp -and (Test-Path $decryptedTemp)) { Remove-Item -LiteralPath $decryptedTemp -Force }
     if (-not $Keep) {
         try { Invoke-Sql 'postgres' $admin $adminPassword "DROP DATABASE IF EXISTS `"$ScratchDatabase`" WITH (FORCE)" | Out-Null }
         catch { Write-Host "    [warning] could not drop $ScratchDatabase : $($_.Exception.Message)" -ForegroundColor Yellow }

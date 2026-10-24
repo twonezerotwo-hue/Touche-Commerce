@@ -48,6 +48,8 @@ def pytest_configure(config: pytest.Config) -> None:
     never committed.
     """
     if config.option.basetemp is None:
+        # pytest creates the base directory but not its parent, which a fresh checkout lacks.
+        (BACKEND_ROOT / "var").mkdir(parents=True, exist_ok=True)
         config.option.basetemp = BACKEND_ROOT / "var" / "pytest-tmp"
 UNREACHABLE_DSN = "postgresql+psycopg://touche_app:unused_password@127.0.0.1:59999/touche_test"
 
