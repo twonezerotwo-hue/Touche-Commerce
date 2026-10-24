@@ -20,11 +20,15 @@
 
 .PARAMETER Database
     Database to dump (default: POSTGRES_DB from .env).
+
+.PARAMETER Encrypt
+    Also write and verify an encrypted copy (needs TOUCHE_BACKUP_PASSPHRASE, 16+ characters).
 #>
 [CmdletBinding()]
 param(
     [string] $OutputDir,
-    [string] $Database
+    [string] $Database,
+    [switch] $Encrypt
 )
 
 $ErrorActionPreference = 'Stop'
@@ -35,6 +39,10 @@ Import-DotEnv
 if (-not $OutputDir) { $OutputDir = Join-Path $repoRoot 'backups' }
 if (-not $Database) { $Database = Get-RequiredEnv 'POSTGRES_DB' }
 if ($Database -notmatch '^[A-Za-z0-9_]{1,63}$') { throw 'Database name contains unsupported characters.' }
+
+if ($Encrypt -and ([string]::IsNullOrEmpty($env:TOUCHE_BACKUP_PASSPHRASE) -or $env:TOUCHE_BACKUP_PASSPHRASE.Length -lt 16)) {
+    throw 'Set TOUCHE_BACKUP_PASSPHRASE (16+ characters) in this shell before using -Encrypt. It is never written to disk by these scripts.'
+}
 
 $pgBin = Get-PostgresBin
 $pgHost = if ($env:POSTGRES_HOST) { $env:POSTGRES_HOST } else { '127.0.0.1' }
@@ -83,6 +91,35 @@ finally {
     $env:PGPASSWORD = $previousPassword
 }
 
+$encryptedCopy = $null
+if ($Encrypt) {
+    Write-Step 'Encrypting the dump (AES-256-GCM) and proving it can be decrypted'
+    $python = Get-BackendPython
+    $encPath = "$dumpPath.enc"
+    $checkPath = "$dumpPath.verify.tmp"
+    Invoke-Native -FilePath $python -Arguments @('-m', 'app.ops.backup_crypt', 'encrypt', $dumpPath, $encPath) `
+        -WorkingDirectory (Join-Path $repoRoot 'backend')
+    try {
+        Invoke-Native -FilePath $python -Arguments @('-m', 'app.ops.backup_crypt', 'decrypt', $encPath, $checkPath) `
+            -WorkingDirectory (Join-Path $repoRoot 'backend')
+        $plainHash = (Get-FileHash -Algorithm SHA256 -Path $dumpPath).Hash
+        $roundTrip = (Get-FileHash -Algorithm SHA256 -Path $checkPath).Hash
+        if ($plainHash -ne $roundTrip) { throw 'The encrypted copy does not decrypt to the dump; it must not be used.' }
+    }
+    finally {
+        if (Test-Path $checkPath) { Remove-Item -LiteralPath $checkPath -Force }
+    }
+    $encItem = Get-Item $encPath
+    $encryptedCopy = [ordered]@{
+        file       = (Split-Path -Leaf $encPath)
+        sha256     = (Get-FileHash -Algorithm SHA256 -Path $encPath).Hash.ToLowerInvariant()
+        bytes      = [int64]$encItem.Length
+        algorithm  = 'AES-256-GCM, scrypt (N=2^16, r=8, p=1), 1 MiB authenticated chunks'
+        round_trip_verified = $true
+    }
+    Write-Ok "encrypted copy written and decrypts to the same bytes: $encPath"
+}
+
 $quiescent = (($before | ConvertTo-Json -Compress) -eq ($after | ConvertTo-Json -Compress))
 $item = Get-Item $dumpPath
 $hash = (Get-FileHash -Algorithm SHA256 -Path $dumpPath).Hash.ToLowerInvariant()
@@ -94,6 +131,7 @@ $manifest = [ordered]@{
     sha256         = $hash
     bytes          = [int64]$item.Length
     encrypted      = $false
+    encrypted_copy = $encryptedCopy
     source_quiescent = $quiescent
     table_counts   = $before
     copies         = [ordered]@{ local = (Split-Path -Leaf $dumpPath) }
@@ -105,4 +143,4 @@ Write-Ok "revision $revision, $($before.Count) tables, sha256 $($hash.Substring(
 if (-not $quiescent) {
     Write-Host '    [warning] row counts changed while the dump ran; the restore test will be INCONCLUSIVE. Stop the app and repeat.' -ForegroundColor Yellow
 }
-Write-Host 'Next: scripts\restore-test.ps1 -BackupFile <dump>  (a backup is not proven until a restore passes)'
+Write-Host 'Next: scripts\restore-test.ps1 -BackupFile <dump or dump.enc>  (a backup is not proven until a restore passes)'
