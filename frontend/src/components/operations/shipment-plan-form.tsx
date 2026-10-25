@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useLocale } from "@/lib/i18n/locale-provider";
 import { transportModeText } from "@/lib/i18n/value-labels";
 import { planShipment } from "@/lib/operations/client";
+import { unallocatedQuantity } from "@/lib/operations/format";
 import { TRANSPORT_MODES, type TransportMode } from "@/lib/operations/types";
 import { formatQuantity } from "@/lib/trade/format";
 
@@ -36,9 +37,9 @@ export interface PlannableOrder {
 /**
  * Plan a (possibly partial) shipment against real order lines.
  *
- * Quantities default to what is still unallocated, and the API independently
- * refuses anything above the outstanding quantity. Leaving a line at zero omits
- * it from this shipment.
+ * Quantities default to what is still unallocated (ordered minus what live shipments already
+ * hold), and the API independently refuses anything above the outstanding quantity. Leaving a
+ * line at zero omits it from this shipment.
  */
 export function ShipmentPlanForm({
   orders,
@@ -70,7 +71,7 @@ export function ShipmentPlanForm({
   const [error, setError] = useState<string | null>(null);
 
   function quantityFor(line: PlannableOrder["lines"][number]): string {
-    return quantities[line.id] ?? line.remaining;
+    return quantities[line.id] ?? unallocatedQuantity(line.ordered, line.allocated);
   }
 
   async function submit(): Promise<void> {
@@ -264,7 +265,13 @@ export function ShipmentPlanForm({
                 <p className="text-[10.5px] text-mist-500">{line.description}</p>
               </div>
               <p className="text-[11px] text-mist-400">
-                {t("spfRemaining", { quantity: formatQuantity(line.remaining, line.unit, locale) })}
+                {t("spfRemaining", {
+                  quantity: formatQuantity(
+                    unallocatedQuantity(line.ordered, line.allocated),
+                    line.unit,
+                    locale,
+                  ),
+                })}
               </p>
               <Input
                 aria-label={t("spfQuantityFor", { sku: line.sku })}

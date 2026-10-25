@@ -119,6 +119,18 @@ export function formatBytes(bytes: number, locale: Locale = "en"): string {
   return `${oneDecimal.format(bytes / (1024 * 1024))} MB`;
 }
 
+/**
+ * What can still go on a new shipment: the ordered quantity minus everything already allocated to
+ * live shipments, never below zero. (The order's own "remaining" is measured against *delivered*
+ * quantities, which is a different question and would offer stock that is already on a shipment.)
+ */
+export function unallocatedQuantity(ordered: string, allocated: string): string {
+  const orderedMilli = Math.round(Number.parseFloat(ordered) * 1000);
+  const allocatedMilli = Math.round(Number.parseFloat(allocated) * 1000);
+  if (!Number.isFinite(orderedMilli) || !Number.isFinite(allocatedMilli)) return "0.000";
+  return (Math.max(orderedMilli - allocatedMilli, 0) / 1000).toFixed(3);
+}
+
 /** Completion ratio (`0.4000`) rendered as a whole percentage. */
 export function completionPercent(value: string): string {
   const parsed = Number.parseFloat(value);

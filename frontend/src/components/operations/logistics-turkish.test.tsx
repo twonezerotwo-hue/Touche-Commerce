@@ -284,10 +284,12 @@ describe("shipment planning form in Turkish", () => {
           sku: "STL-01",
           description: "Steel coil",
           unit: "t",
-          ordered: "20",
-          allocated: "0",
+          // 250 t are already on a shipment, so 1,250.5 t can still be allocated even though
+          // nothing has been delivered (the order's own "remaining" is the delivered-based 1500.5).
+          ordered: "1500.5",
+          allocated: "250",
           delivered: "0",
-          remaining: "1250.5",
+          remaining: "1500.5",
         },
       ],
     },
@@ -299,7 +301,7 @@ describe("shipment planning form in Turkish", () => {
     expect(screen.getByRole("option", { name: "Deniz" })).toHaveValue("SEA");
     expect(screen.getByRole("option", { name: "Karayolu" })).toHaveValue("ROAD");
     expect(screen.getByText("Kalan 1.250,5 t")).toBeInTheDocument();
-    expect(screen.getByLabelText("STL-01 için miktar")).toHaveValue("1250.5");
+    expect(screen.getByLabelText("STL-01 için miktar")).toHaveValue("1250.500");
   });
 
   it("asks for the route in Turkish before calling the API", async () => {
