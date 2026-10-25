@@ -117,7 +117,7 @@ export default async function DocumentsPage({
         description={t("dregDescription")}
       />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardHeading>
@@ -133,7 +133,7 @@ export default async function DocumentsPage({
             ) : (
               <>
                 <form action="/documents" method="get" className="flex flex-wrap items-end gap-2">
-                  <div className="space-y-1">
+                  <div className="w-full space-y-1 sm:w-auto">
                     <label htmlFor="entity-select" className="eyebrow">
                       {t("dregAttachTo")}
                     </label>
@@ -141,7 +141,7 @@ export default async function DocumentsPage({
                       id="entity-select"
                       name="entity"
                       defaultValue={`${selectedEntity?.type}:${selectedEntity?.id}`}
-                      className="h-8 w-[320px] text-[12px]"
+                      className="h-8 w-full text-[12px] sm:w-[320px]"
                     >
                       {entityOptions.map((option) => (
                         <option
@@ -182,7 +182,7 @@ export default async function DocumentsPage({
           </CardHeader>
           <CardContent className="space-y-3">
             <form action="/documents" method="get" className="flex flex-wrap items-end gap-2">
-              <div className="space-y-1">
+              <div className="w-full space-y-1 sm:w-auto">
                 <label htmlFor="preview-order" className="eyebrow">
                   {t("lgSalesOrder")}
                 </label>
@@ -190,7 +190,7 @@ export default async function DocumentsPage({
                   id="preview-order"
                   name="preview_order"
                   defaultValue={previewOrderId ?? ""}
-                  className="h-8 w-[250px] text-[12px]"
+                  className="h-8 w-full text-[12px] sm:w-[250px]"
                 >
                   {(orders.ok ? orders.data.items : []).map((order) => (
                     <option key={order.id} value={order.id}>
@@ -199,7 +199,7 @@ export default async function DocumentsPage({
                   ))}
                 </Select>
               </div>
-              <div className="space-y-1">
+              <div className="w-full space-y-1 sm:w-auto">
                 <label htmlFor="preview-kind" className="eyebrow">
                   {t("dregKind")}
                 </label>
@@ -207,7 +207,7 @@ export default async function DocumentsPage({
                   id="preview-kind"
                   name="preview_kind"
                   defaultValue={previewKind}
-                  className="h-8 w-[180px] text-[12px]"
+                  className="h-8 w-full text-[12px] sm:w-[180px]"
                 >
                   <option value="commercial_invoice">{t("docTypeCommercialInvoice")}</option>
                   <option value="packing_list">{t("docTypePackingList")}</option>
@@ -270,7 +270,7 @@ export default async function DocumentsPage({
 
       <div className="panel overflow-hidden">
         <form action="/documents" method="get" className="flex flex-wrap items-end gap-2 px-4 py-3">
-          <div className="space-y-1">
+          <div className="w-full space-y-1 sm:w-auto">
             <label htmlFor="doc-type-filter" className="eyebrow">
               {t("columnType")}
             </label>
@@ -278,7 +278,7 @@ export default async function DocumentsPage({
               id="doc-type-filter"
               name="document_type"
               defaultValue={params.document_type ?? ""}
-              className="h-8 w-[240px] text-[12px]"
+              className="h-8 w-full text-[12px] sm:w-[240px]"
             >
               <option value="">{t("dregAllTypes")}</option>
               {DOCUMENT_TYPES.map((value) => (
@@ -288,7 +288,7 @@ export default async function DocumentsPage({
               ))}
             </Select>
           </div>
-          <div className="space-y-1">
+          <div className="w-full space-y-1 sm:w-auto">
             <label htmlFor="doc-status-filter" className="eyebrow">
               {t("columnStatus")}
             </label>
@@ -296,7 +296,7 @@ export default async function DocumentsPage({
               id="doc-status-filter"
               name="status"
               defaultValue={params.status ?? ""}
-              className="h-8 w-[160px] text-[12px]"
+              className="h-8 w-full text-[12px] sm:w-[160px]"
             >
               <option value="">{t("dregAll")}</option>
               <option value="ACTIVE">{t("statusActive")}</option>
