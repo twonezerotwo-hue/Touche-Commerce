@@ -19,12 +19,17 @@ import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
 import { DocumentDownloads } from "@/components/documents/document-downloads";
 import { canGenerateDocuments } from "@/lib/documents/access";
-import { delayLabel } from "@/lib/operations/format";
+import { getServerT, titleFor } from "@/lib/i18n/server";
+import {
+  operationsStatusText,
+  shipmentTimingText,
+  transportModeText,
+} from "@/lib/i18n/value-labels";
 import { SHIPMENT_STATUSES, type ShipmentList } from "@/lib/operations/types";
 import { formatDate, formatTimestamp, withQuery } from "@/lib/trade/format";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Shipments" };
+export const generateMetadata = () => titleFor("shpTitle");
 
 const PAGE_SIZE = 25;
 
@@ -35,6 +40,7 @@ export default async function ShipmentsPage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t, locale } = await getServerT();
 
   const params = await searchParams;
   const query = new URLSearchParams({ limit: String(PAGE_SIZE) });
@@ -47,13 +53,13 @@ export default async function ShipmentsPage({
   return (
     <div className="mx-auto max-w-[1360px] space-y-5">
       <PageHeader
-        eyebrow="Logistics"
-        meta={<Badge variant="secondary">Shipment register</Badge>}
-        title="Shipments"
-        description="Partial shipments allocate quantities from confirmed orders. Dispatch, arrival and delivery each need their own evidence; an ETA is never treated as an arrival."
+        eyebrow={t("lgLogistics")}
+        meta={<Badge variant="secondary">{t("shpBadge")}</Badge>}
+        title={t("shpTitle")}
+        description={t("shpDescription")}
         actions={
           <Button asChild size="sm">
-            <Link href="/shipments/new">Plan shipment</Link>
+            <Link href="/shipments/new">{t("shpPlan")}</Link>
           </Button>
         }
       />
@@ -65,7 +71,7 @@ export default async function ShipmentsPage({
         <form action="/shipments" method="get" className="flex flex-wrap items-end gap-2 px-4 py-3">
           <div className="space-y-1">
             <label htmlFor="shipment-filter-status" className="eyebrow">
-              Status
+              {t("columnStatus")}
             </label>
             <Select
               id="shipment-filter-status"
@@ -73,20 +79,20 @@ export default async function ShipmentsPage({
               defaultValue={filters.status}
               className="h-8 w-[190px] text-[12px]"
             >
-              <option value="">All statuses</option>
+              <option value="">{t("filterAllStatuses")}</option>
               {SHIPMENT_STATUSES.map((status) => (
                 <option key={status} value={status}>
-                  {status.replaceAll("_", " ")}
+                  {operationsStatusText(t, status)}
                 </option>
               ))}
             </Select>
           </div>
           <Button type="submit" size="sm" variant="subtle">
-            Apply
+            {t("actionApply")}
           </Button>
           {filters.status ? (
             <Button asChild size="sm" variant="ghost">
-              <Link href="/shipments">Clear</Link>
+              <Link href="/shipments">{t("actionClear")}</Link>
             </Button>
           ) : null}
         </form>
@@ -95,16 +101,13 @@ export default async function ShipmentsPage({
 
         {!result.ok ? (
           <div className="p-4">
-            <Alert variant="danger" title="Shipments unavailable">
+            <Alert variant="danger" title={t("shpUnavailable")}>
               {result.message}
             </Alert>
           </div>
         ) : result.data.items.length === 0 ? (
           <div className="p-4">
-            <EmptyState
-              title="No shipments yet"
-              description="Plan a shipment from a confirmed order to allocate part or all of its quantities."
-            />
+            <EmptyState title={t("shpNone")} description={t("shpNoneHint")} />
           </div>
         ) : null}
 
@@ -112,14 +115,14 @@ export default async function ShipmentsPage({
           <Table bare>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-4">Shipment</TableHead>
-                <TableHead>Order</TableHead>
-                <TableHead>Route</TableHead>
-                <TableHead>Mode</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>ETA</TableHead>
-                <TableHead>Timing</TableHead>
-                <TableHead className="pr-4 text-right">Updated</TableHead>
+                <TableHead className="pl-4">{t("shpColShipment")}</TableHead>
+                <TableHead>{t("lgOrder")}</TableHead>
+                <TableHead>{t("shpColRoute")}</TableHead>
+                <TableHead>{t("shpColMode")}</TableHead>
+                <TableHead>{t("columnStatus")}</TableHead>
+                <TableHead>{t("shpColEta")}</TableHead>
+                <TableHead>{t("shpColTiming")}</TableHead>
+                <TableHead className="pr-4 text-right">{t("columnUpdated")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -133,7 +136,8 @@ export default async function ShipmentsPage({
                       {shipment.shipment_number}
                     </Link>
                     <span className="block text-[10px] text-mist-600">
-                      {shipment.carrier ?? "No carrier"} · {shipment.forwarder ?? "No forwarder"}
+                      {shipment.carrier ?? t("shpNoCarrier")} ·{" "}
+                      {shipment.forwarder ?? t("shpNoForwarder")}
                     </span>
                   </TableCell>
                   <TableCell className="font-mono text-[11px] text-mist-400">
@@ -148,27 +152,27 @@ export default async function ShipmentsPage({
                     {shipment.origin} → {shipment.destination}
                   </TableCell>
                   <TableCell className="text-[10.5px] tracking-[0.04em] text-mist-400 uppercase">
-                    {shipment.transport_mode}
+                    {transportModeText(t, shipment.transport_mode)}
                   </TableCell>
                   <TableCell>
                     <OperationsStatusBadge status={shipment.status} />
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-[11px] text-mist-400">
-                    {formatDate(shipment.estimated_arrival_at)}
+                    {formatDate(shipment.estimated_arrival_at, locale)}
                   </TableCell>
                   <TableCell className="text-[10.5px]">
                     {shipment.is_delayed ? (
                       <span className="text-crimson-400">
-                        {delayLabel(true, shipment.estimated_arrival_at)}
+                        {shipmentTimingText(t, true, shipment.estimated_arrival_at)}
                       </span>
                     ) : (
                       <span className="text-mist-500">
-                        {delayLabel(false, shipment.estimated_arrival_at)}
+                        {shipmentTimingText(t, false, shipment.estimated_arrival_at)}
                       </span>
                     )}
                   </TableCell>
                   <TableCell className="pr-4 text-right font-mono text-[10.5px] whitespace-nowrap text-mist-600">
-                    {formatTimestamp(shipment.updated_at)}
+                    {formatTimestamp(shipment.updated_at, locale)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -177,14 +181,11 @@ export default async function ShipmentsPage({
         ) : null}
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-3">
-          <p className="text-[10.5px] text-mist-600">
-            Tracking references are recorded by hand or from documents; there is no live carrier
-            feed.
-          </p>
+          <p className="text-[10.5px] text-mist-600">{t("shpFooter")}</p>
           <div className="flex items-center gap-3">
             {params.cursor ? (
               <Button asChild variant="ghost" size="xs">
-                <Link href={withQuery("/shipments", filters)}>First page</Link>
+                <Link href={withQuery("/shipments", filters)}>{t("pageFirst")}</Link>
               </Button>
             ) : null}
             {result.ok && result.data.has_more && result.data.next_cursor ? (
@@ -195,7 +196,7 @@ export default async function ShipmentsPage({
                     cursor: result.data.next_cursor,
                   })}
                 >
-                  Next page
+                  {t("pageNextPage")}
                 </Link>
               </Button>
             ) : null}

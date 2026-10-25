@@ -28,21 +28,27 @@ import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
 import { DocumentDownloads } from "@/components/documents/document-downloads";
 import { canGenerateDocuments } from "@/lib/documents/access";
+import { getServerT, titleFor } from "@/lib/i18n/server";
 import {
-  costStageLabel,
-  documentTypeLabel,
-  evidenceProvenanceLabel,
-  formatBytes,
-  transportModeLabel,
-} from "@/lib/operations/format";
+  costStageText,
+  costTypeText,
+  documentTypeText,
+  provenanceText,
+  referenceTypeText,
+  shipmentEventText,
+  transportModeText,
+} from "@/lib/i18n/value-labels";
+import { formatBytes } from "@/lib/operations/format";
 import type { DocumentList, Shipment } from "@/lib/operations/types";
 import { formatMoney, formatQuantity, formatTimestamp } from "@/lib/trade/format";
 
 export const dynamic = "force-dynamic";
+export const generateMetadata = () => titleFor("shpEyebrow");
 
 export default async function ShipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t, locale } = await getServerT();
   const { id } = await params;
 
   const result = await serverGet<Shipment>(`/shipments/${id}`);
@@ -50,9 +56,9 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
     return (
       <div className="mx-auto max-w-[900px] space-y-4">
         <PageHeader
-          eyebrow="Shipment"
-          back={{ href: "/shipments", label: "Shipments" }}
-          title="Shipment unavailable"
+          eyebrow={t("shpEyebrow")}
+          back={{ href: "/shipments", label: t("shpTitle") }}
+          title={t("shpDetailUnavailable")}
         />
         <Alert variant="danger">{result.message}</Alert>
       </div>
@@ -69,17 +75,22 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
   return (
     <div className="mx-auto max-w-[1200px] space-y-5">
       <PageHeader
-        eyebrow="Shipment"
-        back={{ href: "/shipments", label: "Shipments" }}
+        eyebrow={t("shpEyebrow")}
+        back={{ href: "/shipments", label: t("shpTitle") }}
         meta={
           <div className="flex flex-wrap items-center gap-2">
             <OperationsStatusBadge status={shipment.status} />
-            {shipment.is_delayed ? <Badge variant="danger">Past ETA</Badge> : null}
+            {shipment.is_delayed ? <Badge variant="danger">{t("shpPastEta")}</Badge> : null}
             <span className="font-mono text-[10px] text-mist-600">v{shipment.version}</span>
           </div>
         }
-        title={`${shipment.shipment_number} · ${transportModeLabel(shipment.transport_mode)}`}
-        description={`${shipment.origin} → ${shipment.destination} · order ${shipment.order_number} · ${shipment.carrier ?? "no carrier"} / ${shipment.forwarder ?? "no forwarder"}`}
+        title={`${shipment.shipment_number} · ${transportModeText(t, shipment.transport_mode)}`}
+        description={t("shpDetailDescription", {
+          route: `${shipment.origin} → ${shipment.destination}`,
+          order: shipment.order_number,
+          carrier: shipment.carrier ?? t("shpNoCarrierInline"),
+          forwarder: shipment.forwarder ?? t("shpNoForwarderInline"),
+        })}
       />
       {canGenerateDocuments(state.session.session.company) ? (
         <DocumentDownloads documents={[{ kind: "packing_list", entityId: shipment.id }]} />
@@ -90,20 +101,18 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Allocated quantities</CardTitle>
-                <CardDescription>
-                  Delivered quantities come from the recorded delivery milestone, not the ETA.
-                </CardDescription>
+                <CardTitle>{t("shpAllocTitle")}</CardTitle>
+                <CardDescription>{t("shpAllocDesc")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent>
               <Table bare>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">In this shipment</TableHead>
-                    <TableHead className="text-right">Delivered</TableHead>
+                    <TableHead>{t("columnSku")}</TableHead>
+                    <TableHead>{t("ordColDescription")}</TableHead>
+                    <TableHead className="text-right">{t("shpColInShipment")}</TableHead>
+                    <TableHead className="text-right">{t("ordDelivered")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -116,10 +125,10 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
                         {item.description}
                       </TableCell>
                       <TableCell className="text-right text-[12px] whitespace-nowrap text-mist-200">
-                        {formatQuantity(item.quantity, item.unit)}
+                        {formatQuantity(item.quantity, item.unit, locale)}
                       </TableCell>
                       <TableCell className="text-right text-[12px] whitespace-nowrap text-jade-400">
-                        {formatQuantity(item.delivered_quantity, item.unit)}
+                        {formatQuantity(item.delivered_quantity, item.unit, locale)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -131,11 +140,8 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Timeline</CardTitle>
-                <CardDescription>
-                  Every milestone records who entered it and when. Provenance is never upgraded
-                  automatically.
-                </CardDescription>
+                <CardTitle>{t("shpTimelineTitle")}</CardTitle>
+                <CardDescription>{t("shpTimelineDesc")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -143,17 +149,19 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
                 <div key={event.id} className="rounded-lg border border-white/[0.06] px-3 py-2">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[11.5px] text-mist-200">
-                      {event.event_type.replaceAll("_", " ")}
+                      {shipmentEventText(t, event.event_type)}
                     </span>
                     <span className="font-mono text-[9.5px] text-mist-600">
-                      {formatTimestamp(event.occurred_at)}
+                      {formatTimestamp(event.occurred_at, locale)}
                     </span>
                   </div>
                   <p className="text-[10px] text-mist-500">
-                    {event.location ?? "Location not recorded"}
+                    {event.location ?? t("shpLocationNone")}
                     {event.notes ? ` · ${event.notes}` : ""}
-                    {event.evidence_reference ? ` · evidence ${event.evidence_reference}` : ""}
-                    {` · ${evidenceProvenanceLabel(event.tracking_source)}`}
+                    {event.evidence_reference
+                      ? ` · ${t("lgEvidence", { reference: event.evidence_reference })}`
+                      : ""}
+                    {` · ${provenanceText(t, event.tracking_source)}`}
                   </p>
                 </div>
               ))}
@@ -163,17 +171,14 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Logistics costs</CardTitle>
-                <CardDescription>
-                  Estimated and incurred amounts are separate rows; Stage 3 assumptions are
-                  untouched.
-                </CardDescription>
+                <CardTitle>{t("shpCostsTitle")}</CardTitle>
+                <CardDescription>{t("shpCostsDesc")}</CardDescription>
               </CardHeading>
               <Badge variant="outline">{shipment.costs.length}</Badge>
             </CardHeader>
             <CardContent className="space-y-2">
               {shipment.costs.length === 0 ? (
-                <p className="text-[11.5px] text-mist-500">No logistics cost recorded yet.</p>
+                <p className="text-[11.5px] text-mist-500">{t("shpNoCosts")}</p>
               ) : (
                 shipment.costs.map((cost) => (
                   <div
@@ -182,14 +187,14 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
                   >
                     <div>
                       <p className="text-[11.5px] text-mist-200">
-                        {cost.cost_type.replaceAll("_", " ")} · {costStageLabel(cost.stage)}
+                        {costTypeText(t, cost.cost_type)} · {costStageText(t, cost.stage)}
                       </p>
                       <p className="text-[10px] text-mist-500">
-                        {cost.reference} · {formatTimestamp(cost.recorded_at)}
+                        {cost.reference} · {formatTimestamp(cost.recorded_at, locale)}
                       </p>
                     </div>
                     <span className="text-[12px] text-mist-100">
-                      {formatMoney(cost.amount, cost.currency)}
+                      {formatMoney(cost.amount, cost.currency, locale)}
                     </span>
                   </div>
                 ))
@@ -200,13 +205,13 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>References</CardTitle>
-                <CardDescription>Booking, container and transport references.</CardDescription>
+                <CardTitle>{t("shpRefsTitle")}</CardTitle>
+                <CardDescription>{t("shpRefsDesc")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent className="space-y-2">
               {shipment.references.length === 0 ? (
-                <p className="text-[11.5px] text-mist-500">No reference recorded yet.</p>
+                <p className="text-[11.5px] text-mist-500">{t("shpNoRefs")}</p>
               ) : (
                 shipment.references.map((reference) => (
                   <div
@@ -214,13 +219,13 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
                     className="flex items-center justify-between gap-2 rounded-lg border border-white/[0.06] px-3 py-2 text-[11.5px]"
                   >
                     <span className="text-mist-300">
-                      {reference.reference_type.replaceAll("_", " ")}
+                      {referenceTypeText(t, reference.reference_type)}
                     </span>
                     <span className="font-mono text-[10.5px] text-accent-200">
                       {reference.reference_value}
                     </span>
                     <span className="text-[10px] text-mist-500">
-                      {evidenceProvenanceLabel(reference.provenance)}
+                      {provenanceText(t, reference.provenance)}
                     </span>
                   </div>
                 ))
@@ -232,10 +237,8 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Milestones</CardTitle>
-                <CardDescription>
-                  Evidence is mandatory at dispatch, arrival and delivery.
-                </CardDescription>
+                <CardTitle>{t("shpMilestonesTitle")}</CardTitle>
+                <CardDescription>{t("shpMilestonesDesc")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent>
@@ -250,13 +253,13 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Facts</CardTitle>
+                <CardTitle>{t("lgFacts")}</CardTitle>
               </CardHeading>
             </CardHeader>
             <CardContent>
               <dl className="space-y-2 text-[11.5px]">
                 <div className="flex justify-between gap-3">
-                  <dt className="eyebrow">Order</dt>
+                  <dt className="eyebrow">{t("lgOrder")}</dt>
                   <dd>
                     <Link
                       href={`/orders/${shipment.sales_order_id}`}
@@ -267,48 +270,54 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="eyebrow">Planned dispatch</dt>
-                  <dd className="text-mist-300">{formatTimestamp(shipment.planned_dispatch_at)}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="eyebrow">Actual dispatch</dt>
-                  <dd className="text-mist-300">{formatTimestamp(shipment.actual_dispatch_at)}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="eyebrow">ETA (documented)</dt>
+                  <dt className="eyebrow">{t("lgPlannedDispatch")}</dt>
                   <dd className="text-mist-300">
-                    {formatTimestamp(shipment.estimated_arrival_at)}
+                    {formatTimestamp(shipment.planned_dispatch_at, locale)}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="eyebrow">Actual arrival</dt>
-                  <dd className="text-mist-300">{formatTimestamp(shipment.actual_arrival_at)}</dd>
+                  <dt className="eyebrow">{t("shpActualDispatch")}</dt>
+                  <dd className="text-mist-300">
+                    {formatTimestamp(shipment.actual_dispatch_at, locale)}
+                  </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="eyebrow">Delivered</dt>
-                  <dd className="text-mist-200">{formatTimestamp(shipment.delivered_at)}</dd>
+                  <dt className="eyebrow">{t("shpEtaDocumented")}</dt>
+                  <dd className="text-mist-300">
+                    {formatTimestamp(shipment.estimated_arrival_at, locale)}
+                  </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="eyebrow">Tracking</dt>
+                  <dt className="eyebrow">{t("shpActualArrival")}</dt>
+                  <dd className="text-mist-300">
+                    {formatTimestamp(shipment.actual_arrival_at, locale)}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="eyebrow">{t("ordDelivered")}</dt>
+                  <dd className="text-mist-200">
+                    {formatTimestamp(shipment.delivered_at, locale)}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="eyebrow">{t("shpTracking")}</dt>
                   <dd className="max-w-[170px] truncate font-mono text-[10px] text-mist-300">
                     {shipment.tracking_reference ?? "—"}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="eyebrow">Tracking provenance</dt>
-                  <dd className="text-mist-300">
-                    {evidenceProvenanceLabel(shipment.tracking_source)}
-                  </dd>
+                  <dt className="eyebrow">{t("shpTrackingProvenance")}</dt>
+                  <dd className="text-mist-300">{provenanceText(t, shipment.tracking_source)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="eyebrow">Delivery evidence</dt>
+                  <dt className="eyebrow">{t("shpDeliveryEvidence")}</dt>
                   <dd className="max-w-[170px] truncate text-mist-300">
                     {shipment.delivery_evidence_reference ?? "—"}
                   </dd>
                 </div>
                 {shipment.cancellation_reason ? (
                   <div className="flex justify-between gap-3">
-                    <dt className="eyebrow">Cancellation</dt>
+                    <dt className="eyebrow">{t("lgCancellation")}</dt>
                     <dd className="max-w-[200px] text-right text-crimson-400">
                       {shipment.cancellation_reason}
                     </dd>
@@ -321,10 +330,8 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
           <Card>
             <CardHeader>
               <CardHeading>
-                <CardTitle>Shipping documents</CardTitle>
-                <CardDescription>
-                  Uploaded evidence, authorised per company and shipment.
-                </CardDescription>
+                <CardTitle>{t("shpDocsTitle")}</CardTitle>
+                <CardDescription>{t("shpDocsDesc")}</CardDescription>
               </CardHeading>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -339,8 +346,8 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
                         {document.title} <span className="text-mist-600">v{document.version}</span>
                       </p>
                       <p className="text-[10px] text-mist-500">
-                        {documentTypeLabel(document.document_type)} ·{" "}
-                        {formatBytes(document.size_bytes)}
+                        {documentTypeText(t, document.document_type)} ·{" "}
+                        {formatBytes(document.size_bytes, locale)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -348,7 +355,7 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
                         href={`${BROWSER_API_PREFIX}${document.download_path}`}
                         className="text-[11px] text-accent-200 hover:text-accent-100"
                       >
-                        Download
+                        {t("actionDownload")}
                       </a>
                       <DocumentActions
                         document={document}
@@ -359,7 +366,7 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
                   </div>
                 ))
               ) : (
-                <p className="text-[11.5px] text-mist-500">No document attached yet.</p>
+                <p className="text-[11.5px] text-mist-500">{t("shpNoDocs")}</p>
               )}
 
               <DocumentUpload
@@ -368,7 +375,7 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
                 maxBytes={documents.ok ? documents.data.max_upload_bytes : 10 * 1024 * 1024}
                 entityType="SHIPMENT"
                 entityId={shipment.id}
-                entityLabel={`shipment ${shipment.shipment_number}`}
+                entityLabel={t("shpEntityLabel", { number: shipment.shipment_number })}
               />
             </CardContent>
           </Card>
