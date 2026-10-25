@@ -14,6 +14,10 @@ const PAGES = [
   "/pricing",
   "/sales-quotes",
   "/fx-rates",
+  "/purchase-orders",
+  "/shipments",
+  "/shipments/new",
+  "/documents",
 ];
 
 test.describe("responsive layout and keyboard use", () => {
@@ -59,6 +63,40 @@ test.describe("responsive layout and keyboard use", () => {
           () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
         );
         expect(overflow, `horizontal overflow on ${route} at ${width}px`).toBeLessThanOrEqual(1);
+      }
+      await context.close();
+    });
+  }
+
+  // A detail page used to widen the whole page on a phone: its two-column grid had no explicit
+  // single-column track, so the widest table in a card set the column width. Lists are covered
+  // above; this opens the first record of each list that has been fixed (needs data, which the
+  // logistics journeys create). The sourcing, deal and finance detail pages share the pattern and
+  // are not yet covered.
+  for (const language of ["en", "tr"]) {
+    test(`order, purchase-order and shipment pages do not scroll sideways on a phone (${language})`, async ({
+      browser,
+      browserName,
+    }) => {
+      const context = await browser.newContext({
+        baseURL: stack().web,
+        storageState: authFile("sales", browserName),
+        viewport: { width: 375, height: 900 },
+      });
+      await context.addCookies([{ name: "touche_locale", value: language, url: stack().web }]);
+      const page = await context.newPage();
+      for (const list of ["/orders", "/purchase-orders", "/shipments"]) {
+        await gotoReady(page, list);
+        await Promise.all([
+          page.waitForURL((url) => url.pathname !== list),
+          page.locator("main table a").first().click(),
+        ]);
+        await expect(page.locator("main")).toBeVisible();
+        await page.waitForLoadState("networkidle");
+        const overflow = await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        );
+        expect(overflow, `horizontal overflow on the first ${list} record`).toBeLessThanOrEqual(1);
       }
       await context.close();
     });
