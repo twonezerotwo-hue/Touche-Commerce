@@ -508,7 +508,7 @@ locale, stable codes and UTC timestamps stored. Delivered in small, separately m
 | Batch | Scope | State |
 |---|---|---|
 | 12A–12D | Mechanism, shell, sign-in, dashboard, import, company, documents, CRM, products, deals, sales orders | merged |
-| 12E | Sourcing and pricing: RFQ, supplier quotes, landed cost, sales quotes, FX; locale-aware money, numbers, dates | this batch |
-| 12F | Purchase orders, shipments, trade-document register | planned |
+| 12E | Sourcing and pricing: RFQ, supplier quotes, landed cost, sales quotes, FX; locale-aware money, numbers, dates | merged |
+| 12F | Purchase orders, shipments, trade-document register (and the upload/verify components the order page shares) | this batch |
 | 12G | Finance, intelligence, AI Office, communications | planned |
 | 12H | Account, company selection, status page, page titles, remaining dates, final audit | planned |

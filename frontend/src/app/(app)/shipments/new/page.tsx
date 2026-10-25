@@ -4,14 +4,16 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { getServerT, titleFor } from "@/lib/i18n/server";
 import type { FulfilmentSummary, SalesOrderList } from "@/lib/operations/types";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Plan shipment" };
+export const generateMetadata = () => titleFor("shpPlan");
 
 export default async function NewShipmentPage() {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t } = await getServerT();
   const permissions = state.session.session.company?.permissions ?? [];
   const canWrite = permissions.includes("trade.write");
 
@@ -55,15 +57,15 @@ export default async function NewShipmentPage() {
   return (
     <div className="mx-auto max-w-[1000px] space-y-5">
       <PageHeader
-        eyebrow="Logistics"
-        back={{ href: "/shipments", label: "Shipments" }}
-        meta={<Badge variant="secondary">Partial shipments supported</Badge>}
-        title="Plan a shipment"
-        description="Allocate quantities from one confirmed order. The API refuses any line above the unallocated quantity, so a 5-tonne shipment can never mark a 20-tonne order delivered."
+        eyebrow={t("lgLogistics")}
+        back={{ href: "/shipments", label: t("shpTitle") }}
+        meta={<Badge variant="secondary">{t("shpPartialBadge")}</Badge>}
+        title={t("shpNewHeading")}
+        description={t("shpNewDescription")}
       />
 
       {!confirmed.ok || !inFulfillment.ok ? (
-        <Alert variant="danger" title="Orders unavailable">
+        <Alert variant="danger" title={t("shpOrdersUnavailable")}>
           {!confirmed.ok ? confirmed.message : !inFulfillment.ok ? inFulfillment.message : null}
         </Alert>
       ) : null}

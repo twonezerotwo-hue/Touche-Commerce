@@ -10,6 +10,7 @@ import {
   operationsStatusLabel,
   operationsStatusTone,
   transportModeLabel,
+  unallocatedQuantity,
 } from "./format";
 
 describe("operations presentation helpers", () => {
@@ -55,5 +56,20 @@ describe("operations presentation helpers", () => {
     expect(evidenceProvenanceLabel("MANUAL")).toBe("Manual entry");
     expect(evidenceProvenanceLabel("DOCUMENT_EVIDENCE")).toBe("Document evidence");
     expect(evidenceProvenanceLabel(null)).toMatch(/no tracking provenance/i);
+  });
+});
+
+describe("unallocatedQuantity", () => {
+  it("offers what live shipments have not yet taken, not what is still undelivered", () => {
+    expect(unallocatedQuantity("100.000", "40.000")).toBe("60.000");
+    expect(unallocatedQuantity("100", "0")).toBe("100.000");
+    expect(unallocatedQuantity("1500.5", "250")).toBe("1250.500");
+  });
+
+  it("never goes below zero and does not drift on decimal quantities", () => {
+    expect(unallocatedQuantity("10.000", "10.000")).toBe("0.000");
+    expect(unallocatedQuantity("10.000", "12.000")).toBe("0.000");
+    expect(unallocatedQuantity("0.300", "0.100")).toBe("0.200");
+    expect(unallocatedQuantity("not-a-number", "0")).toBe("0.000");
   });
 });

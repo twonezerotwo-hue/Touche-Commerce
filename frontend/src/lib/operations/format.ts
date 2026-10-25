@@ -5,6 +5,8 @@
  * does not know: unknown values fall back to the neutral badge.
  */
 
+import { intlTag } from "@/lib/i18n/intl";
+import type { Locale } from "@/lib/i18n/messages";
 import type { BadgeTone } from "@/lib/trade/format";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -101,12 +103,32 @@ export function costStageLabel(value: string): string {
   return labels[value] ?? value;
 }
 
-/** Human file size without pretending to more precision than there is. */
-export function formatBytes(bytes: number): string {
+/**
+ * Human file size without pretending to more precision than there is. The unit symbols are the same
+ * in both languages; only the decimal separator follows the reader's locale.
+ */
+export function formatBytes(bytes: number, locale: Locale = "en"): string {
   if (!Number.isFinite(bytes) || bytes < 0) return "—";
   if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  const oneDecimal = new Intl.NumberFormat(intlTag(locale), {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+    useGrouping: false,
+  });
+  if (bytes < 1024 * 1024) return `${oneDecimal.format(bytes / 1024)} KB`;
+  return `${oneDecimal.format(bytes / (1024 * 1024))} MB`;
+}
+
+/**
+ * What can still go on a new shipment: the ordered quantity minus everything already allocated to
+ * live shipments, never below zero. (The order's own "remaining" is measured against *delivered*
+ * quantities, which is a different question and would offer stock that is already on a shipment.)
+ */
+export function unallocatedQuantity(ordered: string, allocated: string): string {
+  const orderedMilli = Math.round(Number.parseFloat(ordered) * 1000);
+  const allocatedMilli = Math.round(Number.parseFloat(allocated) * 1000);
+  if (!Number.isFinite(orderedMilli) || !Number.isFinite(allocatedMilli)) return "0.000";
+  return (Math.max(orderedMilli - allocatedMilli, 0) / 1000).toFixed(3);
 }
 
 /** Completion ratio (`0.4000`) rendered as a whole percentage. */

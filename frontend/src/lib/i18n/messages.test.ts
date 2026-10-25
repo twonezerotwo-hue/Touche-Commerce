@@ -74,6 +74,7 @@ describe("Stage 12B catalogue integrity", () => {
       "channelPortal",
       "srcIncoterm",
       "srcColRfq",
+      "refCmr",
       "rfqEyebrow",
       "ordColModel",
       "ordIncoterm",
@@ -82,6 +83,31 @@ describe("Stage 12B catalogue integrity", () => {
       (key) => translate("tr", key) === translate("en", key) && !allowedSame.has(key),
     );
     expect(same).toEqual([]);
+  });
+
+  it("declares every key in exactly one catalogue (a spread would silently overwrite a duplicate)", async () => {
+    const catalogues = {
+      common: (await import("./catalog/common")).commonEn,
+      imports: (await import("./catalog/imports")).importsEn,
+      documents: (await import("./catalog/documents")).documentsEn,
+      auth: (await import("./catalog/auth")).authEn,
+      trade: (await import("./catalog/trade")).tradeEn,
+      dashboard: (await import("./catalog/dashboard")).dashboardEn,
+      deals: (await import("./catalog/deals")).dealsEn,
+      orders: (await import("./catalog/orders")).ordersEn,
+      sourcing: (await import("./catalog/sourcing")).sourcingEn,
+      logistics: (await import("./catalog/logistics")).logisticsEn,
+    };
+    const owner = new Map<string, string>();
+    const clashes: string[] = [];
+    for (const [name, catalogue] of Object.entries(catalogues)) {
+      for (const key of Object.keys(catalogue)) {
+        const first = owner.get(key);
+        if (first) clashes.push(`${key} (${first}, ${name})`);
+        else owner.set(key, name);
+      }
+    }
+    expect(clashes).toEqual([]);
   });
 
   it("substitutes placeholders and keeps unknown ones visible", () => {

@@ -51,7 +51,7 @@ export const dynamic = "force-dynamic";
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
-  const { t } = await getServerT();
+  const { t, locale } = await getServerT();
   const { id } = await params;
 
   const orderResult = await serverGet<SalesOrder>(`/sales-orders/${id}`);
@@ -117,7 +117,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         />
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[1.65fr_1fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
         <div className="space-y-4">
           <Card>
             <CardHeader>
@@ -279,7 +279,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                       </p>
                       <p className="text-[10.5px] text-mist-500">
                         {documentTypeText(t, document.document_type)} ·{" "}
-                        {formatBytes(document.size_bytes)} ·{" "}
+                        {formatBytes(document.size_bytes, locale)} ·{" "}
                         {operationsStatusText(t, document.verification_status)}
                       </p>
                     </div>
@@ -308,7 +308,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 maxBytes={documents.ok ? documents.data.max_upload_bytes : 10 * 1024 * 1024}
                 entityType="SALES_ORDER"
                 entityId={order.id}
-                entityLabel={`order ${order.order_number}`}
+                entityLabel={t("dupEntityOrder", { number: order.order_number })}
               />
             </CardContent>
           </Card>

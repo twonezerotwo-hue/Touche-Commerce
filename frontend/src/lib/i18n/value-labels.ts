@@ -152,6 +152,7 @@ const COST_TYPE: Record<string, MessageKey> = {
   QUALITY_INSPECTION: "costQualityInspection",
   BANKING_FINANCE: "costBankingFinance",
   OTHER: "costOther",
+  HANDLING: "costHandling",
   CONTINGENCY: "costContingency",
   VAT_CASHFLOW: "costVatCashflow",
 };
@@ -174,4 +175,68 @@ export function verificationText(t: TFn, status: string): string {
   if (status === "VERIFIED") return t("prcVerified");
   if (status === "ESTIMATED") return t("prcEstimated");
   return status;
+}
+
+const COST_STAGE: Record<string, MessageKey> = {
+  ESTIMATED: "costStageEstimated",
+  QUOTED: "costStageQuoted",
+  INCURRED: "costStageIncurred",
+  DOCUMENTED: "costStageDocumented",
+};
+
+/** How certain a shipment cost is: estimated, quoted, incurred or documented. */
+export function costStageText(t: TFn, stage: string): string {
+  const key = COST_STAGE[stage];
+  return key ? t(key) : stage;
+}
+
+const REFERENCE_TYPE: Record<string, MessageKey> = {
+  BOOKING: "refBooking",
+  CONTAINER: "refContainer",
+  BILL_OF_LADING: "refBillOfLading",
+  AIR_WAYBILL: "refAirWaybill",
+  CMR: "refCmr",
+  TRACKING: "refTracking",
+  OTHER: "refOther",
+};
+
+/** A shipment reference type ("BILL_OF_LADING") as words. */
+export function referenceTypeText(t: TFn, type: string): string {
+  const key = REFERENCE_TYPE[type];
+  return key ? t(key) : type.replaceAll("_", " ");
+}
+
+/** A shipment timeline entry: the milestone statuses plus the recorded delay. */
+export function shipmentEventText(t: TFn, type: string): string {
+  return type === "DELAY_RECORDED" ? t("eventDelayRecorded") : operationsStatusText(t, type);
+}
+
+const LINKED_ENTITY: Record<string, MessageKey> = {
+  DEAL: "entityDeal",
+  SALES_ORDER: "entitySalesOrder",
+  PURCHASE_ORDER: "entityPurchaseOrder",
+  SHIPMENT: "entityShipment",
+  CUSTOMER_ACCEPTANCE: "entityCustomerAcceptance",
+};
+
+/** The kind of record a document is attached to. */
+export function linkedEntityText(t: TFn, type: string): string {
+  const key = LINKED_ENTITY[type];
+  return key ? t(key) : type.replaceAll("_", " ").toLowerCase();
+}
+
+/** Where a tracking value came from; `null` means nobody recorded it. */
+export function provenanceText(t: TFn, source: string | null): string {
+  return source ? operationsStatusText(t, source) : t("shpNoProvenance");
+}
+
+/** Whether a shipment is late, judged only by the documented ETA. */
+export function shipmentTimingText(
+  t: TFn,
+  isDelayed: boolean,
+  estimatedArrival: string | null,
+): string {
+  if (isDelayed) return t("shpDelayPast");
+  if (!estimatedArrival) return t("shpDelayNoEta");
+  return t("shpDelayWithin");
 }
