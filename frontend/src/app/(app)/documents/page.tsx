@@ -27,7 +27,9 @@ import {
 import { BROWSER_API_PREFIX } from "@/lib/api/config";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
-import { documentTypeLabel, formatBytes } from "@/lib/operations/format";
+import { getServerT, titleFor } from "@/lib/i18n/server";
+import { documentTypeText, entityTypeText, operationsStatusText } from "@/lib/i18n/value-labels";
+import { formatBytes } from "@/lib/operations/format";
 import {
   DOCUMENT_TYPES,
   type DocumentList,
@@ -39,7 +41,7 @@ import {
 import { formatMoney, formatTimestamp } from "@/lib/trade/format";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Documents" };
+export const generateMetadata = () => titleFor("regPageTitle");
 
 export default async function DocumentsPage({
   searchParams,
@@ -56,6 +58,7 @@ export default async function DocumentsPage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t, locale } = await getServerT();
   const params = await searchParams;
 
   const query = new URLSearchParams({ limit: "50" });
@@ -108,41 +111,37 @@ export default async function DocumentsPage({
   return (
     <div className="mx-auto max-w-[1300px] space-y-5">
       <PageHeader
-        eyebrow="Documents"
-        meta={<Badge variant="secondary">Private storage</Badge>}
-        title="Trade document register"
-        description="Uploads are stored outside any served directory, hashed with SHA-256 and versioned. Downloads are authorised against both the company and the linked business record."
+        eyebrow={t("regPageTitle")}
+        meta={<Badge variant="secondary">{t("regBadge")}</Badge>}
+        title={t("regTitle")}
+        description={t("regDescription")}
       />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardHeading>
-              <CardTitle>Upload a document</CardTitle>
-              <CardDescription>
-                Attach a real, externally issued file. Draft previews are generated separately and
-                are never claimed as issued documents.
-              </CardDescription>
+              <CardTitle>{t("regUpload")}</CardTitle>
+              <CardDescription>{t("regUploadHint")}</CardDescription>
             </CardHeading>
           </CardHeader>
           <CardContent className="space-y-3">
             {entityOptions.length === 0 ? (
-              <Alert variant="info" title="Nothing to attach to">
-                Create or convert a sales order, or plan a shipment, before uploading trade
-                documents.
+              <Alert variant="info" title={t("regNothingTitle")}>
+                {t("regNothingBody")}
               </Alert>
             ) : (
               <>
                 <form action="/documents" method="get" className="flex flex-wrap items-end gap-2">
-                  <div className="space-y-1">
+                  <div className="w-full space-y-1 sm:w-auto">
                     <label htmlFor="entity-select" className="eyebrow">
-                      Attach to
+                      {t("regAttachTo")}
                     </label>
                     <Select
                       id="entity-select"
                       name="entity"
                       defaultValue={`${selectedEntity?.type}:${selectedEntity?.id}`}
-                      className="h-8 w-[320px] text-[12px]"
+                      className="h-8 w-full text-[12px] sm:w-[320px]"
                     >
                       {entityOptions.map((option) => (
                         <option
@@ -155,7 +154,7 @@ export default async function DocumentsPage({
                     </Select>
                   </div>
                   <Button type="submit" size="sm" variant="subtle">
-                    Select
+                    {t("regSelect")}
                   </Button>
                 </form>
                 {selectedEntity ? (
@@ -176,24 +175,22 @@ export default async function DocumentsPage({
         <Card>
           <CardHeader>
             <CardHeading>
-              <CardTitle>Draft invoice / packing list</CardTitle>
-              <CardDescription>
-                Built from accepted order data. Every preview is labelled DRAFT.
-              </CardDescription>
+              <CardTitle>{t("regDraftCard")}</CardTitle>
+              <CardDescription>{t("regDraftHint")}</CardDescription>
             </CardHeading>
-            <Badge variant="warning">Draft only</Badge>
+            <Badge variant="warning">{t("regDraftOnly")}</Badge>
           </CardHeader>
           <CardContent className="space-y-3">
             <form action="/documents" method="get" className="flex flex-wrap items-end gap-2">
-              <div className="space-y-1">
+              <div className="w-full space-y-1 sm:w-auto">
                 <label htmlFor="preview-order" className="eyebrow">
-                  Sales order
+                  {t("logSalesOrder")}
                 </label>
                 <Select
                   id="preview-order"
                   name="preview_order"
                   defaultValue={previewOrderId ?? ""}
-                  className="h-8 w-[250px] text-[12px]"
+                  className="h-8 w-full text-[12px] sm:w-[250px]"
                 >
                   {(orders.ok ? orders.data.items : []).map((order) => (
                     <option key={order.id} value={order.id}>
@@ -204,7 +201,7 @@ export default async function DocumentsPage({
               </div>
               <div className="space-y-1">
                 <label htmlFor="preview-kind" className="eyebrow">
-                  Kind
+                  {t("regKind")}
                 </label>
                 <Select
                   id="preview-kind"
@@ -212,19 +209,19 @@ export default async function DocumentsPage({
                   defaultValue={previewKind}
                   className="h-8 w-[180px] text-[12px]"
                 >
-                  <option value="commercial_invoice">Commercial invoice</option>
-                  <option value="packing_list">Packing list</option>
+                  <option value="commercial_invoice">{t("regKindInvoice")}</option>
+                  <option value="packing_list">{t("regKindPacking")}</option>
                 </Select>
               </div>
               <Button type="submit" size="sm" variant="subtle">
-                Preview
+                {t("regPreview")}
               </Button>
             </form>
 
             {preview ? (
               preview.ok ? (
                 <>
-                  <Alert variant="warning" title="Not a legal document">
+                  <Alert variant="warning" title={t("regNotLegal")}>
                     {preview.data.header.legal_notice}
                   </Alert>
                   <div className="rounded-lg border border-white/[0.07] p-3">
@@ -239,7 +236,11 @@ export default async function DocumentsPage({
                     </p>
                     <p className="text-[11px] text-mist-400">
                       {preview.data.header.incoterm} {preview.data.header.named_delivery_place} ·{" "}
-                      {formatMoney(preview.data.header.order_total, preview.data.header.currency)}
+                      {formatMoney(
+                        preview.data.header.order_total,
+                        preview.data.header.currency,
+                        locale,
+                      )}
                     </p>
                     <div className="mt-2 space-y-1">
                       {preview.data.lines.map((line) => (
@@ -248,7 +249,7 @@ export default async function DocumentsPage({
                             {line.sku} · {line.quantity} {line.unit}
                           </span>
                           <span className="text-mist-200">
-                            {formatMoney(line.line_total, preview.data.header.currency)}
+                            {formatMoney(line.line_total, preview.data.header.currency, locale)}
                           </span>
                         </div>
                       ))}
@@ -259,8 +260,8 @@ export default async function DocumentsPage({
                 <Alert variant="danger">{preview.message}</Alert>
               )
             ) : (
-              <Alert variant="info" title="No order selected">
-                Select a sales order to generate an honest draft preview.
+              <Alert variant="info" title={t("regNoOrderTitle")}>
+                {t("regNoOrderBody")}
               </Alert>
             )}
           </CardContent>
@@ -271,7 +272,7 @@ export default async function DocumentsPage({
         <form action="/documents" method="get" className="flex flex-wrap items-end gap-2 px-4 py-3">
           <div className="space-y-1">
             <label htmlFor="doc-type-filter" className="eyebrow">
-              Type
+              {t("regFilterType")}
             </label>
             <Select
               id="doc-type-filter"
@@ -279,17 +280,17 @@ export default async function DocumentsPage({
               defaultValue={params.document_type ?? ""}
               className="h-8 w-[240px] text-[12px]"
             >
-              <option value="">All types</option>
+              <option value="">{t("regAllTypes")}</option>
               {DOCUMENT_TYPES.map((value) => (
                 <option key={value} value={value}>
-                  {documentTypeLabel(value)}
+                  {documentTypeText(t, value)}
                 </option>
               ))}
             </Select>
           </div>
           <div className="space-y-1">
             <label htmlFor="doc-status-filter" className="eyebrow">
-              Status
+              {t("logFilterStatus")}
             </label>
             <Select
               id="doc-status-filter"
@@ -297,17 +298,17 @@ export default async function DocumentsPage({
               defaultValue={params.status ?? ""}
               className="h-8 w-[160px] text-[12px]"
             >
-              <option value="">All</option>
-              <option value="ACTIVE">Active</option>
-              <option value="ARCHIVED">Archived</option>
+              <option value="">{t("regAllStatuses")}</option>
+              <option value="ACTIVE">{t("opStatusActive")}</option>
+              <option value="ARCHIVED">{t("opStatusArchived")}</option>
             </Select>
           </div>
           <Button type="submit" size="sm" variant="subtle">
-            Apply
+            {t("logApply")}
           </Button>
           {params.document_type || params.status ? (
             <Button asChild size="sm" variant="ghost">
-              <Link href="/documents">Clear</Link>
+              <Link href="/documents">{t("actionClear")}</Link>
             </Button>
           ) : null}
         </form>
@@ -316,28 +317,25 @@ export default async function DocumentsPage({
 
         {!documents.ok ? (
           <div className="p-4">
-            <Alert variant="danger" title="Documents unavailable">
+            <Alert variant="danger" title={t("regUnavailable")}>
               {documents.message}
             </Alert>
           </div>
         ) : documents.data.items.length === 0 ? (
           <div className="p-4">
-            <EmptyState
-              title="No documents stored"
-              description="Uploaded bills of lading, packing lists, certificates and proofs of delivery appear here with their checksum and version history."
-            />
+            <EmptyState title={t("regNone")} description={t("regNoneHint")} />
           </div>
         ) : (
           <Table bare>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-4">Document</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Attached to</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Size</TableHead>
-                <TableHead>Uploaded</TableHead>
-                <TableHead className="pr-4 text-right">Actions</TableHead>
+                <TableHead className="pl-4">{t("regColDocument")}</TableHead>
+                <TableHead>{t("regColType")}</TableHead>
+                <TableHead>{t("regColAttached")}</TableHead>
+                <TableHead>{t("columnStatus")}</TableHead>
+                <TableHead className="text-right">{t("regColSize")}</TableHead>
+                <TableHead>{t("regColUploaded")}</TableHead>
+                <TableHead className="pr-4 text-right">{t("regColActions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -351,10 +349,10 @@ export default async function DocumentsPage({
                     </p>
                   </TableCell>
                   <TableCell className="text-[11px] text-mist-300">
-                    {documentTypeLabel(document.document_type)}
+                    {documentTypeText(t, document.document_type)}
                   </TableCell>
                   <TableCell className="text-[10.5px] text-mist-500">
-                    {document.linked_entity_type.replaceAll("_", " ").toLowerCase()}
+                    {entityTypeText(t, document.linked_entity_type)}
                     <span className="block font-mono text-[9px] text-mist-600">
                       {document.linked_entity_id.slice(0, 8)}…
                     </span>
@@ -362,7 +360,7 @@ export default async function DocumentsPage({
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       <Badge variant={document.status === "ACTIVE" ? "secondary" : "outline"}>
-                        {document.status}
+                        {operationsStatusText(t, document.status)}
                       </Badge>
                       <Badge
                         variant={
@@ -373,7 +371,7 @@ export default async function DocumentsPage({
                               : "outline"
                         }
                       >
-                        {document.verification_status}
+                        {operationsStatusText(t, document.verification_status)}
                       </Badge>
                     </div>
                   </TableCell>
@@ -381,7 +379,7 @@ export default async function DocumentsPage({
                     {formatBytes(document.size_bytes)}
                   </TableCell>
                   <TableCell className="text-[10.5px] text-mist-500">
-                    {formatTimestamp(document.uploaded_at)}
+                    {formatTimestamp(document.uploaded_at, locale)}
                   </TableCell>
                   <TableCell className="pr-4">
                     <div className="flex flex-wrap items-center justify-end gap-2">
@@ -389,7 +387,7 @@ export default async function DocumentsPage({
                         href={`${BROWSER_API_PREFIX}${document.download_path}`}
                         className="text-[11px] text-accent-200 hover:text-accent-100"
                       >
-                        Download
+                        {t("logDownload")}
                       </a>
                       <DocumentActions
                         document={document}
@@ -405,11 +403,7 @@ export default async function DocumentsPage({
         )}
 
         <div className="border-t border-white/[0.06] px-4 py-3">
-          <p className="text-[10.5px] leading-relaxed text-mist-600">
-            Documents are stored outside any served directory, checked against their SHA-256 before
-            download, and never deleted silently — archiving preserves the version history. Malware
-            scanning is a documented outstanding control, not something this screen performs.
-          </p>
+          <p className="text-[10.5px] leading-relaxed text-mist-600">{t("regFooter")}</p>
         </div>
       </div>
     </div>

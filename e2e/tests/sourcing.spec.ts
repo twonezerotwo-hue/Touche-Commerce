@@ -19,7 +19,9 @@ test.describe("sourcing and pricing, in a real browser, in both languages", () =
 
     // RFQ list and detail
     await gotoReady(page, "/rfq");
-    await expect(page.getByRole("heading", { level: 1, name: "Tedarikçi talepleri" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Tedarikçi talepleri" }),
+    ).toBeVisible();
     await expect(page.getByRole("columnheader", { name: "Tedarikçi" })).toBeVisible();
     await expect(page.getByRole("row", { name: new RegExp(approved.rfqReference) })).toContainText(
       "Yanıtlandı",
@@ -133,7 +135,9 @@ test.describe("sourcing and pricing, in a real browser, in both languages", () =
 
     await page.getByLabel("Arayüz dili").selectOption("en");
     await expect(page.getByLabel("Delivery location")).toHaveValue("Mersin, TR");
-    await expect(page.getByRole("heading", { level: 1, name: "Request supplier quotes" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Request supplier quotes" }),
+    ).toBeVisible();
     await context.close();
   });
 
@@ -142,7 +146,9 @@ test.describe("sourcing and pricing, in a real browser, in both languages", () =
     await inTurkish(context);
     const page = await context.newPage();
     await gotoReady(page, "/fx-rates");
-    await expect(page.getByRole("heading", { level: 1, name: "Döviz kuru kayıtları" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Döviz kuru kayıtları" }),
+    ).toBeVisible();
 
     // The pair and the day are unique per company, so each run uses its own day and rate.
     const daysBack = 1 + (Date.now() % 4000);

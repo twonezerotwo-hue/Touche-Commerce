@@ -175,3 +175,71 @@ export function verificationText(t: TFn, status: string): string {
   if (status === "ESTIMATED") return t("prcEstimated");
   return status;
 }
+
+const SHIPMENT_EVENT: Record<string, MessageKey> = {
+  PLANNED: "evPlanned",
+  BOOKED: "evBooked",
+  DISPATCHED: "evDispatched",
+  IN_TRANSIT: "evInTransit",
+  ARRIVED: "evArrived",
+  DELIVERED: "evDelivered",
+  DELAY_RECORDED: "evDelayRecorded",
+  CANCELLED: "evCancelled",
+};
+
+const SHIPMENT_COST_TYPE: Record<string, MessageKey> = {
+  FREIGHT: "shipCostFreight",
+  INSURANCE: "shipCostInsurance",
+  HANDLING: "shipCostHandling",
+  CUSTOMS_BROKERAGE: "shipCostCustomsBrokerage",
+  DOMESTIC_TRANSPORT: "shipCostDomesticTransport",
+  OTHER: "shipCostOther",
+};
+
+const COST_STAGE: Record<string, MessageKey> = {
+  ESTIMATED: "stageEstimated",
+  QUOTED: "stageQuoted",
+  INCURRED: "stageIncurred",
+  DOCUMENTED: "stageDocumented",
+};
+
+const REFERENCE_TYPE: Record<string, MessageKey> = {
+  BOOKING: "refBooking",
+  CONTAINER: "refContainer",
+  BILL_OF_LADING: "refBillOfLading",
+  AIR_WAYBILL: "refAirWaybill",
+  CMR: "refCmr",
+  TRACKING: "refTracking",
+  OTHER: "refOther",
+};
+
+const ENTITY_TYPE: Record<string, MessageKey> = {
+  DEAL: "entDeal",
+  SALES_ORDER: "entSalesOrder",
+  PURCHASE_ORDER: "entPurchaseOrder",
+  SHIPMENT: "entShipment",
+  CUSTOMER_ACCEPTANCE: "entCustomerAcceptance",
+};
+
+/** A shipment milestone ("IN_TRANSIT") in the reader's language. */
+export const shipmentEventText = (t: TFn, code: string): string => lookup(t, SHIPMENT_EVENT, code);
+export const shipmentCostTypeText = (t: TFn, code: string): string =>
+  lookup(t, SHIPMENT_COST_TYPE, code);
+/** The certainty of a logistics cost: estimated, quoted, incurred or documented. */
+export const costStageText = (t: TFn, code: string): string => lookup(t, COST_STAGE, code);
+export const referenceTypeText = (t: TFn, code: string): string => lookup(t, REFERENCE_TYPE, code);
+/** The kind of record a document is attached to. */
+export const entityTypeText = (t: TFn, code: string): string => lookup(t, ENTITY_TYPE, code);
+
+/** Where a tracking fact came from (manual entry, document evidence, external verification). */
+export function provenanceText(t: TFn, value: string | null): string {
+  if (!value) return t("provenanceNone");
+  return operationsStatusText(t, value);
+}
+
+/** A shipment is late only when the API says so; an ETA alone never makes it late or arrived. */
+export function delayText(t: TFn, isDelayed: boolean, estimatedArrival: string | null): string {
+  if (isDelayed) return t("delayLate");
+  if (!estimatedArrival) return t("delayNoEta");
+  return t("delayOk");
+}

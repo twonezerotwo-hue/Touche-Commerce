@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { costStageText, referenceTypeText, shipmentCostTypeText } from "@/lib/i18n/value-labels";
 import {
   addShipmentReference,
   recordShipmentCost,
@@ -32,6 +34,7 @@ export function ExtraRecord({
   csrfToken: string;
   onDone: () => void;
 }) {
+  const { t } = useLocale();
   const [eventType, setEventType] = useState<"IN_TRANSIT" | "DELAY_RECORDED">("IN_TRANSIT");
   const [occurredAt, setOccurredAt] = useState(new Date().toISOString().slice(0, 16));
   const [location, setLocation] = useState("");
@@ -97,7 +100,7 @@ export function ExtraRecord({
       {kind === "event" ? (
         <div className="grid gap-2 sm:grid-cols-2">
           <div className="space-y-1">
-            <Label htmlFor="event-type">Event</Label>
+            <Label htmlFor="event-type">{t("shxEvent")}</Label>
             <Select
               id="event-type"
               value={eventType}
@@ -105,12 +108,12 @@ export function ExtraRecord({
                 setEventType(event.target.value as "IN_TRANSIT" | "DELAY_RECORDED")
               }
             >
-              <option value="IN_TRANSIT">In transit</option>
-              <option value="DELAY_RECORDED">Delay recorded</option>
+              <option value="IN_TRANSIT">{t("evInTransit")}</option>
+              <option value="DELAY_RECORDED">{t("evDelayRecorded")}</option>
             </Select>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="event-at">Occurred at</Label>
+            <Label htmlFor="event-at">{t("shxOccurredAt")}</Label>
             <Input
               id="event-at"
               type="datetime-local"
@@ -119,7 +122,7 @@ export function ExtraRecord({
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="event-location">Location</Label>
+            <Label htmlFor="event-location">{t("logLocation")}</Label>
             <Input
               id="event-location"
               value={location}
@@ -128,7 +131,7 @@ export function ExtraRecord({
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="event-notes">Notes</Label>
+            <Label htmlFor="event-notes">{t("logNotes")}</Label>
             <Input
               id="event-notes"
               value={notes}
@@ -142,7 +145,7 @@ export function ExtraRecord({
       {kind === "cost" ? (
         <div className="grid gap-2 sm:grid-cols-2">
           <div className="space-y-1">
-            <Label htmlFor="cost-type">Cost type</Label>
+            <Label htmlFor="cost-type">{t("shxCostType")}</Label>
             <Select
               id="cost-type"
               value={costType}
@@ -150,13 +153,13 @@ export function ExtraRecord({
             >
               {SHIPMENT_COST_TYPES.map((value) => (
                 <option key={value} value={value}>
-                  {value.replaceAll("_", " ").toLowerCase()}
+                  {shipmentCostTypeText(t, value)}
                 </option>
               ))}
             </Select>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="cost-stage">Stage (never overwritten)</Label>
+            <Label htmlFor="cost-stage">{t("shxStage")}</Label>
             <Select
               id="cost-stage"
               value={stage}
@@ -164,13 +167,13 @@ export function ExtraRecord({
             >
               {COST_STAGES.map((value) => (
                 <option key={value} value={value}>
-                  {value.toLowerCase()}
+                  {costStageText(t, value)}
                 </option>
               ))}
             </Select>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="cost-amount">Amount</Label>
+            <Label htmlFor="cost-amount">{t("logAmount")}</Label>
             <Input
               id="cost-amount"
               inputMode="decimal"
@@ -179,7 +182,7 @@ export function ExtraRecord({
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="cost-currency">Currency</Label>
+            <Label htmlFor="cost-currency">{t("logCurrency")}</Label>
             <Input
               id="cost-currency"
               value={currency}
@@ -188,7 +191,7 @@ export function ExtraRecord({
             />
           </div>
           <div className="space-y-1 sm:col-span-2">
-            <Label htmlFor="cost-reference">Reference (quote or invoice id)</Label>
+            <Label htmlFor="cost-reference">{t("shxReference")}</Label>
             <Input
               id="cost-reference"
               value={notes}
@@ -202,7 +205,7 @@ export function ExtraRecord({
       {kind === "reference" ? (
         <div className="grid gap-2 sm:grid-cols-2">
           <div className="space-y-1">
-            <Label htmlFor="ref-type">Reference type</Label>
+            <Label htmlFor="ref-type">{t("shxReferenceType")}</Label>
             <Select
               id="ref-type"
               value={referenceType}
@@ -210,13 +213,13 @@ export function ExtraRecord({
             >
               {SHIPMENT_REFERENCE_TYPES.map((value) => (
                 <option key={value} value={value}>
-                  {value.replaceAll("_", " ").toLowerCase()}
+                  {referenceTypeText(t, value)}
                 </option>
               ))}
             </Select>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="ref-value">Reference value</Label>
+            <Label htmlFor="ref-value">{t("shxReferenceValue")}</Label>
             <Input
               id="ref-value"
               value={referenceValue}
@@ -229,12 +232,9 @@ export function ExtraRecord({
 
       <Button type="button" size="sm" disabled={pending} onClick={() => void submit()}>
         {pending ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-        {pending ? "Saving…" : "Save"}
+        {pending ? t("shxSaving") : t("shxSave")}
       </Button>
-      <p className="text-[10px] leading-relaxed text-mist-600">
-        Estimated, quoted and incurred costs are separate rows. Stage 3 pricing assumptions are
-        never overwritten by an operational cost.
-      </p>
+      <p className="text-[10px] leading-relaxed text-mist-600">{t("shxFooter")}</p>
     </div>
   );
 }

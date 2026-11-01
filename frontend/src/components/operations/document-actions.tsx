@@ -6,6 +6,7 @@ import { Archive, BadgeCheck, Loader2, XCircle } from "lucide-react";
 
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/lib/i18n/locale-provider";
 import { archiveDocument, verifyDocument } from "@/lib/operations/client";
 import type { TradeDocument } from "@/lib/operations/types";
 
@@ -20,6 +21,7 @@ export function DocumentActions({
   canWrite: boolean;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,14 +58,14 @@ export function DocumentActions({
             variant="ghost"
             disabled={pending}
             onClick={() => void run("verify")}
-            title="Mark this document verified"
+            title={t("dacVerifyTitle")}
           >
             {pending ? (
               <Loader2 className="size-3 animate-spin" aria-hidden />
             ) : (
               <BadgeCheck className="size-3" aria-hidden />
             )}
-            Verify
+            {t("dacVerify")}
           </Button>
           <Button
             type="button"
@@ -71,10 +73,10 @@ export function DocumentActions({
             variant="ghost"
             disabled={pending}
             onClick={() => void run("reject")}
-            title="Mark this document rejected"
+            title={t("dacRejectTitle")}
           >
             <XCircle className="size-3" aria-hidden />
-            Reject
+            {t("dacReject")}
           </Button>
           <Button
             type="button"
@@ -82,14 +84,14 @@ export function DocumentActions({
             variant="ghost"
             disabled={pending}
             onClick={() => void run("archive")}
-            title="Archive this version"
+            title={t("dacArchiveTitle")}
           >
             <Archive className="size-3" aria-hidden />
-            Archive
+            {t("dacArchive")}
           </Button>
         </>
       ) : (
-        <span className="text-[10px] text-mist-600">Archived</span>
+        <span className="text-[10px] text-mist-600">{t("opStatusArchived")}</span>
       )}
     </div>
   );

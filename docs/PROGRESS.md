@@ -26,6 +26,9 @@ Evidence, not claims. Full matrix: `docs/STAGE11_20_STATUS.md`; operator guide: 
 * **12E** Sourcing and pricing in Turkish (RFQ, supplier quotes, landed cost, sales quotes, FX), with
   locale-aware numbers and dates (`tr-TR` separators and month names; UTC; amounts unchanged).
   Frontend 266 tests, backend 724 collected.
+* **12F** Purchase orders, shipments and the trade-document register in Turkish; evidence rules
+  (booking reference, proof of delivery, second-person approval) verified in Turkish in a real browser;
+  a 375 px overflow on the document register fixed. Frontend 279 tests.
 * **13** CSV/XLSX import wizard (atomic, idempotent), company profile (migration 0014), TR/EN
   documents in four formats; Commerce invoices are always drafts.
 * **16** Local `qwen3:8b` fallback verified live; DeepSeek not connected (no key).

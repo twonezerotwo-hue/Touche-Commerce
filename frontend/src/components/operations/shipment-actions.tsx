@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { transitionShipment } from "@/lib/operations/client";
-import { operationsStatusLabel } from "@/lib/operations/format";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { operationsStatusText } from "@/lib/i18n/value-labels";
 import type { Shipment } from "@/lib/operations/types";
 import { etagFor } from "@/lib/sourcing/format";
 
@@ -33,6 +34,9 @@ export function ShipmentActions({
   canWrite: boolean;
 }) {
   const router = useRouter();
+  const { t, locale } = useLocale();
+  const statusWord = (code: string): string =>
+    operationsStatusText(t, code).toLocaleLowerCase(locale);
   const [target, setTarget] = useState<string | null>(null);
   const [tracking, setTracking] = useState(shipment.tracking_reference ?? "");
   const [evidence, setEvidence] = useState("");
@@ -45,15 +49,15 @@ export function ShipmentActions({
   async function apply(): Promise<void> {
     if (!target) return;
     if (target === "DISPATCHED" && tracking.trim().length < 2) {
-      setError("Record the carrier or booking reference before dispatching.");
+      setError(t("shaNeedsBooking"));
       return;
     }
     if (target === "DELIVERED" && evidence.trim().length < 2) {
-      setError("Delivery requires a signed proof-of-delivery reference.");
+      setError(t("shaNeedsProof"));
       return;
     }
     if (target === "CANCELLED" && reason.trim().length < 3) {
-      setError("Cancelling a shipment needs a reason.");
+      setError(t("shaCancelNeedsReason"));
       return;
     }
 
@@ -82,14 +86,14 @@ export function ShipmentActions({
     setTarget(null);
     setEvidence("");
     setReason("");
-    setNotice(`Shipment is now ${operationsStatusLabel(result.data.status).toLowerCase()}.`);
+    setNotice(t("shaNowStatus", { status: statusWord(result.data.status) }));
     router.refresh();
   }
 
   if (!canWrite) {
     return (
-      <Alert variant="info" title="Read-only access">
-        Recording shipment milestones requires <span className="font-mono">trade.write</span>.
+      <Alert variant="info" title={t("logReadOnly")}>
+        {t("shaReadOnly")}
       </Alert>
     );
   }
@@ -108,17 +112,17 @@ export function ShipmentActions({
             variant={value === "CANCELLED" ? "danger" : "outline"}
             onClick={() => setTarget(value)}
           >
-            Mark {operationsStatusLabel(value).toLowerCase()}
+            {t("shaMark", { status: statusWord(value) })}
           </Button>
         ))}
         <Button type="button" size="sm" variant="subtle" onClick={() => setTarget("_event")}>
-          Record movement note
+          {t("shaRecordNote")}
         </Button>
         <Button type="button" size="sm" variant="subtle" onClick={() => setTarget("_cost")}>
-          Record cost
+          {t("shaRecordCost")}
         </Button>
         <Button type="button" size="sm" variant="subtle" onClick={() => setTarget("_reference")}>
-          Add reference
+          {t("shaAddReference")}
         </Button>
       </div>
 
@@ -138,47 +142,45 @@ export function ShipmentActions({
             <>
               <p className="text-[12.5px] text-mist-200">
                 {target === "DISPATCHED"
-                  ? "Dispatching records that the goods actually left. A booking reference is required."
+                  ? t("shaAskDispatch")
                   : target === "ARRIVED"
-                    ? "Arrival records the actual arrival timestamp; the ETA is not used."
+                    ? t("shaAskArrive")
                     : target === "DELIVERED"
-                      ? "Delivery needs a signed proof-of-delivery or document reference."
+                      ? t("shaAskDeliver")
                       : target === "CANCELLED"
-                        ? "Cancellation releases the allocated quantities. A reason is required."
-                        : `Move this shipment to ${operationsStatusLabel(target).toLowerCase()}?`}
+                        ? t("shaAskCancel")
+                        : t("shaAskMove", { status: statusWord(target) })}
               </p>
 
               {target === "DISPATCHED" ? (
                 <div className="mt-2 space-y-1.5">
-                  <Label htmlFor="shipment-tracking">Carrier / booking reference</Label>
+                  <Label htmlFor="shipment-tracking">{t("shaBookingReference")}</Label>
                   <Input
                     id="shipment-tracking"
                     value={tracking}
                     maxLength={200}
                     onChange={(event) => setTracking(event.target.value)}
                   />
-                  <p className="text-[10px] text-mist-600">
-                    Provenance is recorded as MANUAL. This is not live carrier-verified tracking.
-                  </p>
+                  <p className="text-[10px] text-mist-600">{t("shaManualNote")}</p>
                 </div>
               ) : null}
 
               {target === "DELIVERED" ? (
                 <div className="mt-2 space-y-1.5">
-                  <Label htmlFor="shipment-evidence">Delivery evidence reference</Label>
+                  <Label htmlFor="shipment-evidence">{t("shaDeliveryEvidence")}</Label>
                   <Input
                     id="shipment-evidence"
                     value={evidence}
                     maxLength={500}
                     onChange={(event) => setEvidence(event.target.value)}
-                    placeholder="Signed POD id or uploaded document"
+                    placeholder={t("shaDeliveryPlaceholder")}
                   />
                 </div>
               ) : null}
 
               {target === "ARRIVED" ? (
                 <div className="mt-2 space-y-1.5">
-                  <Label htmlFor="shipment-location">Arrival location (optional)</Label>
+                  <Label htmlFor="shipment-location">{t("shaArrivalLocation")}</Label>
                   <Input
                     id="shipment-location"
                     value={location}
@@ -190,7 +192,7 @@ export function ShipmentActions({
 
               {target === "CANCELLED" ? (
                 <div className="mt-2 space-y-1.5">
-                  <Label htmlFor="shipment-reason">Reason (required)</Label>
+                  <Label htmlFor="shipment-reason">{t("logReasonRequired")}</Label>
                   <Textarea
                     id="shipment-reason"
                     value={reason}
@@ -203,7 +205,7 @@ export function ShipmentActions({
               <div className="mt-3 flex items-center gap-2">
                 <Button type="button" size="sm" disabled={pending} onClick={() => void apply()}>
                   {pending ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-                  {pending ? "Applying…" : "Confirm"}
+                  {pending ? t("logApplying") : t("logConfirm")}
                 </Button>
                 <Button
                   type="button"
@@ -214,7 +216,7 @@ export function ShipmentActions({
                     setError(null);
                   }}
                 >
-                  Cancel
+                  {t("logCancel")}
                 </Button>
               </div>
             </>

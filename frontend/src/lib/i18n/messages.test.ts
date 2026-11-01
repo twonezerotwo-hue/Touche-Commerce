@@ -75,6 +75,8 @@ describe("Stage 12B catalogue integrity", () => {
       "srcIncoterm",
       "srcColRfq",
       "rfqEyebrow",
+      "refCmr",
+      "poaChannelPlaceholder",
       "ordColModel",
       "ordIncoterm",
     ]);

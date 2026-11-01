@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { transitionPurchaseOrder } from "@/lib/operations/client";
-import { operationsStatusLabel } from "@/lib/operations/format";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { operationsStatusText } from "@/lib/i18n/value-labels";
 import type { PurchaseOrder } from "@/lib/operations/types";
 import { etagFor } from "@/lib/sourcing/format";
 
@@ -33,6 +34,10 @@ export function PurchaseOrderActions({
   canApprove: boolean;
 }) {
   const router = useRouter();
+  const { t, locale } = useLocale();
+  // The English wording is lower case in the middle of a sentence; Turkish needs its own casing rules.
+  const statusWord = (code: string): string =>
+    operationsStatusText(t, code).toLocaleLowerCase(locale);
   const [target, setTarget] = useState<string | null>(null);
   const [channel, setChannel] = useState("EMAIL");
   const [reference, setReference] = useState("");
@@ -49,19 +54,19 @@ export function PurchaseOrderActions({
   async function apply(): Promise<void> {
     if (!target) return;
     if (target !== "APPROVED" && !canWrite) {
-      setError("Recording a purchase-order transition requires trade.write.");
+      setError(t("poaNeedsWrite"));
       return;
     }
     if (target === "RECORDED_SENT" && reference.trim().length < 2) {
-      setError("Record the external reference (message id, WhatsApp export, portal receipt).");
+      setError(t("poaNeedsReference"));
       return;
     }
     if (target === "SUPPLIER_CONFIRMED" && confirmation.trim().length < 2) {
-      setError("Record the supplier's confirmation reference.");
+      setError(t("poaNeedsConfirmation"));
       return;
     }
     if (target === "CANCELLED" && reason.trim().length < 3) {
-      setError("A cancellation needs a reason of at least 3 characters.");
+      setError(t("poaCancelNeedsReason"));
       return;
     }
 
@@ -87,7 +92,7 @@ export function PurchaseOrderActions({
     if (!result.ok) {
       setError(
         result.code === "FORBIDDEN"
-          ? `${result.message} Approval needs finance.approve and a different person from the creator.`
+          ? t("poaForbidden", { message: result.message })
           : result.message,
       );
       return;
@@ -96,15 +101,14 @@ export function PurchaseOrderActions({
     setReference("");
     setConfirmation("");
     setReason("");
-    setNotice(`Purchase order is now ${operationsStatusLabel(result.data.status).toLowerCase()}.`);
+    setNotice(t("poaNowStatus", { status: statusWord(result.data.status) }));
     router.refresh();
   }
 
   if (options.length === 0) {
     return (
-      <Alert variant="info" title="No further transitions">
-        This purchase order is {operationsStatusLabel(purchaseOrder.status).toLowerCase()} and
-        cannot move again.
+      <Alert variant="info" title={t("poaNoTransitionsTitle")}>
+        {t("poaNoTransitionsBody", { status: statusWord(purchaseOrder.status) })}
       </Alert>
     );
   }
@@ -125,9 +129,7 @@ export function PurchaseOrderActions({
             }
             onClick={() => setTarget(value)}
           >
-            {value === "APPROVED"
-              ? "Approve purchase order"
-              : `Mark ${operationsStatusLabel(value).toLowerCase()}`}
+            {value === "APPROVED" ? t("poaApprove") : t("poaMark", { status: statusWord(value) })}
           </Button>
         ))}
       </div>
@@ -136,34 +138,34 @@ export function PurchaseOrderActions({
         <div className="rounded-lg border border-white/[0.07] bg-white/[0.015] p-3">
           <p className="text-[12.5px] text-mist-200">
             {target === "RECORDED_SENT"
-              ? "Record that you sent this order outside the platform. Nothing is transmitted by TOUCHE."
+              ? t("poaAskSent")
               : target === "SUPPLIER_CONFIRMED"
-                ? "Record the supplier's acknowledgement. This is evidence, not an automated status."
+                ? t("poaAskConfirmed")
                 : target === "APPROVED"
-                  ? "Approving is a financial act requiring finance.approve; the creator cannot approve their own order."
-                  : `Move this purchase order to ${operationsStatusLabel(target).toLowerCase()}?`}
+                  ? t("poaAskApprove")
+                  : t("poaAskMove", { status: statusWord(target) })}
           </p>
 
           {target === "RECORDED_SENT" ? (
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="po-channel">Channel</Label>
+                <Label htmlFor="po-channel">{t("logChannel")}</Label>
                 <Input
                   id="po-channel"
                   value={channel}
                   maxLength={32}
                   onChange={(event) => setChannel(event.target.value)}
-                  placeholder="EMAIL, WHATSAPP, PORTAL"
+                  placeholder={t("poaChannelPlaceholder")}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="po-reference">External reference</Label>
+                <Label htmlFor="po-reference">{t("poaExternalReference")}</Label>
                 <Input
                   id="po-reference"
                   value={reference}
                   maxLength={200}
                   onChange={(event) => setReference(event.target.value)}
-                  placeholder="Message id or portal receipt"
+                  placeholder={t("poaReferencePlaceholder")}
                 />
               </div>
             </div>
@@ -171,20 +173,20 @@ export function PurchaseOrderActions({
 
           {target === "SUPPLIER_CONFIRMED" ? (
             <div className="mt-2 space-y-1.5">
-              <Label htmlFor="po-confirmation">Supplier confirmation reference</Label>
+              <Label htmlFor="po-confirmation">{t("poaConfirmationReference")}</Label>
               <Input
                 id="po-confirmation"
                 value={confirmation}
                 maxLength={200}
                 onChange={(event) => setConfirmation(event.target.value)}
-                placeholder="Supplier acknowledgement id"
+                placeholder={t("poaConfirmationPlaceholder")}
               />
             </div>
           ) : null}
 
           {target === "CANCELLED" ? (
             <div className="mt-2 space-y-1.5">
-              <Label htmlFor="po-reason">Reason (required)</Label>
+              <Label htmlFor="po-reason">{t("logReasonRequired")}</Label>
               <Textarea
                 id="po-reason"
                 value={reason}
@@ -197,7 +199,7 @@ export function PurchaseOrderActions({
           <div className="mt-3 flex items-center gap-2">
             <Button type="button" size="sm" disabled={pending} onClick={() => void apply()}>
               {pending ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-              {pending ? "Applying…" : "Confirm"}
+              {pending ? t("logApplying") : t("logConfirm")}
             </Button>
             <Button
               type="button"
@@ -209,7 +211,7 @@ export function PurchaseOrderActions({
                 setError(null);
               }}
             >
-              Cancel
+              {t("logCancel")}
             </Button>
           </div>
         </div>

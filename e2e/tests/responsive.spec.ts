@@ -14,6 +14,9 @@ const PAGES = [
   "/pricing",
   "/sales-quotes",
   "/fx-rates",
+  "/purchase-orders",
+  "/shipments",
+  "/documents",
 ];
 
 test.describe("responsive layout and keyboard use", () => {

@@ -18,6 +18,7 @@ typed catalogues with parity tests) is complete. Screen coverage is not.
 | Deals | List with status filters and search, new-deal page and form, detail (figures, lines, history, conversion area), edit form, status transition panel; singular/plural counts | vitest (EN + TR), Playwright (Chromium + WebKit) |
 | Sales orders | Order list, order detail (accepted lines, fulfilment, shipments, trade documents, draft invoice preview, accepted commercial terms), cancel/confirm actions with the mandatory reason, the acceptance-and-conversion form; the 24 operations status codes, 14 document types, transport modes, fulfilment models and acceptance channels are shown as words | vitest (EN + TR), Playwright (Chromium + WebKit) |
 | Sourcing and pricing (Stage 12E) | RFQ list, new RFQ, RFQ detail and lifecycle panel (prepare, send with channel and evidence, cancel with reason); supplier-quote list and detail and the quote-recording form; landed-cost scenario list and detail (stats, priced lines, cost components) and the pricing form; sales-quote list and detail, approval trail and workflow panel; FX snapshot list and form. Status words, cost types, bases and verification states are translated; the codes the API stores are not changed | vitest (EN + TR), Playwright (Chromium + WebKit) |
+| Procurement and logistics (Stage 12F) | Purchase-order list, detail (ordered lines, history and evidence, facts) and workflow panel (approve, record a send with channel and reference, supplier confirmation, cancel with reason); shipment list, planning page and form, detail (allocated quantities, timeline, logistics costs, references, milestones, facts, shipping documents) and milestone panel (booking, dispatch with a booking reference, arrival, delivery with proof, cancel) plus movement notes, costs and references; trade-document register (upload, draft invoice and packing-list preview, filters, verify, reject, archive). Milestones, cost types, cost stages (estimated / quoted / incurred / documented), reference types, provenance and delay wording are translated; stored codes and evidence rules are unchanged | vitest (EN + TR), Playwright (Chromium + WebKit) |
 
 Stored trade data (names, descriptions, notes, SKUs) is never translated. Words the API stores in
 English (`active`, `buyer`, `supplier`) keep their stored value and are shown in the reader's
@@ -26,10 +27,10 @@ the API sent it, except for the sign-in failures, which are mapped by error code
 
 ## Still English only
 
-purchase orders, shipments, the trade-document register, finance (ledger, reconciliation, discrepancies, intelligence), AI Office,
+finance (ledger, reconciliation, discrepancies, intelligence), AI Office,
 communications, account and select-company pages, and the public status page. Each uses fixed
 English strings inside the page; they need the same treatment (catalogue keys + `getServerT()` /
-`useLocale()` + a Turkish test), roughly 17 screens. Two cross-cutting gaps remain: the breadcrumb
+`useLocale()` + a Turkish test), roughly 13 screens. Two cross-cutting gaps remain: the breadcrumb
 repeats "Workspace", and the browser-tab titles of the screens translated before Stage 12E are
 still English (the screens of Stage 12E use `generateMetadata` and are translated).
 
@@ -43,7 +44,7 @@ still English (the screens of Stage 12E use `generateMetadata` and are translate
 
 ## Defects found while doing this
 
-Doing the screens one by one in a real browser found five real problems, all fixed:
+Doing the screens one by one in a real browser found six real problems, all fixed:
 
 1. `CounterpartyForm` (shipped in Stage 1B) returned the form inside the `if (!open)` branch after an
    earlier `return`, so the form was unreachable: clicking "New counterparty" made the component
@@ -66,6 +67,9 @@ Doing the screens one by one in a real browser found five real problems, all fix
    not its containing block, so it escaped the clip. It had gone unnoticed because the phone-width
    check ran while the deal list was still empty. The scroll container in `ui/table.tsx` is now
    `relative`, and the phone-width spec also visits `/deals` and `/orders` with data present.
+6. At 375 px the document register's two wide selects (320 and 250 px) pushed the page sideways in
+   WebKit (English and Turkish alike), found when the Turkish-interface width check was added. The
+   controls are now full width on a phone, and the two cards can shrink in the grid.
 
 ## Numbers, dates and money (Stage 12E)
 
@@ -78,6 +82,17 @@ no company time-zone setting), and a stored date such as `2026-10-24` is formatt
 does not change between the server and a browser in another zone. Screens translated before Stage
 12E still format with the English default until their batch is revisited; every screen touched in
 12E and later passes the reader's language.
+
+## Stage 12F evidence
+
+| Item | Result |
+|---|---|
+| Screens | 6 routes and 7 components: `/purchase-orders`, `/purchase-orders/[id]`, `/shipments`, `/shipments/new`, `/shipments/[id]`, `/documents`; purchase-order and shipment panels, shipment record forms, shipment plan form, document upload and document actions |
+| Catalogue | `lib/i18n/catalog/logistics.ts`, about 260 keys per language; `catalog-keys.test.ts` fails if two catalogues define the same key (it found and removed one harmless duplicate) |
+| Unit tests | `logistics-turkish.test.tsx`: word helpers, purchase-order panel (a send needs its external reference; approval is hidden without `finance.approve`), shipment milestones (dispatch needs a booking reference, delivery needs proof, cancellation needs a reason, read-only role), plan form, document upload and actions |
+| Browser tests | `e2e/tests/logistics.spec.ts` (4 journeys on Chromium and WebKit): purchase order read in Turkish and approved by a second person; shipment booked and dispatched with the evidence rule enforced in Turkish, a cost recorded and shown as `12,50` / `12.50`; document uploaded, listed and verified; read-only role. `responsive.spec.ts` also covers the three screens at 375, 768, 1024 and 1440 px |
+| Evidence rules | Dispatch, arrival and delivery still require their own evidence, the purchase-order creator still cannot approve, and no stored enum value or API contract changed |
+| Known limitation | The draft invoice / packing-list preview text that the API sends (legal notice, document label) is shown as received; it is not translated by the interface |
 
 ## Stage 12E evidence
 
