@@ -26,6 +26,8 @@ const PAGES = [
   "/finance/intelligence/exceptions",
   "/ai",
   "/communications",
+  "/account",
+  "/status",
 ];
 
 test.describe("responsive layout and keyboard use", () => {

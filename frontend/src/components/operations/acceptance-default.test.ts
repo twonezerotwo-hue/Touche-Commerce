@@ -23,6 +23,14 @@ describe("the pre-filled customer acceptance time", () => {
     expect(instant(value)).toBeLessThanOrEqual(now.getTime());
   });
 
+  it("is strictly after an approval that falls on a whole second (the API keeps microseconds)", () => {
+    // A JavaScript Date drops the 0.0004 s, so this reads as exactly 10:30:15.000.
+    const approvedAt = "2026-10-24T10:30:15.000400Z";
+    const value = defaultAcceptedAt(approvedAt, now);
+    expect(instant(value)).toBeGreaterThan(new Date(approvedAt).getTime());
+    expect(instant(value)).toBe(new Date("2026-10-24T10:30:16.000Z").getTime());
+  });
+
   it("falls back to the minute for a missing or unreadable approval time", () => {
     expect(defaultAcceptedAt(null, now)).toHaveLength(16);
     expect(defaultAcceptedAt("not a date", now)).toHaveLength(16);

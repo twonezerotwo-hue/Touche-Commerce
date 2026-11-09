@@ -83,6 +83,10 @@ describe("Stage 12B catalogue integrity", () => {
       "rfqEyebrow",
       "ordColModel",
       "ordIncoterm",
+      "stEyebrow",
+      "stReadinessTitle",
+      "stFooterApi",
+      "stFooterOpenApi",
     ]);
     const same = ALL_MESSAGE_KEYS.filter(
       (key) => translate("tr", key) === translate("en", key) && !allowedSame.has(key),
@@ -91,18 +95,15 @@ describe("Stage 12B catalogue integrity", () => {
   });
 
   it("declares every key in exactly one catalogue (a spread would silently overwrite a duplicate)", async () => {
-    const catalogues = {
-      common: (await import("./catalog/common")).commonEn,
-      imports: (await import("./catalog/imports")).importsEn,
-      documents: (await import("./catalog/documents")).documentsEn,
-      auth: (await import("./catalog/auth")).authEn,
-      trade: (await import("./catalog/trade")).tradeEn,
-      dashboard: (await import("./catalog/dashboard")).dashboardEn,
-      deals: (await import("./catalog/deals")).dealsEn,
-      orders: (await import("./catalog/orders")).ordersEn,
-      sourcing: (await import("./catalog/sourcing")).sourcingEn,
-      logistics: (await import("./catalog/logistics")).logisticsEn,
-    };
+    // Every file in catalog/ is picked up, so a new catalogue can never be left out of this check.
+    const modules = import.meta.glob<Record<string, unknown>>("./catalog/*.ts", { eager: true });
+    const catalogues: Record<string, object> = {};
+    for (const [file, mod] of Object.entries(modules)) {
+      const english = Object.entries(mod).find(([name]) => name.endsWith("En"));
+      expect(english, `${file} must export an English catalogue named *En`).toBeDefined();
+      catalogues[file] = english![1] as object;
+    }
+    expect(Object.keys(catalogues).length).toBeGreaterThanOrEqual(13);
     const owner = new Map<string, string>();
     const clashes: string[] = [];
     for (const [name, catalogue] of Object.entries(catalogues)) {
