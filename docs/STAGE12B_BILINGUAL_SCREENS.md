@@ -22,6 +22,7 @@ typed catalogues with parity tests) is complete. Screen coverage is not.
 | Finance ledger and reconciliation (Stage 12G1) | Finance ledger (connection state, overview, accounts, receivables and payables aging, filters, every unavailable / degraded / disabled state), reconciliation list and run detail (stats, evidence links, reviews, discrepancies, interpretation limits), discrepancy queue and filters, order finance view (accepted order, commitments, recorded costs, gaps, margin interpretation) and the create-run, link-evidence, review and resolve forms. ESTIMATED / COMMITTED / DOCUMENTED / FINANCE OBSERVED / VERIFIED / UNAVAILABLE keep their distinct tones and an unknown value is shown as UNAVAILABLE, never as a stronger class | vitest (EN + TR), Playwright (Chromium + WebKit) |
 | Financial intelligence (Stage 12G2) | Dashboard (eight metric cards, completeness / coverage / missing-input charts, monthly commitments, estimated vs documented cost, margin distribution with their table views and tooltips, orders needing review), order profitability (all orders and cost variance), exceptions queue and filters, the order analysis (checks, cost lines, FX assumptions, purchase orders, shipments and costs, accepted quote, reconciliation timeline, Finance evidence), filter bar, pager and CSV export control. Money and percentages follow the language; the backend's digits are unchanged; a missing figure is the words "Not available" / "Mevcut değil", never zero | vitest (EN + TR), Playwright (Chromium + WebKit) |
 | AI Office and communications (Stage 12G3) | AI Office page (header, safety badges, conversation history, suggested questions, composer and its counter, running-request progress with tool calls and cancel, the answer with its evidence basis, findings, recommendations, missing inputs and sources), the proposal cards (draft and task proposals, approve / edit / reject with the mandatory review of unverified figures, read-only notice, decided-by line), the provider card (mode, model, budget, the safety promises), the activity list and the tool registry (classes, permissions, blocked actions); Communications page (channel availability, prepared correspondence, readiness check with its blockers, the do-not-contact ledger and its confirmation). The page titles come from `generateMetadata`. | vitest (EN + TR), Playwright (Chromium + WebKit) |
+| Account, company selection, session and error states, status page, shell (Stage 12H) | Account page (identity, memberships, company switcher, session policy), company selection, the session-unavailable state, the public status page and its probe cards, the 404 page and the screen-error boundary (new), the breadcrumb, the sidebar (navigation name, role word, no-membership text, planned-item tooltip), the footer, the document title and description of every screen (older screens had fixed English titles), the roles as words, and the failure messages the API clients write themselves (request failed, API unreachable, unexpected response, timeout, invalid JSON, OpenAPI parse) | vitest (EN + TR), Playwright (Chromium + WebKit) |
 Stored trade data (names, descriptions, notes, SKUs) is never translated. Words the API stores in
 English (`active`, `buyer`, `supplier`) keep their stored value and are shown in the reader's
 language (`lib/i18n/value-labels.ts`). Error text that comes from the API (`message`) is shown as
@@ -29,11 +30,9 @@ the API sent it, except for the sign-in failures, which are mapped by error code
 
 ## Still English only
 
-Account and select-company pages, and the public status page. Each uses fixed
-English strings inside the page; they need the same treatment (catalogue keys + `getServerT()` /
-`useLocale()` + a Turkish test), roughly 4 screens. Two cross-cutting gaps remain: the breadcrumb
-repeats "Workspace", and the browser-tab titles of the screens translated before Stage 12E are
-still English (the screens of Stages 12E and 12F use `generateMetadata` and are translated).
+No screen is fixed English any more. What stays as received or as stored is listed per batch under
+"Known limits" (backend-written text such as discrepancy titles, tool descriptions and the AI
+provider notice) and in the final coverage matrix.
 
 ## How to translate another screen
 
@@ -77,9 +76,10 @@ placement and month names change: the amount is parsed from the same string the 
 currency is always the ISO code stored with it (`1,250.50` and `1.250,50` are the same number).
 Locale, currency and time zone are separate: instants are shown in UTC in both languages (there is
 no company time-zone setting), and a stored date such as `2026-10-24` is formatted in UTC so the day
-does not change between the server and a browser in another zone. Screens translated before Stage
-12E still format with the English default until their batch is revisited; every screen touched in
-12E and later passes the reader's language.
+does not change between the server and a browser in another zone. Since Stage 12H every date,
+instant, amount and quantity call in the application passes the reader's language (the dashboard,
+deals, orders, CRM, products, imports and the deal form were the last ones using the English
+default); the order-conversion form no longer formats an instant in the runtime's own time zone.
 
 ## Stage 12E evidence
 
@@ -90,6 +90,51 @@ does not change between the server and a browser in another zone. Screens transl
 | Unit tests | `sourcing-turkish.test.tsx` (status and cost words, RFQ panel, sales-quote workflow panel, pricing form, quote form), `formats.test.ts` (English output unchanged, Turkish separators and months, UTC dates) |
 | Browser tests | `e2e/tests/sourcing.spec.ts` (4 journeys: Turkish read of every sourcing screen with the same figures in English, read-only role, a half-filled form surviving the language switch, FX snapshot recorded in Turkish) and `responsive.spec.ts` (Turkish pages at 375, 768, 1024 and 1440 px, plus the sourcing pages at phone width) on Chromium and WebKit (full suite: 87 of 88 passed; the one failure was an unrelated timing flake in `concurrency.spec.ts` that passed on re-run, see `STAGE11_20_STATUS.md`) |
 | Financial figures | A fixture quote (purchase 160 + freight 40 = landed 200, 20 % margin on price = sales 250) is asserted as `200,00`/`250,00` in Turkish and `200.00`/`250.00` in English; no calculation code was touched |
+
+## Stage 12H evidence
+
+| Item | Result |
+|---|---|
+| Screens | `/account`, `/select-company`, `/status`, the session-unavailable state, `app/not-found.tsx` and `app/(app)/error.tsx` (new), the breadcrumb, sidebar, footer and the tab title of every screen that still had a fixed one (`/`, `/crm`, `/products`, `/deals`, `/deals/new`, `/orders`, `/imports`, `/company`, `/account`, sign-in, select-company, status) |
+| Catalogue | `lib/i18n/catalog/account.ts`; roles (`viewer`, `trader`, `approver`, `admin`) are words through `roleLabel` (stored values and permission identifiers are never translated); `lib/i18n/runtime.ts` gives the API clients the page language (`<html lang>`, or the language cookie in the proxy route) so the failure messages they write are translated while a message the API wrote stays as received |
+| Tab titles | `generateMetadata` with `titleFor` / `titleForNav` (reuses the sidebar word) and a language-aware root title and description |
+| Dates and money | 38 call sites now pass the language (`formatDate`, `formatTimestamp`, `formatMoney`, `formatQuantity`); English output is unchanged because the default is English |
+| Unit tests | `account-turkish.test.tsx` (roles, account summary, company switcher, sign-out, session-unavailable, error boundary hides error detail and shows a reference, probe states, top bar, sidebar), `server.test.ts` (titles follow the cookie), `failures.test.ts` (page language, cookie header, the generic and unreachable messages in both languages, an API message is shown as received, the status probes), plus the catalogue check below |
+| Catalogue check | The duplicate-key test now discovers every file in `catalog/` instead of a hand-written list; it found the defect below |
+| Browser tests | `e2e/tests/account-status.spec.ts` (5 journeys: the account page in Turkish with the session, company and permissions unchanged across a language switch; the public status page with no sign-in; tab titles of nine screens; the 404 page; the sales order list keeping its own title and Turkish month names on real data) and `responsive.spec.ts` (`/account` and `/status` added) on Chromium and WebKit. Full suite:  10 skipped, 130 passed (16.4m) on Chromium and WebKit (skipped: the live Finance and E-YAY specs that need services the acceptance stack does not have). An earlier full run had 11 failures: 10 were the new /status width entries (the page had no main landmark, now added) and 1 was an intermittent order-conversion failure that did not reproduce in 3 isolated runs; both were addressed and the full suite then passed |
+| Tests in total | Backend 724 collected (unchanged, no backend code changed), frontend 352 tests in 45 files (326 before this batch); `scripts\verify.ps1` passed: ruff, mypy, pytest, format, eslint, tsc, vitest, production build |
+
+### Defects found in Stage 12H
+
+1. **A catalogue key collision shipped with Stage 12G2.** `intelligence.ts` declared `ordTitle`,
+   `ordDescription` and `ordUnavailable`, which `orders.ts` already used; because the merged
+   dictionary spreads the intelligence catalogue last, the **Sales orders list showed the order
+   profitability title and description**, and the order detail back-link, the purchase-order link and
+   the "unavailable" message read "Order profitability" in both languages. It was on `main` from the
+   12G2 merge (PR 41) until this batch. No test asserted the heading of the order list, and the old
+   duplicate-key test listed catalogues by hand and had never included the finance, intelligence or
+   assistant catalogues. The intelligence keys are renamed
+   (`intOrdTitle` ...), the duplicate test now covers every catalogue file, and the order-list
+   journey asserts the title in both languages.
+2. Dates, amounts and quantities on the dashboard, deal list and detail, order list and detail, CRM,
+   products, imports and the deal form were still formatted with the English default in Turkish.
+3. The "already accepted" date of the order-conversion form used the runtime's time zone
+   (`toLocaleString`), which can differ between server and browser.
+4. The footer ("Internal trade platform", the stage line), the sidebar ("No membership", the role
+   and the planned-item tooltip), the breadcrumb and the navigation landmark names, the import
+   steps list name, two form placeholders, the tab titles and the document description were fixed
+   English. A page that does not exist showed the framework's English 404 page.
+5. The messages the API clients write themselves ("The request could not be completed.", "Cannot
+   reach the API ...", "The API returned an unexpected error response.", the timeout, invalid JSON
+   and OpenAPI parse messages, and the proxy's "API is not reachable") were English in Turkish.
+
+### Known limits after 12H
+
+* A message the API itself writes (`error.message`) is shown as received. The sign-in failures are
+  mapped by error code and are translated.
+* Example placeholders that are names or codes (`Rotterdam, NL`, `Acme Metals Ltd`, `ALU-A7`) stay
+  as they are; the two that are sentences or product names were translated.
+* The footer stage line and the sidebar's "S2"-style stage chips are build labels, not content.
 
 ## Stage 12G3 evidence
 

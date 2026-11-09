@@ -512,5 +512,6 @@ locale, stable codes and UTC timestamps stored. Delivered in small, separately m
 | 12F | Purchase orders, shipments, trade-document register (and the upload/verify components the order page shares) | merged (PR 39) |
 | 12G1 | Finance ledger, reconciliation, discrepancies, order finance view | merged (PR 40) |
 | 12G2 | Financial intelligence: dashboard, charts, order profitability, exceptions, CSV export | merged (PR 41) |
-| 12G3 | AI Office and communications (drafts, readiness check, do-not-contact ledger) | this batch |
-| 12H | Account, company selection, status page, page titles, remaining dates, final audit | planned |
+| 12G3 | AI Office and communications (drafts, readiness check, do-not-contact ledger) | merged (PR 42) |
+| 12H | Account, company selection, session and error states, public status page, tab titles, every remaining date and money call, shell leftovers | this batch |
+| Final audit | Hardcoded-text scan, coverage matrix, automated gate | planned |

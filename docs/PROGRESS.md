@@ -43,7 +43,11 @@ Evidence, not claims. Full matrix: `docs/STAGE11_20_STATUS.md`; operator guide: 
 * **12G3** AI Office and communications in Turkish (conversation, answer with its evidence basis, proposals
   that wait for a person, provider card, activity, tool registry; channels, readiness check, do-not-contact
   ledger). Nothing can be sent; English wording unchanged. The acceptance stack now runs the offline mock
-  provider, so the journeys are exercised in a real browser. Backend 724 tests, frontend 326 tests.
+  provider, so the journeys are exercised in a real browser. Merged as PR 42. Backend 724 tests, frontend 326 tests.
+* **12H** Account, company selection, session and error states, the public status page, tab titles, the 404
+  and screen-error pages, every remaining date and money call, and the messages the API clients write
+  themselves, in Turkish. A catalogue-key collision from 12G2 that showed the order-profitability title on the
+  Sales orders list is fixed and now guarded. Frontend 352 tests; the full browser suite  10 skipped, 130 passed (16.4m) on Chromium and WebKit (skipped: the live Finance and E-YAY specs that need services the acceptance stack does not have). An earlier full run had 11 failures: 10 were the new /status width entries (the page had no main landmark, now added) and 1 was an intermittent order-conversion failure that did not reproduce in 3 isolated runs; both were addressed and the full suite then passed.
 * **13** CSV/XLSX import wizard (atomic, idempotent), company profile (migration 0014), TR/EN
   documents in four formats; Commerce invoices are always drafts.
 * **16** Local `qwen3:8b` fallback verified live; DeepSeek not connected (no key).
