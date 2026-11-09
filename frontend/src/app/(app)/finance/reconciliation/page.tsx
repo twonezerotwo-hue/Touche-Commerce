@@ -8,11 +8,12 @@ import { PageHeader } from "@/components/ui/page-header";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
 import type { FinanceStatus } from "@/lib/finance/types";
+import { getServerT, titleFor, type ServerTranslator } from "@/lib/i18n/server";
 import type { ReconciliationList, ReconciliationRun } from "@/lib/finance/reconciliation";
 import type { SalesOrderList } from "@/lib/operations/types";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Reconciliation" };
+export const generateMetadata = () => titleFor("recTitle");
 
 const PAGE_SIZE = 25;
 
@@ -24,6 +25,7 @@ interface SearchParams {
 }
 
 function errorAlert(
+  t: ServerTranslator["t"],
   title: string,
   result: { code: string; message: string; requestId: string | null },
 ) {
@@ -32,7 +34,7 @@ function errorAlert(
       <span>{result.message}</span>
       <span className="mt-1 block font-mono text-[10px] text-mist-500">
         {result.code}
-        {result.requestId ? ` · request ${result.requestId}` : ""}
+        {result.requestId ? ` · ${t("finRequestSuffix", { id: result.requestId })}` : ""}
       </span>
     </Alert>
   );
@@ -45,6 +47,7 @@ export default async function ReconciliationPage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t } = await getServerT();
   const params = await searchParams;
   const permissions = state.session.session.company?.permissions ?? [];
   const csrfToken = state.session.session.csrf_token;
@@ -54,12 +57,12 @@ export default async function ReconciliationPage({
     return (
       <div className="mx-auto max-w-[1360px] space-y-4">
         <PageHeader
-          eyebrow="Finance · Stage 5D"
-          title="Reconciliation"
-          description="Evidence-based reconciliation between Commerce and Finance."
-          back={{ href: "/finance", label: "Finance" }}
+          eyebrow={t("finEyebrowRec")}
+          title={t("recTitle")}
+          description={t("recHintShort")}
+          back={{ href: "/finance", label: t("finBackFinance") }}
         />
-        {errorAlert("Finance status unavailable", statusResult)}
+        {errorAlert(t, t("recStatusUnavailable"), statusResult)}
       </div>
     );
   }
@@ -79,13 +82,13 @@ export default async function ReconciliationPage({
     return (
       <div className="mx-auto max-w-[1360px] space-y-4">
         <PageHeader
-          eyebrow="Finance · Stage 5D"
-          title="Reconciliation"
-          description="Choose one Finance currency. Commerce never aggregates currencies."
-          back={{ href: "/finance", label: "Finance" }}
+          eyebrow={t("finEyebrowRec")}
+          title={t("recTitle")}
+          description={t("recChooseCurrency")}
+          back={{ href: "/finance", label: t("finBackFinance") }}
         />
-        <Alert variant="info" title="Select a currency">
-          Finance exposes {currencies.join(", ")}. Open one currency explicitly:
+        <Alert variant="info" title={t("recSelectCurrencyTitle")}>
+          {t("recSelectCurrencyBody", { currencies: currencies.join(", ") })}
           <span className="mt-2 flex flex-wrap gap-2">
             {currencies.map((item) => (
               <Button key={item} asChild size="xs" variant="outline">
@@ -127,34 +130,32 @@ export default async function ReconciliationPage({
   return (
     <div className="mx-auto max-w-[1360px] space-y-5">
       <PageHeader
-        eyebrow="Finance · Stage 5D"
-        back={{ href: "/finance", label: "Finance" }}
+        eyebrow={t("finEyebrowRec")}
+        back={{ href: "/finance", label: t("finBackFinance") }}
         meta={
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">Evidence reconciliation</Badge>
-            <Badge variant="outline">Read-only Finance</Badge>
+            <Badge variant="secondary">{t("recBadgeEvidence")}</Badge>
+            <Badge variant="outline">{t("recBadgeReadOnly")}</Badge>
           </div>
         }
-        title="Reconciliation"
-        description="Accepted orders, purchase commitments, recorded operational costs and Finance source evidence — kept separate, with human verification only."
+        title={t("recTitle")}
+        description={t("recDescription")}
         actions={
           <div className="flex flex-wrap gap-2">
             <Button asChild size="sm" variant="outline">
-              <Link href="/finance/discrepancies">Discrepancies</Link>
+              <Link href="/finance/discrepancies">{t("finBtnDiscrepancies")}</Link>
             </Button>
             <Button asChild size="sm" variant="ghost">
-              <Link href="/finance">Finance ledger</Link>
+              <Link href="/finance">{t("finLedgerLink")}</Link>
             </Button>
           </div>
         }
       />
 
-      {!listResult.ok ? errorAlert("Reconciliation runs unavailable", listResult) : null}
-      {!orderResult.ok
-        ? errorAlert("Accepted orders unavailable; run creation is disabled", orderResult)
-        : null}
+      {!listResult.ok ? errorAlert(t, t("recRunsUnavailable"), listResult) : null}
+      {!orderResult.ok ? errorAlert(t, t("recOrdersUnavailable"), orderResult) : null}
       {latestResult && !latestResult.ok
-        ? errorAlert("Latest run detail unavailable", latestResult)
+        ? errorAlert(t, t("recLatestUnavailable"), latestResult)
         : null}
 
       {list ? (

@@ -9,10 +9,12 @@ import { Select } from "@/components/ui/select";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
 import type { FinanceStatus } from "@/lib/finance/types";
+import { getServerT, titleFor } from "@/lib/i18n/server";
+import { discrepancyCodeText, discrepancyStatusText, severityText } from "@/lib/i18n/value-labels";
 import type { ReconciliationDiscrepancyList } from "@/lib/finance/reconciliation";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Discrepancies" };
+export const generateMetadata = () => titleFor("disTitle");
 
 const PAGE_SIZE = 50;
 const STATUSES = ["OPEN", "RESOLVED", "DISMISSED"] as const;
@@ -45,6 +47,7 @@ export default async function DiscrepanciesPage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t } = await getServerT();
   const params = await searchParams;
   const permissions = state.session.session.company?.permissions ?? [];
   const canReview = permissions.includes("finance.reconcile");
@@ -81,18 +84,18 @@ export default async function DiscrepanciesPage({
   return (
     <div className="mx-auto max-w-[1360px] space-y-5">
       <PageHeader
-        eyebrow="Finance · Stage 5D"
-        back={{ href: "/finance/reconciliation", label: "Reconciliation" }}
-        meta={<Badge variant="secondary">Exception queue</Badge>}
-        title="Discrepancies"
-        description="Deterministic evidence gaps, amount and currency differences, duplicates and stale data. Resolving an item does not change Finance."
+        eyebrow={t("finEyebrowRec")}
+        back={{ href: "/finance/reconciliation", label: t("finBackReconciliation") }}
+        meta={<Badge variant="secondary">{t("disBadge")}</Badge>}
+        title={t("disTitle")}
+        description={t("disDescription")}
         actions={
           <div className="flex flex-wrap gap-2">
             <Button asChild size="sm" variant="outline">
-              <Link href="/finance/reconciliation">Reconciliation runs</Link>
+              <Link href="/finance/reconciliation">{t("disBtnRuns")}</Link>
             </Button>
             <Button asChild size="sm" variant="ghost">
-              <Link href="/finance">Finance ledger</Link>
+              <Link href="/finance">{t("finLedgerLink")}</Link>
             </Button>
           </div>
         }
@@ -106,7 +109,7 @@ export default async function DiscrepanciesPage({
         >
           <div className="space-y-1">
             <label htmlFor="discrepancy-status" className="eyebrow">
-              Status
+              {t("disFilterStatus")}
             </label>
             <Select
               id="discrepancy-status"
@@ -114,17 +117,17 @@ export default async function DiscrepanciesPage({
               defaultValue={filters.status}
               className="h-8 w-[140px] text-[12px]"
             >
-              <option value="">All</option>
+              <option value="">{t("finAll")}</option>
               {STATUSES.map((value) => (
                 <option key={value} value={value}>
-                  {value}
+                  {discrepancyStatusText(t, value)}
                 </option>
               ))}
             </Select>
           </div>
           <div className="space-y-1">
             <label htmlFor="discrepancy-severity" className="eyebrow">
-              Severity
+              {t("disFilterSeverity")}
             </label>
             <Select
               id="discrepancy-severity"
@@ -132,17 +135,17 @@ export default async function DiscrepanciesPage({
               defaultValue={filters.severity}
               className="h-8 w-[140px] text-[12px]"
             >
-              <option value="">All</option>
+              <option value="">{t("finAll")}</option>
               {SEVERITIES.map((value) => (
                 <option key={value} value={value}>
-                  {value}
+                  {severityText(t, value)}
                 </option>
               ))}
             </Select>
           </div>
           <div className="space-y-1">
             <label htmlFor="discrepancy-code" className="eyebrow">
-              Code
+              {t("disFilterCode")}
             </label>
             <Select
               id="discrepancy-code"
@@ -150,10 +153,10 @@ export default async function DiscrepanciesPage({
               defaultValue={filters.code}
               className="h-8 w-[230px] text-[12px]"
             >
-              <option value="">All codes</option>
+              <option value="">{t("disAllCodes")}</option>
               {CODES.map((value) => (
                 <option key={value} value={value}>
-                  {value}
+                  {discrepancyCodeText(t, value)}
                 </option>
               ))}
             </Select>
@@ -161,7 +164,7 @@ export default async function DiscrepanciesPage({
           {currencies.length > 1 ? (
             <div className="space-y-1">
               <label htmlFor="discrepancy-currency" className="eyebrow">
-                Currency
+                {t("disFilterCurrency")}
               </label>
               <Select
                 id="discrepancy-currency"
@@ -169,7 +172,7 @@ export default async function DiscrepanciesPage({
                 defaultValue={currency}
                 className="h-8 w-[120px] text-[12px]"
               >
-                <option value="">All</option>
+                <option value="">{t("finAll")}</option>
                 {currencies.map((value) => (
                   <option key={value} value={value}>
                     {value}
@@ -179,29 +182,30 @@ export default async function DiscrepanciesPage({
             </div>
           ) : null}
           <Button type="submit" size="sm" variant="subtle">
-            Apply
+            {t("finApply")}
           </Button>
           {filters.status || filters.severity || filters.code ? (
             <Button asChild size="sm" variant="ghost">
-              <Link href="/finance/discrepancies">Clear</Link>
+              <Link href="/finance/discrepancies">{t("disClear")}</Link>
             </Button>
           ) : null}
         </form>
         <span className="ml-auto text-[10px] text-mist-600">
-          {canReview
-            ? "You can resolve items with finance.reconcile."
-            : "Read-only: resolving needs finance.reconcile."}
+          {canReview ? t("disCanResolve") : t("disCannotResolve")}
         </span>
       </div>
 
       {!result.ok ? (
-        <Alert variant="danger" title="Discrepancies unavailable">
+        <Alert variant="danger" title={t("disUnavailable")}>
           {result.message}
         </Alert>
       ) : (
         <div className="panel overflow-hidden">
           <div className="px-4 py-3 text-[10.5px] text-mist-500">
-            {result.data.total} finding{result.data.total === 1 ? "" : "s"} · offset {offset}
+            {t(result.data.total === 1 ? "disFindingOne" : "disFindingMany", {
+              count: result.data.total,
+              offset,
+            })}
           </div>
           <div className="hairline" />
           <DiscrepancyQueue

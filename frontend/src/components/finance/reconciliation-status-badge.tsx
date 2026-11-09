@@ -1,16 +1,25 @@
+"use client";
+
 import { Badge } from "@/components/ui/badge";
 import {
   discrepancyTone,
-  reconciliationStatusLabel,
   reconciliationStatusTone,
   type ReconciliationDiscrepancy,
   type ReconciliationRun,
 } from "@/lib/finance/reconciliation";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import {
+  classificationText,
+  discrepancyStatusText,
+  reconciliationStatusText,
+  severityText,
+} from "@/lib/i18n/value-labels";
 
 export function ReconciliationStatusBadge({ status }: { status: ReconciliationRun["status"] }) {
+  const { t } = useLocale();
   return (
     <Badge variant={reconciliationStatusTone(status)} dot>
-      {reconciliationStatusLabel(status)}
+      {reconciliationStatusText(t, status)}
     </Badge>
   );
 }
@@ -20,22 +29,30 @@ export function DiscrepancySeverityBadge({
 }: {
   severity: ReconciliationDiscrepancy["severity"];
 }) {
-  return <Badge variant={discrepancyTone(severity)}>{severity}</Badge>;
+  const { t } = useLocale();
+  return <Badge variant={discrepancyTone(severity)}>{severityText(t, severity)}</Badge>;
 }
 
+/** OPEN / RESOLVED / DISMISSED, shown as words. */
+export function DiscrepancyStatusBadge({
+  status,
+}: {
+  status: ReconciliationDiscrepancy["status"];
+}) {
+  const { t } = useLocale();
+  return (
+    <Badge variant={status === "RESOLVED" ? "success" : "outline"}>
+      {discrepancyStatusText(t, status)}
+    </Badge>
+  );
+}
+
+/**
+ * ESTIMATED, COMMITTED, DOCUMENTED, FINANCE OBSERVED, VERIFIED or UNAVAILABLE. The tone follows the
+ * stored classification, not the translated word, so the meaning cannot drift with the language.
+ */
 export function ClassificationBadge({ value }: { value: string | undefined }) {
-  const label =
-    value === "FINANCE_OBSERVED"
-      ? "FINANCE OBSERVED"
-      : value === "VERIFIED"
-        ? "VERIFIED"
-        : value === "COMMITTED"
-          ? "COMMITTED"
-          : value === "DOCUMENTED"
-            ? "DOCUMENTED"
-            : value === "ESTIMATED"
-              ? "ESTIMATED"
-              : "UNAVAILABLE";
+  const { t } = useLocale();
   return (
     <Badge
       variant={
@@ -48,7 +65,7 @@ export function ClassificationBadge({ value }: { value: string | undefined }) {
               : "default"
       }
     >
-      {label}
+      {classificationText(t, value)}
     </Badge>
   );
 }
