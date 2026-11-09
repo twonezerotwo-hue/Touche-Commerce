@@ -21,6 +21,7 @@ typed catalogues with parity tests) is complete. Screen coverage is not.
 | Sourcing and pricing (Stage 12E) | RFQ list, new RFQ, RFQ detail and lifecycle panel (prepare, send with channel and evidence, cancel with reason); supplier-quote list and detail and the quote-recording form; landed-cost scenario list and detail (stats, priced lines, cost components) and the pricing form; sales-quote list and detail, approval trail and workflow panel; FX snapshot list and form. Status words, cost types, bases and verification states are translated; the codes the API stores are not changed | vitest (EN + TR), Playwright (Chromium + WebKit) |
 | Finance ledger and reconciliation (Stage 12G1) | Finance ledger (connection state, overview, accounts, receivables and payables aging, filters, every unavailable / degraded / disabled state), reconciliation list and run detail (stats, evidence links, reviews, discrepancies, interpretation limits), discrepancy queue and filters, order finance view (accepted order, commitments, recorded costs, gaps, margin interpretation) and the create-run, link-evidence, review and resolve forms. ESTIMATED / COMMITTED / DOCUMENTED / FINANCE OBSERVED / VERIFIED / UNAVAILABLE keep their distinct tones and an unknown value is shown as UNAVAILABLE, never as a stronger class | vitest (EN + TR), Playwright (Chromium + WebKit) |
 | Financial intelligence (Stage 12G2) | Dashboard (eight metric cards, completeness / coverage / missing-input charts, monthly commitments, estimated vs documented cost, margin distribution with their table views and tooltips, orders needing review), order profitability (all orders and cost variance), exceptions queue and filters, the order analysis (checks, cost lines, FX assumptions, purchase orders, shipments and costs, accepted quote, reconciliation timeline, Finance evidence), filter bar, pager and CSV export control. Money and percentages follow the language; the backend's digits are unchanged; a missing figure is the words "Not available" / "Mevcut değil", never zero | vitest (EN + TR), Playwright (Chromium + WebKit) |
+| AI Office and communications (Stage 12G3) | AI Office page (header, safety badges, conversation history, suggested questions, composer and its counter, running-request progress with tool calls and cancel, the answer with its evidence basis, findings, recommendations, missing inputs and sources), the proposal cards (draft and task proposals, approve / edit / reject with the mandatory review of unverified figures, read-only notice, decided-by line), the provider card (mode, model, budget, the safety promises), the activity list and the tool registry (classes, permissions, blocked actions); Communications page (channel availability, prepared correspondence, readiness check with its blockers, the do-not-contact ledger and its confirmation). The page titles come from `generateMetadata`. | vitest (EN + TR), Playwright (Chromium + WebKit) |
 Stored trade data (names, descriptions, notes, SKUs) is never translated. Words the API stores in
 English (`active`, `buyer`, `supplier`) keep their stored value and are shown in the reader's
 language (`lib/i18n/value-labels.ts`). Error text that comes from the API (`message`) is shown as
@@ -28,10 +29,9 @@ the API sent it, except for the sign-in failures, which are mapped by error code
 
 ## Still English only
 
-AI Office,
-communications, account and select-company pages, and the public status page. Each uses fixed
+Account and select-company pages, and the public status page. Each uses fixed
 English strings inside the page; they need the same treatment (catalogue keys + `getServerT()` /
-`useLocale()` + a Turkish test), roughly 6 screens. Two cross-cutting gaps remain: the breadcrumb
+`useLocale()` + a Turkish test), roughly 4 screens. Two cross-cutting gaps remain: the breadcrumb
 repeats "Workspace", and the browser-tab titles of the screens translated before Stage 12E are
 still English (the screens of Stages 12E and 12F use `generateMetadata` and are translated).
 
@@ -90,6 +90,36 @@ does not change between the server and a browser in another zone. Screens transl
 | Unit tests | `sourcing-turkish.test.tsx` (status and cost words, RFQ panel, sales-quote workflow panel, pricing form, quote form), `formats.test.ts` (English output unchanged, Turkish separators and months, UTC dates) |
 | Browser tests | `e2e/tests/sourcing.spec.ts` (4 journeys: Turkish read of every sourcing screen with the same figures in English, read-only role, a half-filled form surviving the language switch, FX snapshot recorded in Turkish) and `responsive.spec.ts` (Turkish pages at 375, 768, 1024 and 1440 px, plus the sourcing pages at phone width) on Chromium and WebKit (full suite: 87 of 88 passed; the one failure was an unrelated timing flake in `concurrency.spec.ts` that passed on re-run, see `STAGE11_20_STATUS.md`) |
 | Financial figures | A fixture quote (purchase 160 + freight 40 = landed 200, 20 % margin on price = sales 250) is asserted as `200,00`/`250,00` in Turkish and `200.00`/`250.00` in English; no calculation code was touched |
+
+## Stage 12G3 evidence
+
+| Item | Result |
+|---|---|
+| Screens | `/ai` and `/communications` and the components behind them (`ai-office`, `answer-view`, `proposal-card`, `run-progress`, `side-panels`, communications `preflight` and `suppression-panel`) |
+| Catalogue | `lib/i18n/catalog/assistant.ts`; `lib/ai/format.ts` keeps the English constants it always had and adds translated accessors (`basisLabels`, `runStatusLabel`, `toolStatusLabel`, `modeLabel`, `draftKindLabel`, `priorityLabel`, `describeErrorIn`, `describeWarningIn`, `formatUsdIn`). Stored codes (`AI_INFERENCE`, `SUPPLIER_FOLLOW_UP`, `HIGH`, entity types, tool names) are never changed, only shown as words |
+| Unit tests | `assistant-turkish.test.tsx` (evidence bases, error and warning codes, draft kinds, priorities, the cost with the reader's separators; provider card, tool registry, activity list, a running request; the answer with its findings and the "nothing quoted" notice; a draft with unverified figures cannot be approved until a person has reviewed them; a role without approval rights cannot decide; a decided proposal; the readiness check with known and unknown blockers and the proof that it sends nothing; the do-not-contact record stays deliberate) |
+| Browser tests | `e2e/tests/assistant.spec.ts` (4 journeys: a Turkish question answered by the offline mock provider and kept when the language changes; a drafted message that waits for a person, is approved without being sent, and appears in communications with its readiness blockers; the do-not-contact ledger is administrator-only; a viewer cannot decide a proposal) and `responsive.spec.ts` (`/ai` and `/communications` at 375, 768, 1024 and 1440 px; the draft journey also checks both pages at 375 px once a conversation, a decided proposal and a prepared draft exist) on Chromium and WebKit: assistant and responsive specs 24 of 24 passed |
+| Acceptance stack | The acceptance stack now starts with `TOUCHE_AI_ENABLED=true` and `TOUCHE_AI_PROVIDER=mock` (and the local fallback off), so a browser test can ask a question without any network call and never reaches a real model, whatever the developer's environment holds |
+| Tests in total | Backend 724 collected (unchanged, no backend code changed), frontend 326 tests in 42 files (314 before this batch); `scriptserify.ps1` passed: ruff, mypy, pytest, format, eslint, tsc, vitest, production build |
+| Safety | Nothing in this batch can send a message: the pages and their tests still show "Draft-only · No messages sent", the channels as "Not connected", and the readiness check as a read of blockers. No approval rule, permission or budget was changed |
+
+### Findings of this batch
+
+1. **The answer language follows the question, not the interface.** The assistant's system prompt
+   says "Write in the operator's language", so a Turkish question in an English interface gets a
+   Turkish answer, and the other way round. That is deliberate and unchanged; the words around the
+   answer (labels, buttons, evidence bases) follow the interface language.
+2. The communications list formatted dates as `dd/mm/yyyy` in English. It now uses the application's
+   standard `24 Oct 2026` through `formatDate`, in both languages.
+
+### Known limits after 12G3
+
+* Text the backend writes is shown as received (English): tool descriptions and permission notes in
+  the tool registry, the provider `notice`, a proposal's `effect_summary`, approval class
+  descriptions, the reasons of the blocked actions, and the suggested-question titles. The model's
+  own answer text is in the language of the question.
+* The AI Office is exercised in the browser against the offline mock provider only; a real model's
+  answers (DeepSeek is not connected) are not part of any test.
 
 ## Stage 12G2 evidence
 

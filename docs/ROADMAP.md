@@ -511,6 +511,6 @@ locale, stable codes and UTC timestamps stored. Delivered in small, separately m
 | 12E | Sourcing and pricing: RFQ, supplier quotes, landed cost, sales quotes, FX; locale-aware money, numbers, dates | merged |
 | 12F | Purchase orders, shipments, trade-document register (and the upload/verify components the order page shares) | merged (PR 39) |
 | 12G1 | Finance ledger, reconciliation, discrepancies, order finance view | merged (PR 40) |
-| 12G2 | Financial intelligence: dashboard, charts, order profitability, exceptions, CSV export | this batch |
-| 12G3 | AI Office and communications | planned |
+| 12G2 | Financial intelligence: dashboard, charts, order profitability, exceptions, CSV export | merged (PR 41) |
+| 12G3 | AI Office and communications (drafts, readiness check, do-not-contact ledger) | this batch |
 | 12H | Account, company selection, status page, page titles, remaining dates, final audit | planned |

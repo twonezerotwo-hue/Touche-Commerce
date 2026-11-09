@@ -1,3 +1,5 @@
+"use client";
+
 import { Clock, Lock, ShieldCheck } from "lucide-react";
 
 import { Alert } from "@/components/ui/alert";
@@ -7,12 +9,15 @@ import {
   MODE_META,
   RUN_STATUS_META,
   budgetPercent,
-  describeError,
+  describeErrorIn,
   formatTokens,
-  formatUsd,
+  formatUsdIn,
   humanTool,
+  modeLabel,
+  runStatusLabel,
 } from "@/lib/ai/format";
 import type { AiRun, AiStatus, AiToolList } from "@/lib/ai/types";
+import { useLocale } from "@/lib/i18n/locale-provider";
 
 export function ProviderStatusCard({
   status,
@@ -21,30 +26,31 @@ export function ProviderStatusCard({
   status: AiStatus;
   companyName: string;
 }) {
+  const { t, locale } = useLocale();
   const mode = MODE_META[status.mode];
   const tokenPercent = budgetPercent(status.usage.tokens_today, status.usage.daily_token_budget);
   return (
-    <section className="panel space-y-3 p-4" aria-label="Provider status">
+    <section className="panel space-y-3 p-4" aria-label={t("sideProviderAria")}>
       <div className="flex items-center justify-between gap-2">
-        <p className="eyebrow">Provider</p>
+        <p className="eyebrow">{t("sideProvider")}</p>
         <Badge variant={mode.tone} dot>
-          {mode.label}
+          {modeLabel(t, status.mode)}
         </Badge>
       </div>
 
       <dl className="space-y-1.5 text-[11.5px]">
         <div className="flex justify-between gap-3">
-          <dt className="text-mist-500">Company</dt>
+          <dt className="text-mist-500">{t("sideCompany")}</dt>
           <dd className="truncate text-mist-200">{companyName}</dd>
         </div>
         {status.provider ? (
           <div className="flex justify-between gap-3">
-            <dt className="text-mist-500">Model</dt>
+            <dt className="text-mist-500">{t("sideModel")}</dt>
             <dd className="truncate font-mono text-[11px] text-mist-200">{status.model}</dd>
           </div>
         ) : null}
         <div className="flex justify-between gap-3">
-          <dt className="text-mist-500">Prompt</dt>
+          <dt className="text-mist-500">{t("sidePrompt")}</dt>
           <dd className="font-mono text-[11px] text-mist-300">{status.prompt_version}</dd>
         </div>
       </dl>
@@ -52,15 +58,15 @@ export function ProviderStatusCard({
       <p className="text-[11px] leading-relaxed text-mist-400">{status.notice}</p>
 
       {status.external_processing ? (
-        <Alert variant="warning" title="External processing">
-          Questions and the records the tools return are sent to the configured provider.
+        <Alert variant="warning" title={t("sideExternalTitle")}>
+          {t("sideExternalBody")}
         </Alert>
       ) : null}
 
       {status.enabled ? (
         <div className="space-y-1.5">
           <div className="flex justify-between text-[11px]">
-            <span className="text-mist-500">Today&apos;s tokens</span>
+            <span className="text-mist-500">{t("sideTokens")}</span>
             <span className="font-mono text-mist-300">
               {formatTokens(status.usage.tokens_today)} /{" "}
               {formatTokens(status.usage.daily_token_budget)}
@@ -69,27 +75,28 @@ export function ProviderStatusCard({
           <Meter
             value={tokenPercent}
             tone={tokenPercent > 85 ? "amber" : "accent"}
-            label="Daily token budget used"
+            label={t("sideBudgetLabel")}
           />
           <p className="text-[10.5px] text-mist-500">
-            {status.usage.runs_today} request{status.usage.runs_today === 1 ? "" : "s"} ·{" "}
-            {formatUsd(status.usage.cost_usd_today)} of{" "}
-            {formatUsd(status.usage.daily_cost_budget_usd)}
+            {t(status.usage.runs_today === 1 ? "sideRequestsOne" : "sideRequestsMany", {
+              count: status.usage.runs_today,
+              cost: formatUsdIn(status.usage.cost_usd_today, locale),
+              budget: formatUsdIn(status.usage.daily_cost_budget_usd, locale),
+            })}
           </p>
         </div>
       ) : null}
 
       <ul className="space-y-1 border-t border-white/5 pt-3 text-[11px] text-mist-400">
         <li className="flex items-center gap-1.5">
-          <ShieldCheck className="size-3 text-jade-400" aria-hidden /> Read-only access to records
+          <ShieldCheck className="size-3 text-jade-400" aria-hidden /> {t("sideReadOnly")}
         </li>
         <li className="flex items-center gap-1.5">
-          <ShieldCheck className="size-3 text-jade-400" aria-hidden /> Never sends, signs, pays or
-          posts
+          <ShieldCheck className="size-3 text-jade-400" aria-hidden /> {t("sideNeverSends")}
         </li>
         <li className="flex items-center gap-1.5">
           <Clock className="size-3 text-mist-500" aria-hidden />
-          Up to {status.limits.max_tool_calls_per_request} tool calls per request
+          {t("sideToolLimit", { count: status.limits.max_tool_calls_per_request })}
         </li>
       </ul>
     </section>
@@ -97,17 +104,18 @@ export function ProviderStatusCard({
 }
 
 export function ToolRegistryPanel({ tools }: { tools: AiToolList }) {
+  const { t } = useLocale();
   return (
     <div className="space-y-4">
-      <section aria-label="Tools the assistant can read with">
-        <p className="eyebrow mb-2">Read-only tools</p>
+      <section aria-label={t("sideToolsAria")}>
+        <p className="eyebrow mb-2">{t("sideReadOnlyTools")}</p>
         <ul className="space-y-2">
           {tools.tools.map((tool) => (
             <li key={tool.name} className="panel-inset p-2.5">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[12px] text-mist-200">{humanTool(tool.name)}</span>
                 <Badge variant={tool.available ? "success" : "secondary"}>
-                  {tool.available ? "Available" : "No permission"}
+                  {tool.available ? t("sideAvailable") : t("sideNoPermission")}
                 </Badge>
               </div>
               <p className="mt-1 text-[11px] leading-relaxed text-mist-500">{tool.description}</p>
@@ -119,8 +127,8 @@ export function ToolRegistryPanel({ tools }: { tools: AiToolList }) {
         </ul>
       </section>
 
-      <section aria-label="Approval classes">
-        <p className="eyebrow mb-2">Approval classes</p>
+      <section aria-label={t("sideApprovalAria")}>
+        <p className="eyebrow mb-2">{t("sideApprovalClasses")}</p>
         <ul className="space-y-1.5">
           {tools.classes.map((item) => (
             <li key={item.name} className="text-[11px] leading-relaxed text-mist-400">
@@ -131,9 +139,9 @@ export function ToolRegistryPanel({ tools }: { tools: AiToolList }) {
         </ul>
       </section>
 
-      <section aria-label="Blocked actions">
+      <section aria-label={t("sideBlockedAria")}>
         <p className="eyebrow mb-2 flex items-center gap-1.5">
-          <Lock className="size-3" aria-hidden /> Never available
+          <Lock className="size-3" aria-hidden /> {t("sideNeverAvailable")}
         </p>
         <ul className="space-y-1">
           {tools.blocked_actions.map((item) => (
@@ -149,28 +157,31 @@ export function ToolRegistryPanel({ tools }: { tools: AiToolList }) {
 }
 
 export function ActivityList({ runs }: { runs: readonly AiRun[] }) {
+  const { t } = useLocale();
   if (runs.length === 0) {
-    return <p className="text-[12px] text-mist-500">No AI requests yet in this company.</p>;
+    return <p className="text-[12px] text-mist-500">{t("sideNoRequests")}</p>;
   }
   return (
-    <ol className="space-y-2" aria-label="Activity history">
+    <ol className="space-y-2" aria-label={t("sideActivityAria")}>
       {runs.map((run) => {
         const status = RUN_STATUS_META[run.status];
         return (
           <li key={run.id} className="panel-inset space-y-1 p-2.5">
             <div className="flex items-center justify-between gap-2">
               <span className="truncate text-[12px] text-mist-200">
-                {run.conversation_title ?? "Conversation"}
+                {run.conversation_title ?? t("sideConversation")}
               </span>
-              <Badge variant={status.tone}>{status.label}</Badge>
+              <Badge variant={status.tone}>{runStatusLabel(t, run.status)}</Badge>
             </div>
             <p className="font-mono text-[10px] text-mist-500">
-              {run.started_at.slice(0, 16).replace("T", " ")} · {run.tool_call_count} tool call
-              {run.tool_call_count === 1 ? "" : "s"} ·{" "}
-              {formatTokens(run.input_tokens + run.output_tokens)} tokens
+              {t(run.tool_call_count === 1 ? "sideToolCallOne" : "sideToolCallMany", {
+                date: run.started_at.slice(0, 16).replace("T", " "),
+                count: run.tool_call_count,
+                tokens: formatTokens(run.input_tokens + run.output_tokens),
+              })}
             </p>
             {run.error_code ? (
-              <p className="text-[10.5px] text-amber-400">{describeError(run.error_code)}</p>
+              <p className="text-[10.5px] text-amber-400">{describeErrorIn(t, run.error_code)}</p>
             ) : null}
           </li>
         );

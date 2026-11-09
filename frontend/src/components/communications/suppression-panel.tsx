@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BROWSER_API_PREFIX } from "@/lib/api/config";
+import { useLocale } from "@/lib/i18n/locale-provider";
 
 type Channel = "EMAIL" | "WHATSAPP_BUSINESS";
 type Reason = "CONTACT_REQUEST" | "COMPLIANCE_REVIEW" | "IMPORTED_BLOCK";
@@ -22,6 +23,7 @@ export function SuppressionPanel({
   saved: { id: string; counterparty_id: string; channel: Channel; reason: Reason }[];
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [counterpartyId, setCounterpartyId] = useState("");
   const [channel, setChannel] = useState<Channel>("EMAIL");
   const [reason, setReason] = useState<Reason>("CONTACT_REQUEST");
@@ -54,14 +56,14 @@ export function SuppressionPanel({
         }),
       });
       if (!response.ok) {
-        setError("The suppression was not confirmed. Check permissions and try again.");
+        setError(t("supNotConfirmed"));
       } else {
-        setSuccess("Contact blocked for this channel. No message was sent.");
+        setSuccess(t("supSuccess"));
         setConfirmed(false);
         router.refresh();
       }
     } catch {
-      setError("The service is unavailable. Verify the ledger before retrying.");
+      setError(t("supUnreachable"));
     } finally {
       setBusy(false);
     }
@@ -69,15 +71,12 @@ export function SuppressionPanel({
 
   return (
     <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-      <h2 className="font-semibold text-white">Do-not-contact ledger</h2>
-      <p className="mt-2 text-sm text-mist-300">
-        For authorized administrators only. A suppression permanently blocks an existing CRM
-        counterparty on the selected channel. This is not opt-in or consent.
-      </p>
+      <h2 className="font-semibold text-white">{t("supTitle")}</h2>
+      <p className="mt-2 text-sm text-mist-300">{t("supBody")}</p>
       <form className="mt-4 space-y-3" onSubmit={record}>
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="space-y-1">
-            <Label htmlFor="suppress-counterparty">CRM counterparty</Label>
+            <Label htmlFor="suppress-counterparty">{t("supCounterparty")}</Label>
             <select
               id="suppress-counterparty"
               value={counterpartyId}
@@ -88,7 +87,7 @@ export function SuppressionPanel({
               className="h-10 w-full rounded-md border border-white/10 bg-ink-950/70 px-3 text-[13px] text-mist-100"
               required
             >
-              <option value="">Choose contact</option>
+              <option value="">{t("supChoose")}</option>
               {counterparties.map((party) => (
                 <option key={party.id} value={party.id}>
                   {party.name}
@@ -97,7 +96,7 @@ export function SuppressionPanel({
             </select>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="suppress-channel">Channel</Label>
+            <Label htmlFor="suppress-channel">{t("supChannel")}</Label>
             <select
               id="suppress-channel"
               value={channel}
@@ -107,21 +106,21 @@ export function SuppressionPanel({
               }}
               className="h-10 w-full rounded-md border border-white/10 bg-ink-950/70 px-3 text-[13px] text-mist-100"
             >
-              <option value="EMAIL">Email</option>
-              <option value="WHATSAPP_BUSINESS">WhatsApp Business</option>
+              <option value="EMAIL">{t("commEmail")}</option>
+              <option value="WHATSAPP_BUSINESS">{t("commWhatsApp")}</option>
             </select>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="suppress-reason">Source of block</Label>
+            <Label htmlFor="suppress-reason">{t("supSource")}</Label>
             <select
               id="suppress-reason"
               value={reason}
               onChange={(event) => setReason(event.target.value as Reason)}
               className="h-10 w-full rounded-md border border-white/10 bg-ink-950/70 px-3 text-[13px] text-mist-100"
             >
-              <option value="CONTACT_REQUEST">Contact requested no messages</option>
-              <option value="COMPLIANCE_REVIEW">Compliance review</option>
-              <option value="IMPORTED_BLOCK">Imported opt-out list</option>
+              <option value="CONTACT_REQUEST">{t("supReasonContact")}</option>
+              <option value="COMPLIANCE_REVIEW">{t("supReasonCompliance")}</option>
+              <option value="IMPORTED_BLOCK">{t("supReasonImported")}</option>
             </select>
           </div>
         </div>
@@ -132,8 +131,7 @@ export function SuppressionPanel({
             onChange={(event) => setConfirmed(event.target.checked)}
             className="mt-1 h-4 w-4 shrink-0"
           />
-          I understand that this is a persistent, append-only communication block, not a reversible
-          preference or a message send.
+          {t("supUnderstand")}
         </label>
         <Button
           type="submit"
@@ -141,15 +139,15 @@ export function SuppressionPanel({
           size="sm"
           disabled={!confirmed || !counterpartyId || busy}
         >
-          {busy ? "Recording…" : "Record permanent suppression"}
+          {busy ? t("supRecording") : t("supRecord")}
         </Button>
       </form>
       {error ? <Alert variant="warning">{error}</Alert> : null}
       {success ? <Alert variant="success">{success}</Alert> : null}
       <div className="mt-5">
-        <h3 className="text-sm font-semibold text-white">Recent blocked records</h3>
+        <h3 className="text-sm font-semibold text-white">{t("supRecent")}</h3>
         {saved.length === 0 ? (
-          <p className="mt-2 text-sm text-mist-300">No suppression records.</p>
+          <p className="mt-2 text-sm text-mist-300">{t("supNone")}</p>
         ) : (
           <ul className="mt-2 space-y-2">
             {saved.map((entry) => (
@@ -159,13 +157,13 @@ export function SuppressionPanel({
               >
                 <span className="font-medium text-white">
                   {counterparties.find((x) => x.id === entry.counterparty_id)?.name ??
-                    "Previously recorded CRM contact"}
+                    t("supPrevious")}
                 </span>
                 {" · "}
                 {entry.channel}
                 {" · "}
                 {entry.reason}
-                {" · BLOCKED"}
+                {` · ${t("supBlocked")}`}
               </li>
             ))}
           </ul>

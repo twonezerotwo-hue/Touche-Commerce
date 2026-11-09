@@ -22,7 +22,7 @@ import {
   loadRun,
   sendMessage,
 } from "@/lib/ai/client";
-import { describeError, isRunFinished } from "@/lib/ai/format";
+import { describeErrorIn, isRunFinished } from "@/lib/ai/format";
 import type {
   AiConversation,
   AiConversationDetail,
@@ -32,6 +32,7 @@ import type {
   AiSuggestion,
   AiToolList,
 } from "@/lib/ai/types";
+import { useLocale } from "@/lib/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 
 type PanelTab = "proposals" | "activity" | "tools";
@@ -66,6 +67,7 @@ export function AiOffice({
   activity: initialActivity,
   pollIntervalMs = 900,
 }: AiOfficeProps) {
+  const { t } = useLocale();
   const [conversations, setConversations] = useState<AiConversation[]>([...initialConversations]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [thread, setThread] = useState<AiConversationDetail | null>(null);
@@ -115,7 +117,7 @@ export function AiOffice({
       const result = await loadRun(runId);
       if (cancelled) return;
       if (!result.ok) {
-        setSendError(describeError(result.code, result.message));
+        setSendError(describeErrorIn(t, result.code, result.message));
         setRun((current) =>
           current && current.id === runId ? { ...current, status: "FAILED" } : current,
         );
@@ -134,7 +136,7 @@ export function AiOffice({
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [runId, runIsRunning, pollIntervalMs, refreshAfterRun]);
+  }, [runId, runIsRunning, pollIntervalMs, refreshAfterRun, t]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView?.({ block: "end" });
@@ -153,7 +155,7 @@ export function AiOffice({
     setThreadLoading(false);
     if (activeRef.current !== id) return;
     if (!result.ok) {
-      setThreadError(describeError(result.code, result.message));
+      setThreadError(describeErrorIn(t, result.code, result.message));
       return;
     }
     setThread(result.data);
@@ -182,7 +184,7 @@ export function AiOffice({
       const created = await createConversation(csrfToken);
       if (!created.ok) {
         setSending(false);
-        setSendError(describeError(created.code, created.message));
+        setSendError(describeErrorIn(t, created.code, created.message));
         return;
       }
       conversationId = created.data.id;
@@ -195,7 +197,7 @@ export function AiOffice({
     const accepted = await sendMessage(conversationId, content, csrfToken);
     setSending(false);
     if (!accepted.ok) {
-      setSendError(describeError(accepted.code, accepted.message));
+      setSendError(describeErrorIn(t, accepted.code, accepted.message));
       if (detail) setThread(detail);
       return;
     }
@@ -216,7 +218,7 @@ export function AiOffice({
     setCancelling(true);
     const result = await cancelRun(run.id, csrfToken);
     setCancelling(false);
-    if (!result.ok) setSendError(describeError(result.code, result.message));
+    if (!result.ok) setSendError(describeErrorIn(t, result.code, result.message));
   }
 
   function onProposalChanged(updated: AiProposal): void {
@@ -232,13 +234,13 @@ export function AiOffice({
   return (
     <div className="grid gap-5 xl:grid-cols-[17rem_minmax(0,1fr)_24rem]">
       {/* Left: context and history */}
-      <aside className="order-3 space-y-4 xl:order-1" aria-label="Context and history">
+      <aside className="order-3 space-y-4 xl:order-1" aria-label={t("aiContextAria")}>
         <ProviderStatusCard status={status} companyName={companyName} />
 
-        <section className="panel space-y-2 p-3" aria-label="Conversations">
+        <section className="panel space-y-2 p-3" aria-label={t("aiConversationsAria")}>
           <div className="flex items-center justify-between gap-2 px-1">
             <p className="eyebrow flex items-center gap-1.5">
-              <History className="size-3" aria-hidden /> History
+              <History className="size-3" aria-hidden /> {t("aiHistory")}
             </p>
             <Button
               type="button"
@@ -248,13 +250,11 @@ export function AiOffice({
               disabled={running}
             >
               <MessageSquarePlus className="size-3" aria-hidden />
-              New
+              {t("aiNew")}
             </Button>
           </div>
           {conversations.length === 0 ? (
-            <p className="px-1 py-2 text-[11.5px] text-mist-500">
-              No conversations yet in this company.
-            </p>
+            <p className="px-1 py-2 text-[11.5px] text-mist-500">{t("aiNoConversations")}</p>
           ) : (
             <ul className="max-h-72 space-y-0.5 overflow-auto">
               {conversations.map((item) => (
@@ -285,18 +285,18 @@ export function AiOffice({
       {/* Centre: conversation */}
       <section
         className="panel order-1 flex min-h-[34rem] min-w-0 flex-col xl:order-2"
-        aria-label="Conversation"
+        aria-label={t("aiConversationAria")}
       >
         <div className="flex-1 space-y-4 overflow-auto p-4 lg:p-5">
           {disabled ? (
-            <Alert variant="warning" title="AI Office is unavailable">
-              {status.notice} You can still review earlier conversations and proposals.
+            <Alert variant="warning" title={t("aiDisabledTitle")}>
+              {t("aiDisabledBody", { notice: status.notice })}
             </Alert>
           ) : null}
 
           {threadLoading ? (
             <div role="status" className="flex items-center gap-2 text-[12px] text-mist-400">
-              <Loader2 className="size-3.5 animate-spin" aria-hidden /> Loading conversation…
+              <Loader2 className="size-3.5 animate-spin" aria-hidden /> {t("aiLoadingConversation")}
             </div>
           ) : null}
           {threadError ? <Alert variant="danger">{threadError}</Alert> : null}
@@ -304,13 +304,13 @@ export function AiOffice({
           {!thread && !threadLoading && !threadError ? (
             <EmptyState
               icon={<Sparkles className="size-5" aria-hidden />}
-              title="Ask the Trade Director"
-              description="It reads your deals, quotes, orders and reconciliation records, cites every source and proposes drafts or tasks for a person to approve. It cannot send, sign, pay or post anything."
+              title={t("aiAskTitle")}
+              description={t("aiAskBody")}
               action={
                 suggestions.length > 0 ? (
                   <ul
                     className="flex max-w-xl flex-wrap justify-center gap-2"
-                    aria-label="Suggested questions"
+                    aria-label={t("aiSuggestedAria")}
                   >
                     {suggestions.map((item) => (
                       <li key={item.id}>
@@ -341,13 +341,13 @@ export function AiOffice({
             ) : (
               <article
                 key={message.id}
-                aria-label="Trade Director answer"
+                aria-label={t("aiAnswerAria")}
                 className="rounded-xl border border-white/8 bg-ink-850/60 p-4"
               >
                 <div className="mb-3 flex items-center gap-2">
                   <Sparkles className="size-3.5 text-accent-300" aria-hidden />
-                  <span className="text-[11px] font-medium text-mist-300">Trade Director</span>
-                  <Badge variant="outline">Checked against your records</Badge>
+                  <span className="text-[11px] font-medium text-mist-300">{t("aiDirector")}</span>
+                  <Badge variant="outline">{t("aiChecked")}</Badge>
                 </div>
                 <AnswerView message={message} />
               </article>
@@ -368,18 +368,14 @@ export function AiOffice({
           }}
         >
           {sendError ? <Alert variant="danger">{sendError}</Alert> : null}
-          <Label htmlFor="ai-composer">Ask the Trade Director</Label>
+          <Label htmlFor="ai-composer">{t("aiComposerLabel")}</Label>
           <Textarea
             id="ai-composer"
             value={draft}
             rows={3}
             maxLength={maxChars}
             disabled={disabled || running}
-            placeholder={
-              disabled
-                ? "The AI Office is unavailable."
-                : "e.g. Compare the supplier quotes for my latest deal"
-            }
+            placeholder={disabled ? t("aiComposerDisabled") : t("aiComposerExample")}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
@@ -390,7 +386,7 @@ export function AiOffice({
           />
           <div className="flex items-center justify-between gap-3">
             <p className="text-[10.5px] text-mist-500">
-              Enter to send · Shift+Enter for a new line · {draft.length}/{maxChars}
+              {t("aiComposerHint", { count: draft.length, max: maxChars })}
             </p>
             <Button
               type="submit"
@@ -402,20 +398,25 @@ export function AiOffice({
               ) : (
                 <Send className="size-3.5" aria-hidden />
               )}
-              {running ? "Working…" : "Send"}
+              {running ? t("aiWorking") : t("aiSend")}
             </Button>
           </div>
         </form>
       </section>
 
       {/* Right: proposals, activity, tools */}
-      <aside className="order-2 min-w-0 space-y-3 xl:order-3" aria-label="Actions and activity">
-        <div role="tablist" aria-label="Panels" className="panel flex gap-1 p-1">
+      <aside className="order-2 min-w-0 space-y-3 xl:order-3" aria-label={t("aiPanelsAria")}>
+        <div role="tablist" aria-label={t("aiPanelsAria")} className="panel flex gap-1 p-1">
           {(
             [
-              ["proposals", `Proposed actions${pendingCount > 0 ? ` (${pendingCount})` : ""}`],
-              ["activity", "Activity"],
-              ["tools", "Tools"],
+              [
+                "proposals",
+                pendingCount > 0
+                  ? t("aiTabProposalsPending", { count: pendingCount })
+                  : t("aiTabProposals"),
+              ],
+              ["activity", t("aiTabActivity")],
+              ["tools", t("aiTabTools")],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -446,10 +447,7 @@ export function AiOffice({
         >
           {tab === "proposals" ? (
             orderedProposals.length === 0 ? (
-              <EmptyState
-                title="Nothing proposed yet"
-                description="Drafts and tasks the assistant suggests appear here. Nothing is sent or changed until a person approves."
-              />
+              <EmptyState title={t("aiNothingProposed")} description={t("aiNothingProposedBody")} />
             ) : (
               orderedProposals.map((proposal) => (
                 <ProposalCard
@@ -467,7 +465,7 @@ export function AiOffice({
             tools ? (
               <ToolRegistryPanel tools={tools} />
             ) : (
-              <Alert variant="warning">The tool list could not be loaded.</Alert>
+              <Alert variant="warning">{t("aiToolsMissing")}</Alert>
             )
           ) : null}
         </div>

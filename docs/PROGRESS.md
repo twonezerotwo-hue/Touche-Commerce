@@ -39,7 +39,11 @@ Evidence, not claims. Full matrix: `docs/STAGE11_20_STATUS.md`; operator guide: 
   Frontend 299 tests (314 after 12G2); finance and width journeys 22 of 22 on Chromium and WebKit.
 * **12G2** Financial intelligence in Turkish (dashboard, charts, order profitability, exceptions, order
   analysis, CSV export control); English wording unchanged; the order analysis page no longer scrolls
-  sideways on a phone. Intelligence and width journeys pass on Chromium and WebKit.
+  sideways on a phone. Intelligence and width journeys pass on Chromium and WebKit. Merged as PR 41.
+* **12G3** AI Office and communications in Turkish (conversation, answer with its evidence basis, proposals
+  that wait for a person, provider card, activity, tool registry; channels, readiness check, do-not-contact
+  ledger). Nothing can be sent; English wording unchanged. The acceptance stack now runs the offline mock
+  provider, so the journeys are exercised in a real browser. Backend 724 tests, frontend 326 tests.
 * **13** CSV/XLSX import wizard (atomic, idempotent), company profile (migration 0014), TR/EN
   documents in four formats; Commerce invoices are always drafts.
 * **16** Local `qwen3:8b` fallback verified live; DeepSeek not connected (no key).
