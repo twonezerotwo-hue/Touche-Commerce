@@ -87,8 +87,18 @@ test.describe("several people at once", () => {
         page.getByText(/Import finished|could not be completed|already/i).first(),
       ).toBeVisible();
     }
-    const response = await pairs[0].page.request.get(`/api/v1/products?search=${prefix}`);
-    expect((await response.json()).items).toHaveLength(5);
+    // One of the two commits wins and writes the file once. The other's message can appear while
+    // the winner is still committing, so wait for the final count instead of reading it once; if
+    // both really failed the count stays at 0 and this still fails, and a duplicate would show 10.
+    await expect
+      .poll(
+        async () => {
+          const response = await pairs[0].page.request.get(`/api/v1/products?search=${prefix}`);
+          return ((await response.json()) as { items: unknown[] }).items.length;
+        },
+        { timeout: 20_000, intervals: [250, 500, 1000] },
+      )
+      .toBe(5);
     await Promise.all(pairs.map(({ close }) => close()));
   });
 });
