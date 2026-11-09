@@ -114,6 +114,11 @@ def main() -> int:
         "NEXT_PUBLIC_API_BASE_URL": api_origin,
         "API_INTERNAL_BASE_URL": api_origin,
         "NEXT_TELEMETRY_DISABLED": "1",
+        # The AI Office runs on the offline mock provider here: deterministic, no network, and
+        # never a real model, whatever the developer's own environment holds.
+        "TOUCHE_AI_ENABLED": "true",
+        "TOUCHE_AI_PROVIDER": "mock",
+        "TOUCHE_AI_LOCAL_FALLBACK_ENABLED": "false",
     }
 
     LOG_DIR.mkdir(parents=True, exist_ok=True)

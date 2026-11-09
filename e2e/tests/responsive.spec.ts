@@ -24,6 +24,8 @@ const PAGES = [
   "/finance/intelligence",
   "/finance/intelligence/orders",
   "/finance/intelligence/exceptions",
+  "/ai",
+  "/communications",
 ];
 
 test.describe("responsive layout and keyboard use", () => {
