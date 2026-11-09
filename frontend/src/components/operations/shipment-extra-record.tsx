@@ -16,6 +16,7 @@ import {
   recordShipmentEvent,
 } from "@/lib/operations/client";
 import { COST_STAGES, SHIPMENT_COST_TYPES, SHIPMENT_REFERENCE_TYPES } from "@/lib/operations/types";
+import { toLocalInputValue } from "@/lib/trade/format";
 
 /**
  * Movement notes, cost provenance and booking references for one shipment.
@@ -36,7 +37,7 @@ export function ExtraRecord({
 }) {
   const { t } = useLocale();
   const [eventType, setEventType] = useState<"IN_TRANSIT" | "DELAY_RECORDED">("IN_TRANSIT");
-  const [occurredAt, setOccurredAt] = useState(new Date().toISOString().slice(0, 16));
+  const [occurredAt, setOccurredAt] = useState(toLocalInputValue());
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
   const [costType, setCostType] = useState<string>(SHIPMENT_COST_TYPES[0]);
