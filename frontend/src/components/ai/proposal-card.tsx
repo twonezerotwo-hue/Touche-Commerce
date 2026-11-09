@@ -13,19 +13,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { decideProposal, editProposal } from "@/lib/ai/client";
 import {
-  DRAFT_KIND_LABEL,
   PRIORITY_TONE,
-  describeError,
-  describeWarning,
+  describeErrorIn,
+  describeWarningIn,
+  draftKindLabel,
+  entityWords,
+  priorityLabel,
   safeSourceHref,
 } from "@/lib/ai/format";
 import type { AiProposal } from "@/lib/ai/types";
+import { useLocale } from "@/lib/i18n/locale-provider";
 
 const STATUS_TONE = { PROPOSED: "warning", APPROVED: "success", REJECTED: "secondary" } as const;
-const STATUS_LABEL = {
-  PROPOSED: "Awaiting a person",
-  APPROVED: "Approved",
-  REJECTED: "Rejected",
+const STATUS_LABEL_KEY = {
+  PROPOSED: "propAwaiting",
+  APPROVED: "propApproved",
+  REJECTED: "propRejected",
 } as const;
 
 function str(value: unknown): string {
@@ -43,6 +46,7 @@ export function ProposalCard({
   canDecide: boolean;
   onChanged: (updated: AiProposal) => void;
 }) {
+  const { t, locale } = useLocale();
   const payload = proposal.payload;
   const isDraft = proposal.kind === "DRAFT";
   const pending = proposal.status === "PROPOSED";
@@ -66,7 +70,7 @@ export function ProposalCard({
     );
     setBusy(null);
     if (!result.ok) {
-      setError(describeError(result.code, result.message));
+      setError(describeErrorIn(t, result.code, result.message));
       return;
     }
     setEditing(false);
@@ -84,7 +88,7 @@ export function ProposalCard({
     );
     setBusy(null);
     if (!result.ok) {
-      setError(describeError(result.code, result.message));
+      setError(describeErrorIn(t, result.code, result.message));
       return;
     }
     onChanged(result.data);
@@ -95,33 +99,33 @@ export function ProposalCard({
   return (
     <article
       className="panel-inset space-y-3 p-3.5"
-      aria-label={`${isDraft ? "Draft" : "Task"}: ${proposal.title}`}
+      aria-label={t(isDraft ? "propAriaDraft" : "propAriaTask", { title: proposal.title })}
       data-proposal-status={proposal.status}
     >
       <header className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">
-              {isDraft ? (DRAFT_KIND_LABEL[str(payload.kind)] ?? "Draft") : "Suggested task"}
+              {isDraft ? draftKindLabel(t, str(payload.kind)) : t("propSuggestedTask")}
             </Badge>
             {!isDraft && str(payload.priority) ? (
               <Badge variant={PRIORITY_TONE[str(payload.priority)] ?? "secondary"}>
-                {str(payload.priority).toLowerCase()}
+                {priorityLabel(t, str(payload.priority))}
               </Badge>
             ) : null}
-            {proposal.edited ? <Badge variant="info">Edited</Badge> : null}
+            {proposal.edited ? <Badge variant="info">{t("propEdited")}</Badge> : null}
           </div>
           <h3 className="mt-1.5 text-[13px] font-medium text-mist-100">{proposal.title}</h3>
         </div>
         <Badge variant={STATUS_TONE[proposal.status]} dot>
-          {STATUS_LABEL[proposal.status]}
+          {t(STATUS_LABEL_KEY[proposal.status])}
         </Badge>
       </header>
 
       {editing ? (
         <div className="space-y-2">
           <div className="space-y-1">
-            <Label htmlFor={`title-${proposal.id}`}>Title</Label>
+            <Label htmlFor={`title-${proposal.id}`}>{t("propTitle")}</Label>
             <Input
               id={`title-${proposal.id}`}
               value={title}
@@ -130,7 +134,9 @@ export function ProposalCard({
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor={`body-${proposal.id}`}>{isDraft ? "Draft text" : "Rationale"}</Label>
+            <Label htmlFor={`body-${proposal.id}`}>
+              {isDraft ? t("propDraftText") : t("propRationale")}
+            </Label>
             <Textarea
               id={`body-${proposal.id}`}
               value={body}
@@ -142,7 +148,7 @@ export function ProposalCard({
           <div className="flex gap-2">
             <Button type="button" size="xs" onClick={() => void save()} disabled={busy !== null}>
               {busy === "save" ? <Loader2 className="size-3 animate-spin" aria-hidden /> : null}
-              Save wording
+              {t("propSave")}
             </Button>
             <Button
               type="button"
@@ -151,13 +157,13 @@ export function ProposalCard({
               onClick={() => setEditing(false)}
               disabled={busy !== null}
             >
-              Cancel
+              {t("propCancel")}
             </Button>
           </div>
         </div>
       ) : isDraft ? (
         <div>
-          <p className="eyebrow mb-1">Preview — not sent</p>
+          <p className="eyebrow mb-1">{t("propPreview")}</p>
           <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-md border border-white/8 bg-ink-950/60 p-3 font-sans text-[12px] leading-relaxed text-mist-200">
             {str(payload.body)}
           </pre>
@@ -169,14 +175,14 @@ export function ProposalCard({
           ) : null}
           {target?.entity_type ? (
             <p className="text-[11px] text-mist-500">
-              Refers to {target.entity_type.replaceAll("_", " ").toLowerCase()}
+              {t("propRefersTo", { type: entityWords(target.entity_type) })}
             </p>
           ) : null}
         </div>
       )}
 
       {proposal.evidence.length > 0 ? (
-        <ul className="flex flex-wrap gap-1.5" aria-label="Evidence">
+        <ul className="flex flex-wrap gap-1.5" aria-label={t("propEvidenceAria")}>
           {proposal.evidence.map((item) => {
             const href = safeSourceHref(item);
             return (
@@ -199,7 +205,7 @@ export function ProposalCard({
         <ul className="space-y-0.5">
           {proposal.warnings.map((code) => (
             <li key={code} className="text-[11px] text-amber-400">
-              {describeWarning(code)}
+              {describeWarningIn(t, code)}
             </li>
           ))}
         </ul>
@@ -209,9 +215,18 @@ export function ProposalCard({
 
       {proposal.status !== "PROPOSED" ? (
         <p className="text-[11px] text-mist-400">
-          {proposal.status === "APPROVED" ? "Approved" : "Rejected"} by a person
-          {proposal.decided_at ? ` on ${proposal.decided_at.slice(0, 10)}` : ""}
-          {proposal.decision_notes ? ` — “${proposal.decision_notes}”` : ""}.
+          {t("propDecidedBy", {
+            status:
+              locale === "tr"
+                ? t(
+                    proposal.status === "APPROVED" ? "propApproved" : "propRejected",
+                  ).toLocaleLowerCase(locale)
+                : t(proposal.status === "APPROVED" ? "propApproved" : "propRejected"),
+            on: proposal.decided_at ? t("propOn", { date: proposal.decided_at.slice(0, 10) }) : "",
+            notes: proposal.decision_notes
+              ? t("propNotes", { notes: proposal.decision_notes })
+              : "",
+          })}
         </p>
       ) : null}
 
@@ -228,11 +243,11 @@ export function ProposalCard({
                   checked={acknowledged}
                   onChange={(event) => setAcknowledged(event.target.checked)}
                 />
-                I reviewed the unverified figures in this text.
+                {t("propAcknowledge")}
               </label>
             ) : null}
             <div className="space-y-1">
-              <Label htmlFor={`notes-${proposal.id}`}>Decision note (optional)</Label>
+              <Label htmlFor={`notes-${proposal.id}`}>{t("propDecisionNote")}</Label>
               <Input
                 id={`notes-${proposal.id}`}
                 value={notes}
@@ -252,7 +267,7 @@ export function ProposalCard({
                 ) : (
                   <CheckCircle2 className="size-3.5" aria-hidden />
                 )}
-                {isDraft ? "Approve wording" : "Approve task"}
+                {isDraft ? t("propApproveWording") : t("propApproveTask")}
               </Button>
               <Button
                 type="button"
@@ -262,7 +277,7 @@ export function ProposalCard({
                 disabled={busy !== null}
               >
                 <Pencil className="size-3.5" aria-hidden />
-                Edit
+                {t("propEdit")}
               </Button>
               <Button
                 type="button"
@@ -276,14 +291,14 @@ export function ProposalCard({
                 ) : (
                   <XCircle className="size-3.5" aria-hidden />
                 )}
-                Reject
+                {t("propReject")}
               </Button>
             </div>
           </div>
         ) : (
           <p className="flex items-center gap-1.5 border-t border-white/5 pt-3 text-[11px] text-mist-500">
             <Lock className="size-3" aria-hidden />
-            Your role can read proposals but cannot approve, edit or reject them.
+            {t("propReadOnly")}
           </p>
         )
       ) : null}

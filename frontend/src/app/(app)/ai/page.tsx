@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { getServerT, titleFor } from "@/lib/i18n/server";
 import type {
   AiConversation,
   AiProposal,
@@ -14,22 +15,23 @@ import type {
 } from "@/lib/ai/types";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "AI Office" };
+export const generateMetadata = () => titleFor("aiPageTitle");
 
 export default async function AiOfficePage() {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t } = await getServerT();
 
   const company = state.session.session.company;
   const header = (
     <PageHeader
-      eyebrow="AI Office · Stage 6"
-      title="AI Trade Director"
-      description="Ask about your deals, quotes, orders and reconciliation. Every answer cites the records it read, separates facts from inference, and only proposes — a person approves."
+      eyebrow={t("aiEyebrow")}
+      title={t("aiTitle")}
+      description={t("aiDescription")}
       meta={
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">Read-only</Badge>
-          <Badge variant="outline">Human approval</Badge>
+          <Badge variant="secondary">{t("aiBadgeReadOnly")}</Badge>
+          <Badge variant="outline">{t("aiBadgeApproval")}</Badge>
         </div>
       }
     />
@@ -40,10 +42,10 @@ export default async function AiOfficePage() {
       <div className="mx-auto max-w-[1360px] space-y-5">
         {header}
         <ApiErrorAlert
-          title="No active company"
+          title={t("aiNoCompanyTitle")}
           failure={{
             code: "NO_COMPANY",
-            message: "Select a company before using the AI Office.",
+            message: t("aiNoCompanyMessage"),
             requestId: null,
           }}
         />
@@ -64,7 +66,7 @@ export default async function AiOfficePage() {
     return (
       <div className="mx-auto max-w-[1360px] space-y-5">
         {header}
-        <ApiErrorAlert title="AI Office unavailable" failure={status} />
+        <ApiErrorAlert title={t("aiUnavailableTitle")} failure={status} />
       </div>
     );
   }

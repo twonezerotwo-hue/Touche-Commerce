@@ -1,10 +1,20 @@
+"use client";
+
 import { Loader2, ShieldAlert, Wrench } from "lucide-react";
 
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RUN_STATUS_META, TOOL_STATUS_META, describeError, humanTool } from "@/lib/ai/format";
+import {
+  RUN_STATUS_META,
+  TOOL_STATUS_META,
+  describeErrorIn,
+  humanTool,
+  runStatusLabel,
+  toolStatusLabel,
+} from "@/lib/ai/format";
 import type { AiRun } from "@/lib/ai/types";
+import { useLocale } from "@/lib/i18n/locale-provider";
 
 /** Live tool-execution status for one request (also used for finished runs). */
 export function RunProgress({
@@ -16,11 +26,12 @@ export function RunProgress({
   onCancel?: () => void;
   cancelling?: boolean;
 }) {
+  const { t } = useLocale();
   const running = run.status === "RUNNING";
   const status = RUN_STATUS_META[run.status];
   return (
     <section
-      aria-label="Tool execution"
+      aria-label={t("runToolAria")}
       aria-live="polite"
       className="panel-inset space-y-2.5 p-3"
       data-run-status={run.status}
@@ -32,10 +43,8 @@ export function RunProgress({
           ) : (
             <Wrench className="size-3.5 text-mist-500" aria-hidden />
           )}
-          <p className="text-[12px] text-mist-200">
-            {running ? "Reading your records…" : "Records read"}
-          </p>
-          <Badge variant={status.tone}>{status.label}</Badge>
+          <p className="text-[12px] text-mist-200">{running ? t("runReading") : t("runRead")}</p>
+          <Badge variant={status.tone}>{runStatusLabel(t, run.status)}</Badge>
         </div>
         {running && onCancel ? (
           <Button
@@ -45,15 +54,13 @@ export function RunProgress({
             onClick={onCancel}
             disabled={cancelling}
           >
-            {cancelling ? "Cancelling…" : "Cancel"}
+            {cancelling ? t("runCancelling") : t("runCancel")}
           </Button>
         ) : null}
       </div>
 
       {run.tool_calls.length === 0 ? (
-        <p className="text-[11px] text-mist-500">
-          {running ? "Waiting for the first tool call." : "No tools were called."}
-        </p>
+        <p className="text-[11px] text-mist-500">{running ? t("runWaiting") : t("runNoTools")}</p>
       ) : (
         <ol className="space-y-1">
           {run.tool_calls.map((call) => {
@@ -67,12 +74,15 @@ export function RunProgress({
                   <span className="font-mono text-[10px] text-mist-500">{call.ordinal}</span>
                   <span className="truncate text-mist-300">{humanTool(call.tool_name)}</span>
                   {call.tool_class === "BLOCKED" ? (
-                    <ShieldAlert className="size-3 text-crimson-400" aria-label="Blocked action" />
+                    <ShieldAlert
+                      className="size-3 text-crimson-400"
+                      aria-label={t("runBlockedAria")}
+                    />
                   ) : null}
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
                   <span className="font-mono text-[10px] text-mist-500">{call.duration_ms} ms</span>
-                  <Badge variant={meta.tone}>{meta.label}</Badge>
+                  <Badge variant={meta.tone}>{toolStatusLabel(t, call.status)}</Badge>
                 </span>
               </li>
             );
@@ -82,21 +92,27 @@ export function RunProgress({
 
       {run.status === "FAILED" || run.status === "CANCELLED" ? (
         <Alert variant={run.status === "FAILED" ? "danger" : "info"}>
-          {describeError(run.error_code)}
+          {describeErrorIn(t, run.error_code)}
         </Alert>
       ) : null}
 
       {run.safety_flags.length > 0 ? (
         <p className="text-[10.5px] leading-relaxed text-amber-400">
-          Safety check:{" "}
-          {run.safety_flags.map((f) => f.replaceAll("_", " ").toLowerCase()).join(", ")}.
-          Instruction-like text found in records was withheld from the assistant.
+          {t("runSafety", {
+            flags: run.safety_flags.map((f) => f.replaceAll("_", " ").toLowerCase()).join(", "),
+          })}
         </p>
       ) : null}
 
       <p className="font-mono text-[10px] text-mist-500">
-        {run.provider} · {run.model} · {run.input_tokens + run.output_tokens} tokens ·{" "}
-        {run.model_steps} step{run.model_steps === 1 ? "" : "s"}
+        {t("runMeta", {
+          provider: run.provider,
+          model: run.model,
+          tokens: run.input_tokens + run.output_tokens,
+          steps: t(run.model_steps === 1 ? "runStepOne" : "runStepMany", {
+            count: run.model_steps,
+          }),
+        })}
       </p>
     </section>
   );
