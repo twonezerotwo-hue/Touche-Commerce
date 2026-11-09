@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -9,6 +11,9 @@ import {
   type IntelligenceFilterOptions,
   type IntelligenceFilters,
 } from "@/lib/finance/intelligence";
+import { completenessWord, modelWord, statusWord } from "@/lib/finance/intelligence-text";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { reconciliationStatusText } from "@/lib/i18n/value-labels";
 
 function Field({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
@@ -67,14 +72,17 @@ export function IntelligenceFilterBar({
   /** Non-filter state (for example the active tab) preserved across Apply. */
   hidden?: Record<string, string>;
 }) {
-  const plain = (values: readonly string[]) =>
-    values.map((value) => ({ value, label: humanize(value) }));
+  const { t, locale } = useLocale();
+  const plain = (values: readonly string[], words: (value: string) => string = humanize) =>
+    values.map((value) => ({ value, label: words(value) }));
+  const reconciliationWord = (value: string): string =>
+    locale === "tr" ? reconciliationStatusText(t, value) : humanize(value);
   return (
     <form action={action} method="get" className="panel flex flex-wrap items-end gap-2 px-4 py-3">
       {Object.entries(hidden).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}
-      <Field id="intelligence-from" label="From">
+      <Field id="intelligence-from" label={t("intFilterFrom")}>
         <Input
           id="intelligence-from"
           name="from"
@@ -83,7 +91,7 @@ export function IntelligenceFilterBar({
           className="h-8 w-[145px] text-[12px]"
         />
       </Field>
-      <Field id="intelligence-to" label="To">
+      <Field id="intelligence-to" label={t("intFilterTo")}>
         <Input
           id="intelligence-to"
           name="to"
@@ -94,60 +102,62 @@ export function IntelligenceFilterBar({
       </Field>
       <OptionSelect
         name="currency"
-        label="Currency"
+        label={t("intFilterCurrency")}
         value={filters.currency}
-        allLabel="All currencies"
+        allLabel={t("intFilterAllCurrencies")}
         options={plain(options.currencies)}
         width="w-[120px]"
       />
       <OptionSelect
         name="fulfilment_model"
-        label="Model"
+        label={t("intFilterModel")}
         value={filters.fulfilment_model}
-        allLabel="All models"
-        options={plain(options.fulfilment_models)}
+        allLabel={t("intFilterAllModels")}
+        options={plain(options.fulfilment_models, (value) => modelWord(t, locale, value))}
         width="w-[170px]"
       />
       <OptionSelect
         name="order_status"
-        label="Order status"
+        label={t("intFilterOrderStatus")}
         value={filters.order_status}
-        allLabel="All statuses"
-        options={plain(options.order_statuses)}
+        allLabel={t("intFilterAllStatuses")}
+        options={plain(options.order_statuses, (value) => statusWord(t, locale, value))}
       />
       <OptionSelect
         name="customer_id"
-        label="Customer"
+        label={t("intFilterCustomer")}
         value={filters.customer_id}
-        allLabel="All customers"
+        allLabel={t("intFilterAllCustomers")}
         options={options.customers.map((item) => ({ value: item.id, label: item.name }))}
         width="w-[190px]"
       />
       <OptionSelect
         name="supplier_id"
-        label="Supplier"
+        label={t("intFilterSupplier")}
         value={filters.supplier_id}
-        allLabel="All suppliers"
+        allLabel={t("intFilterAllSuppliers")}
         options={options.suppliers.map((item) => ({ value: item.id, label: item.name }))}
         width="w-[190px]"
       />
       <OptionSelect
         name="reconciliation_status"
-        label="Reconciliation"
+        label={t("intFilterReconciliation")}
         value={filters.reconciliation_status}
-        allLabel="Any"
-        options={plain(options.reconciliation_statuses)}
+        allLabel={t("intFilterAny")}
+        options={plain(options.reconciliation_statuses, reconciliationWord)}
         width="w-[170px]"
       />
       <OptionSelect
         name="completeness"
-        label="Completeness"
+        label={t("intFilterCompleteness")}
         value={filters.completeness}
-        allLabel="Any"
-        options={plain(options.completeness_statuses)}
+        allLabel={t("intFilterAny")}
+        options={plain(options.completeness_statuses, (value) =>
+          locale === "tr" ? completenessWord(t, value as never) : humanize(value),
+        )}
       />
       <Button type="submit" size="sm" variant="subtle">
-        Apply
+        {t("intApply")}
       </Button>
       {hasActiveFilters(filters) ? (
         <Button asChild size="sm" variant="ghost">
@@ -158,7 +168,7 @@ export function IntelligenceFilterBar({
                 : action
             }
           >
-            Clear
+            {t("intClear")}
           </Link>
         </Button>
       ) : null}

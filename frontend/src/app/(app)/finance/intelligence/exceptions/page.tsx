@@ -10,10 +10,13 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Select } from "@/components/ui/select";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
-import { humanize, type FinancialExceptionList } from "@/lib/finance/intelligence";
+import type { FinancialExceptionList } from "@/lib/finance/intelligence";
+import { exceptionCodeWord } from "@/lib/finance/intelligence-text";
+import { getServerT, titleFor } from "@/lib/i18n/server";
+import { discrepancyStatusText, severityText } from "@/lib/i18n/value-labels";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Financial exceptions" };
+export const generateMetadata = () => titleFor("exTitle");
 
 const BASE = "/finance/intelligence/exceptions";
 const PAGE_SIZE = 50;
@@ -55,6 +58,7 @@ export default async function FinancialExceptionsPage({
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
 
+  const { t, locale } = await getServerT();
   const params = await searchParams;
   const permissions = state.session.session.company?.permissions ?? [];
   const canReview = permissions.includes("finance.reconcile");
@@ -104,18 +108,18 @@ export default async function FinancialExceptionsPage({
   return (
     <div className="mx-auto max-w-[1360px] space-y-5">
       <PageHeader
-        eyebrow="Finance · Stage 5E"
-        back={{ href: "/finance/intelligence", label: "Intelligence" }}
-        meta={<Badge variant="secondary">Exception queue</Badge>}
-        title="Financial exceptions"
-        description="Stage 5D discrepancies with the affected order, currency and Finance reference alongside. Resolving an item records a note; it does not change Finance."
+        eyebrow={t("intEyebrow")}
+        back={{ href: "/finance/intelligence", label: t("intBackIntelligence") }}
+        meta={<Badge variant="secondary">{t("exBadge")}</Badge>}
+        title={t("exTitle")}
+        description={t("exDescription")}
         actions={
           <div className="flex flex-wrap gap-2">
             <Button asChild size="sm" variant="outline">
-              <Link href="/finance/intelligence/orders">Order profitability</Link>
+              <Link href="/finance/intelligence/orders">{t("exBtnOrders")}</Link>
             </Button>
             <Button asChild size="sm" variant="ghost">
-              <Link href="/finance/discrepancies">Discrepancy queue</Link>
+              <Link href="/finance/discrepancies">{t("exBtnQueue")}</Link>
             </Button>
           </div>
         }
@@ -124,7 +128,7 @@ export default async function FinancialExceptionsPage({
       <form action={BASE} method="get" className="panel flex flex-wrap items-end gap-2 px-4 py-3">
         <div className="space-y-1">
           <label htmlFor="exception-status" className="eyebrow block">
-            Status
+            {t("exStatus")}
           </label>
           <Select
             id="exception-status"
@@ -132,17 +136,17 @@ export default async function FinancialExceptionsPage({
             defaultValue={status === "" ? "ALL" : status}
             className="h-8 w-[140px] text-[12px]"
           >
-            <option value="ALL">All</option>
+            <option value="ALL">{t("exAll")}</option>
             {STATUSES.map((value) => (
               <option key={value} value={value}>
-                {value}
+                {discrepancyStatusText(t, value)}
               </option>
             ))}
           </Select>
         </div>
         <div className="space-y-1">
           <label htmlFor="exception-severity" className="eyebrow block">
-            Severity
+            {t("exSeverity")}
           </label>
           <Select
             id="exception-severity"
@@ -150,17 +154,17 @@ export default async function FinancialExceptionsPage({
             defaultValue={severity}
             className="h-8 w-[140px] text-[12px]"
           >
-            <option value="">All</option>
+            <option value="">{t("exAll")}</option>
             {SEVERITIES.map((value) => (
               <option key={value} value={value}>
-                {value}
+                {severityText(t, value)}
               </option>
             ))}
           </Select>
         </div>
         <div className="space-y-1">
           <label htmlFor="exception-code" className="eyebrow block">
-            Code
+            {t("exCode")}
           </label>
           <Select
             id="exception-code"
@@ -168,30 +172,30 @@ export default async function FinancialExceptionsPage({
             defaultValue={code}
             className="h-8 w-[230px] text-[12px]"
           >
-            <option value="">All codes</option>
+            <option value="">{t("exAllCodes")}</option>
             {CODES.map((value) => (
               <option key={value} value={value}>
-                {humanize(value)}
+                {exceptionCodeWord(t, locale, value)}
               </option>
             ))}
           </Select>
         </div>
         <div className="space-y-1">
           <label htmlFor="exception-currency" className="eyebrow block">
-            Currency
+            {t("exCurrency")}
           </label>
           <Input
             id="exception-currency"
             name="currency"
             defaultValue={currency}
             maxLength={3}
-            placeholder="Any"
+            placeholder={t("exAnyPlaceholder")}
             className="h-8 w-[80px] text-[12px] uppercase"
           />
         </div>
         <div className="space-y-1">
           <label htmlFor="exception-from" className="eyebrow block">
-            From
+            {t("exFrom")}
           </label>
           <Input
             id="exception-from"
@@ -203,7 +207,7 @@ export default async function FinancialExceptionsPage({
         </div>
         <div className="space-y-1">
           <label htmlFor="exception-to" className="eyebrow block">
-            To
+            {t("exTo")}
           </label>
           <Input
             id="exception-to"
@@ -215,27 +219,27 @@ export default async function FinancialExceptionsPage({
         </div>
         {orderId ? <input type="hidden" name="order_id" value={orderId} /> : null}
         <Button type="submit" size="sm" variant="subtle">
-          Apply
+          {t("intApply")}
         </Button>
         {filtered ? (
           <Button asChild size="sm" variant="ghost">
-            <Link href={BASE}>Clear</Link>
+            <Link href={BASE}>{t("intClear")}</Link>
           </Button>
         ) : null}
         <span className="ml-auto text-[10px] text-mist-600">
-          {canReview
-            ? "You can resolve items with finance.reconcile."
-            : "Read-only: resolving needs finance.reconcile."}
+          {canReview ? t("exCanResolve") : t("exCannotResolve")}
         </span>
       </form>
 
       {!result.ok ? (
-        <ApiErrorAlert title="Financial exceptions unavailable" failure={result} />
+        <ApiErrorAlert title={t("exUnavailable")} failure={result} />
       ) : (
         <div className="space-y-3">
           <div className="panel overflow-hidden">
             <div className="px-4 py-3 text-[10.5px] text-mist-500">
-              {result.data.total} exception{result.data.total === 1 ? "" : "s"}
+              {t(result.data.total === 1 ? "exCountOne" : "exCountMany", {
+                count: result.data.total,
+              })}
             </div>
             <div className="hairline" />
             <IntelligenceExceptionsTable

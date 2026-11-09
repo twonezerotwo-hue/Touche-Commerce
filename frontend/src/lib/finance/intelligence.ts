@@ -1,6 +1,7 @@
 /** Stage 5E financial intelligence types and pure helpers (generated OpenAPI contract). */
 
 import type { components } from "@/lib/api/schema";
+import type { Locale } from "@/lib/i18n/messages";
 import { formatMoney } from "@/lib/trade/format";
 
 type Schemas = components["schemas"];
@@ -142,6 +143,11 @@ export function isNegative(value: string | null | undefined): boolean {
   return Number.isFinite(parsed) && parsed < 0;
 }
 
+/** The backend's percentage digits; Turkish writes the sign first and uses a decimal comma. */
+function percentText(value: string, locale: Locale): string {
+  return locale === "tr" ? `%${value.replace(".", ",")}` : `${value}%`;
+}
+
 export interface MetricLine {
   /** Currency the line is denominated in; null for counts. */
   currency: string | null;
@@ -155,20 +161,20 @@ export interface MetricLine {
  * currency — nothing is summed across currencies — and an unavailable metric
  * has no lines at all, so it can never be shown as zero.
  */
-export function metricLines(metric: IntelligenceMetric): MetricLine[] {
+export function metricLines(metric: IntelligenceMetric, locale: Locale = "en"): MetricLine[] {
   if (!metric.available) return [];
   switch (metric.kind) {
     case "MONEY":
       return metric.money.map((item) => ({
         currency: item.currency,
-        text: formatMoney(item.amount, item.currency),
+        text: formatMoney(item.amount, item.currency, locale),
         negative: isNegative(item.amount),
       }));
     case "PERCENT": {
       if (metric.percentages.length > 0) {
         return metric.percentages.map((item) => ({
           currency: item.currency,
-          text: `${item.value}%`,
+          text: percentText(item.value, locale),
           negative: isNegative(item.value),
         }));
       }
@@ -176,7 +182,7 @@ export function metricLines(metric: IntelligenceMetric): MetricLine[] {
         ? [
             {
               currency: null,
-              text: `${metric.percentage}%`,
+              text: percentText(metric.percentage, locale),
               negative: isNegative(metric.percentage),
             },
           ]

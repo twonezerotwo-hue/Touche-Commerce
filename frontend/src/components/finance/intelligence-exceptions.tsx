@@ -1,7 +1,12 @@
+"use client";
+
 import Link from "next/link";
 
 import { DiscrepancyResolutionForm } from "@/components/finance/reconciliation-actions";
-import { DiscrepancySeverityBadge } from "@/components/finance/reconciliation-status-badge";
+import {
+  DiscrepancySeverityBadge,
+  DiscrepancyStatusBadge,
+} from "@/components/finance/reconciliation-status-badge";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -12,7 +17,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { humanize, type FinancialException } from "@/lib/finance/intelligence";
+import type { FinancialException } from "@/lib/finance/intelligence";
+import { exceptionCodeWord } from "@/lib/finance/intelligence-text";
+import { useLocale } from "@/lib/i18n/locale-provider";
 import { formatDate } from "@/lib/trade/format";
 
 /** Stage 5D discrepancies enriched with the affected order; resolution is unchanged. */
@@ -25,12 +32,13 @@ export function IntelligenceExceptionsTable({
   csrfToken: string;
   canReview: boolean;
 }) {
+  const { t, locale } = useLocale();
   if (items.length === 0) {
     return (
       <EmptyState
         embedded
-        title="No financial exceptions"
-        description="No exceptions match the current filters."
+        title={t("intNoExceptionsTitle")}
+        description={t("intNoExceptionsDesc")}
       />
     );
   }
@@ -38,9 +46,9 @@ export function IntelligenceExceptionsTable({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="pl-4">Order</TableHead>
-          <TableHead>Exception</TableHead>
-          <TableHead className="pr-4">Finding and resolution</TableHead>
+          <TableHead className="pl-4">{t("intColOrder")}</TableHead>
+          <TableHead>{t("intExColException")}</TableHead>
+          <TableHead className="pr-4">{t("intExColFinding")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -62,17 +70,15 @@ export function IntelligenceExceptionsTable({
                 {item.customer_name}
               </span>
               <span className="mt-0.5 block font-mono text-[10px] text-mist-600">
-                {item.currency} · {formatDate(item.created_at)}
+                {item.currency} · {formatDate(item.created_at, locale)}
               </span>
             </TableCell>
             <TableCell className="min-w-[190px] align-top">
               <span className="flex flex-col items-start gap-1">
-                <Badge variant="secondary">{humanize(item.code)}</Badge>
+                <Badge variant="secondary">{exceptionCodeWord(t, locale, item.code)}</Badge>
                 <span className="flex flex-wrap items-center gap-1">
                   <DiscrepancySeverityBadge severity={item.severity} />
-                  <Badge variant={item.status === "RESOLVED" ? "success" : "outline"}>
-                    {item.status}
-                  </Badge>
+                  <DiscrepancyStatusBadge status={item.status} />
                 </span>
               </span>
             </TableCell>
@@ -82,18 +88,18 @@ export function IntelligenceExceptionsTable({
               <p className="mt-1.5 text-[10px] text-mist-500">
                 {item.finance_source_reference ? (
                   <>
-                    Finance source{" "}
+                    {t("intFinanceSource")}{" "}
                     <span className="font-mono text-mist-300">{item.finance_source_reference}</span>
                   </>
                 ) : (
-                  "No Finance reference"
+                  t("intNoFinanceReference")
                 )}
                 {" · "}
                 <Link
                   href={`/finance/reconciliation/${item.run_id}`}
                   className="font-mono text-accent-200 hover:text-accent-100"
                 >
-                  Open run
+                  {t("intOpenRun")}
                 </Link>
               </p>
               {item.resolution_notes ? (

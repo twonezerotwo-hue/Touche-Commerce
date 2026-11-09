@@ -36,7 +36,10 @@ Evidence, not claims. Full matrix: `docs/STAGE11_20_STATUS.md`; operator guide: 
   import check could race.
 * **12G1** Finance ledger, reconciliation, discrepancies and the order finance view in Turkish; the
   ESTIMATED / COMMITTED / DOCUMENTED / UNAVAILABLE distinctions keep their meaning in both languages.
-  Frontend 299 tests; finance and width journeys 22 of 22 on Chromium and WebKit.
+  Frontend 299 tests (314 after 12G2); finance and width journeys 22 of 22 on Chromium and WebKit.
+* **12G2** Financial intelligence in Turkish (dashboard, charts, order profitability, exceptions, order
+  analysis, CSV export control); English wording unchanged; the order analysis page no longer scrolls
+  sideways on a phone. Intelligence and width journeys pass on Chromium and WebKit.
 * **13** CSV/XLSX import wizard (atomic, idempotent), company profile (migration 0014), TR/EN
   documents in four formats; Commerce invoices are always drafts.
 * **16** Local `qwen3:8b` fallback verified live; DeepSeek not connected (no key).

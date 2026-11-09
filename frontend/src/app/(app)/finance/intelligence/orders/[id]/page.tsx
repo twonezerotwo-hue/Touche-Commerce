@@ -10,15 +10,12 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
-import {
-  completenessTone,
-  humanize,
-  INTELLIGENCE_ANALYSIS_NOTICE,
-  type OrderIntelligenceDetail,
-} from "@/lib/finance/intelligence";
+import { completenessTone, type OrderIntelligenceDetail } from "@/lib/finance/intelligence";
+import { completenessWord, modelWord, statusWord } from "@/lib/finance/intelligence-text";
+import { getServerT, titleFor } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Order intelligence" };
+export const generateMetadata = () => titleFor("oiOrderFinance");
 
 export default async function OrderIntelligencePage({
   params,
@@ -28,6 +25,7 @@ export default async function OrderIntelligencePage({
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
 
+  const { t, locale } = await getServerT();
   const { id } = await params;
   const result = await serverGet<OrderIntelligenceDetail>(
     `/finance/intelligence/orders/${encodeURIComponent(id)}`,
@@ -37,11 +35,11 @@ export default async function OrderIntelligencePage({
     return (
       <div className="mx-auto max-w-[1100px] space-y-4">
         <PageHeader
-          eyebrow="Finance · Stage 5E"
-          back={{ href: "/finance/intelligence/orders", label: "Order profitability" }}
-          title="Order intelligence unavailable"
+          eyebrow={t("intEyebrow")}
+          back={{ href: "/finance/intelligence/orders", label: t("intBackOrders") }}
+          title={t("oiUnavailable")}
         />
-        <ApiErrorAlert title="Could not load the order analysis" failure={result} />
+        <ApiErrorAlert title={t("oiLoadFailed")} failure={result} />
       </div>
     );
   }
@@ -53,39 +51,46 @@ export default async function OrderIntelligencePage({
   return (
     <div className="mx-auto max-w-[1360px] space-y-5">
       <PageHeader
-        eyebrow="Finance · Stage 5E"
-        back={{ href: "/finance/intelligence/orders", label: "Order profitability" }}
+        eyebrow={t("intEyebrow")}
+        back={{ href: "/finance/intelligence/orders", label: t("intBackOrders") }}
         meta={
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">{humanize(order.status)}</Badge>
-            <Badge variant="secondary">{humanize(order.fulfilment_model)}</Badge>
-            <Badge variant={completenessTone(order.completeness)}>{order.completeness}</Badge>
+            <Badge variant="outline">{statusWord(t, locale, order.status)}</Badge>
+            <Badge variant="secondary">{modelWord(t, locale, order.fulfilment_model)}</Badge>
+            <Badge variant={completenessTone(order.completeness)}>
+              {completenessWord(t, order.completeness)}
+            </Badge>
             {order.reconciliation_status ? (
               <ReconciliationStatusBadge status={order.reconciliation_status} />
             ) : (
-              <Badge variant="outline">No reconciliation run</Badge>
+              <Badge variant="outline">{t("oiNoRun")}</Badge>
             )}
           </div>
         }
         title={order.order_number}
-        description={`${order.customer_name} · ${order.currency}. Estimated, committed and documented figures are separate bases; nothing here is an accounting entry.`}
+        description={t("oiDescription", {
+          customer: order.customer_name,
+          currency: order.currency,
+        })}
         actions={
           <div className="flex flex-wrap gap-2">
             {order.latest_run_id ? (
               <Button asChild size="sm">
-                <Link href={`/finance/reconciliation/${order.latest_run_id}`}>Open latest run</Link>
+                <Link href={`/finance/reconciliation/${order.latest_run_id}`}>
+                  {t("oiOpenLatest")}
+                </Link>
               </Button>
             ) : null}
             <Button asChild size="sm" variant="outline">
               <Link href={`/finance/reconciliation?order_id=${order.sales_order_id}`}>
-                Runs for this order
+                {t("oiRunsForOrder")}
               </Link>
             </Button>
             <Button asChild size="sm" variant="outline">
-              <Link href={`/finance/orders/${order.sales_order_id}`}>Order finance</Link>
+              <Link href={`/finance/orders/${order.sales_order_id}`}>{t("oiOrderFinance")}</Link>
             </Button>
             <Button asChild size="sm" variant="ghost">
-              <Link href={`/orders/${order.sales_order_id}`}>Commerce order</Link>
+              <Link href={`/orders/${order.sales_order_id}`}>{t("oiCommerceOrder")}</Link>
             </Button>
           </div>
         }
@@ -93,8 +98,8 @@ export default async function OrderIntelligencePage({
 
       <OrderFlags order={order} />
 
-      <Alert variant="info" title="Operational figures">
-        {INTELLIGENCE_ANALYSIS_NOTICE}
+      <Alert variant="info" title={t("intNoticeTitle")}>
+        {t("intNotice")}
       </Alert>
 
       <IntelligenceDetail

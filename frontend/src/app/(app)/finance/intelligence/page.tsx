@@ -20,16 +20,16 @@ import { PageHeader } from "@/components/ui/page-header";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
 import {
-  INTELLIGENCE_ANALYSIS_NOTICE,
   intelligenceQuery,
   parseIntelligenceFilters,
   type IntelligenceCoverage,
   type IntelligenceSummary,
 } from "@/lib/finance/intelligence";
+import { getServerT, titleFor } from "@/lib/i18n/server";
 import { formatDate, withQuery } from "@/lib/trade/format";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Financial intelligence" };
+export const generateMetadata = () => titleFor("intTitle");
 
 const BASE = "/finance/intelligence";
 
@@ -41,6 +41,7 @@ export default async function FinancialIntelligencePage({
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
 
+  const { t, locale } = await getServerT();
   const filters = parseIntelligenceFilters(await searchParams);
   const query = intelligenceQuery(filters);
   const suffix = query ? `?${query}` : "";
@@ -52,12 +53,12 @@ export default async function FinancialIntelligencePage({
 
   const header = (
     <PageHeader
-      eyebrow="Finance · Stage 5E"
-      back={{ href: "/finance", label: "Finance" }}
+      eyebrow={t("intEyebrow")}
+      back={{ href: "/finance", label: t("finBackFinance") }}
       meta={
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">Operational analysis</Badge>
-          <Badge variant="outline">Read-only</Badge>
+          <Badge variant="secondary">{t("intBadgeAnalysis")}</Badge>
+          <Badge variant="outline">{t("intBadgeReadOnly")}</Badge>
           {summaryResult.ok ? (
             <span className="font-mono text-[10px] text-mist-600">
               {summaryResult.data.calculation_version}
@@ -65,15 +66,15 @@ export default async function FinancialIntelligencePage({
           ) : null}
         </div>
       }
-      title="Financial intelligence"
-      description="Order profitability from real Commerce facts: accepted value, committed purchases, recorded costs and reconciliation evidence — kept in separate bases, per currency."
+      title={t("intTitle")}
+      description={t("intDescription")}
       actions={
         <div className="flex flex-wrap gap-2">
           <Button asChild size="sm">
-            <Link href={withQuery(`${BASE}/orders`, filters)}>Order profitability</Link>
+            <Link href={withQuery(`${BASE}/orders`, filters)}>{t("intBtnOrders")}</Link>
           </Button>
           <Button asChild size="sm" variant="outline">
-            <Link href={`${BASE}/exceptions`}>Exceptions</Link>
+            <Link href={`${BASE}/exceptions`}>{t("intBtnExceptions")}</Link>
           </Button>
         </div>
       }
@@ -84,7 +85,7 @@ export default async function FinancialIntelligencePage({
     return (
       <div className="mx-auto max-w-[1360px] space-y-5">
         {header}
-        <ApiErrorAlert title="Financial intelligence unavailable" failure={summaryResult} />
+        <ApiErrorAlert title={t("intUnavailable")} failure={summaryResult} />
       </div>
     );
   }
@@ -96,18 +97,21 @@ export default async function FinancialIntelligencePage({
     <div className="mx-auto max-w-[1360px] space-y-5">
       {header}
 
-      <Alert variant="info" title="What this is — and is not">
-        {INTELLIGENCE_ANALYSIS_NOTICE}
+      <Alert variant="info" title={t("intWhatTitle")}>
+        {t("intNotice")}
       </Alert>
 
       <IntelligenceFilterBar action={BASE} filters={filters} options={summary.filter_options} />
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="text-[11px] text-mist-500">
-          <span className="font-mono text-mist-300">{summary.order_count}</span> order
-          {summary.order_count === 1 ? "" : "s"} ({summary.active_order_count} active,{" "}
-          {summary.cancelled_order_count} cancelled) · as of {formatDate(summary.as_of)} · Finance
-          data through {formatDate(summary.data_through ?? null)}
+          {t(summary.order_count === 1 ? "intOrderLineOne" : "intOrderLineMany", {
+            count: summary.order_count,
+            active: summary.active_order_count,
+            cancelled: summary.cancelled_order_count,
+            asOf: formatDate(summary.as_of, locale),
+            through: formatDate(summary.data_through ?? null, locale),
+          })}
         </p>
         <ExportCsvButton filters={filters} orderCount={summary.order_count} />
       </div>
@@ -119,75 +123,72 @@ export default async function FinancialIntelligencePage({
         <CostComparisonChart rows={summary.cost_comparison} />
         <MarginDistributionChart buckets={summary.margin_distribution} />
         <RankedCountChart
-          title="Exception categories"
-          description="Open Stage 5D discrepancies grouped by code. Resolving one never changes Finance."
+          title={t("intExceptionsTitle")}
+          description={t("intExceptionsDesc")}
           items={summary.discrepancy_categories}
-          emptyTitle="No open exceptions"
-          columnLabel="Open"
+          emptyTitle={t("intNoOpenExceptions")}
+          columnLabel={t("intColOpen")}
         />
       </ChartGrid>
 
       <ChartGrid>
         <CompletenessBar
-          title="Order completeness"
-          description="How much of each order's cost picture is documented."
+          title={t("intCompletenessTitle")}
+          description={t("intCompletenessDesc")}
           counts={summary.completeness}
         />
         {coverage ? (
           <CompletenessBar
-            title="Estimate coverage"
-            description="Orders with a complete landed-cost estimate."
+            title={t("intEstimateCoverageTitle")}
+            description={t("intEstimateCoverageDesc")}
             counts={coverage.estimate}
           />
         ) : null}
         {coverage ? (
           <CompletenessBar
-            title="Committed-basis coverage"
-            description="Orders whose purchase commitments and recorded costs are complete."
+            title={t("intCommittedCoverageTitle")}
+            description={t("intCommittedCoverageDesc")}
             counts={coverage.committed}
           />
         ) : null}
         {coverage ? (
           <RankedCountChart
-            title="Reconciliation coverage"
-            description="Orders by the status of their latest Stage 5D run."
+            title={t("intReconCoverageTitle")}
+            description={t("intReconCoverageDesc")}
             items={coverage.reconciliation}
-            emptyTitle="No reconciliation data"
-            columnLabel="Orders"
+            emptyTitle={t("intNoReconData")}
+            columnLabel={t("intColOrders")}
           />
         ) : null}
         {coverage ? (
           <RankedCountChart
-            title="Missing inputs"
-            description="Which inputs most often keep a figure unavailable."
+            title={t("intMissingInputsTitle")}
+            description={t("intMissingInputsDesc")}
             items={coverage.missing_components}
-            emptyTitle="Nothing is missing"
-            columnLabel="Orders"
+            emptyTitle={t("intNothingMissing")}
+            columnLabel={t("intColOrders")}
           />
         ) : null}
       </ChartGrid>
       {!coverageResult.ok ? (
-        <ApiErrorAlert title="Coverage unavailable" failure={coverageResult} />
+        <ApiErrorAlert title={t("intCoverageUnavailable")} failure={coverageResult} />
       ) : null}
 
       <div className="panel overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div>
-            <p className="eyebrow">Orders needing review</p>
-            <p className="mt-1 text-[11px] text-mist-500">
-              Active orders with open exceptions or missing/partial cost data. Blocking exceptions
-              come first; up to eight, newest first within each group.
-            </p>
+            <p className="eyebrow">{t("intReviewTitle")}</p>
+            <p className="mt-1 text-[11px] text-mist-500">{t("intReviewNote")}</p>
           </div>
           <Button asChild variant="outline" size="sm">
-            <Link href={withQuery(`${BASE}/orders`, filters)}>All orders</Link>
+            <Link href={withQuery(`${BASE}/orders`, filters)}>{t("intAllOrders")}</Link>
           </Button>
         </div>
         <div className="hairline" />
         <IntelligenceOrdersTable
           items={summary.review_orders}
-          emptyTitle="Nothing needs review"
-          emptyDescription="Every order in this range is complete and free of open exceptions."
+          emptyTitle={t("intNothingReview")}
+          emptyDescription={t("intNothingReviewDesc")}
         />
       </div>
     </div>

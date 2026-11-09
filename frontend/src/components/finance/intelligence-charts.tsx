@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 
 import {
@@ -10,9 +12,7 @@ import {
 } from "@/components/ui/table";
 import {
   barShare,
-  COMPLETENESS_LABELS,
   groupByCurrency,
-  humanize,
   maxAbs,
   tooltipAlign,
   type CategoryCount,
@@ -23,6 +23,8 @@ import {
   type MonthlyCommitment,
   type TooltipAlign,
 } from "@/lib/finance/intelligence";
+import { categoryWord, completenessWord } from "@/lib/finance/intelligence-text";
+import { useLocale } from "@/lib/i18n/locale-provider";
 import { formatMoney } from "@/lib/trade/format";
 import { cn } from "@/lib/utils";
 
@@ -74,8 +76,9 @@ function Tip({
 }
 
 function Legend({ items }: { items: Array<{ label: string; swatch: string }> }) {
+  const { t } = useLocale();
   return (
-    <ul className="flex flex-wrap items-center gap-x-4 gap-y-1" aria-label="Legend">
+    <ul className="flex flex-wrap items-center gap-x-4 gap-y-1" aria-label={t("intLegend")}>
       {items.map((item) => (
         <li key={item.label} className="flex items-center gap-1.5 text-[10.5px] text-mist-400">
           <span className={cn("size-2 rounded-[2px]", item.swatch)} aria-hidden />
@@ -101,6 +104,7 @@ function ChartPanel({
   children: React.ReactNode;
   className?: string;
 }) {
+  const { t } = useLocale();
   return (
     // min-w-0: a grid item otherwise grows to its widest content, so a scrolling plot or
     // table inside would still widen the whole page instead of scrolling in its panel.
@@ -115,7 +119,9 @@ function ChartPanel({
       <div className="min-w-0 flex-1">{children}</div>
       {table ? (
         <details className="text-[10.5px] text-mist-500">
-          <summary className="cursor-pointer select-none hover:text-mist-200">Table view</summary>
+          <summary className="cursor-pointer select-none hover:text-mist-200">
+            {t("intTableView")}
+          </summary>
           <div className="mt-2 overflow-x-auto">{table}</div>
         </details>
       ) : null}
@@ -128,12 +134,11 @@ function ChartPanel({
  * panel: inside a chart panel that rendered as a box within a box.
  */
 function ChartEmpty({ title }: { title: string }) {
+  const { t } = useLocale();
   return (
     <div className="px-4 py-8 text-center">
       <p className="font-display text-[16px] text-mist-200">{title}</p>
-      <p className="mt-1 text-[11px] text-mist-500">
-        No orders in the selected range have data for this view.
-      </p>
+      <p className="mt-1 text-[11px] text-mist-500">{t("intChartEmptyBody")}</p>
     </div>
   );
 }
@@ -156,26 +161,30 @@ function CurrencyLabel({ currency }: { currency: string }) {
 
 /** Accepted value vs purchase commitments per month, one panel per currency. */
 export function MonthlyCommitmentsChart({ rows }: { rows: readonly MonthlyCommitment[] }) {
+  const { t, locale } = useLocale();
+  const money = (value: string, currency: string): string => formatMoney(value, currency, locale);
+  const orderWord = (count: number): string =>
+    t(count === 1 ? "intOrdersOne" : "intOrdersMany", { count });
   const legend = [
-    { label: "Accepted value", swatch: SERIES.one.label },
-    { label: "Purchase commitments", swatch: SERIES.two.label },
+    { label: t("intAccepted"), swatch: SERIES.one.label },
+    { label: t("intCommitments"), swatch: SERIES.two.label },
   ];
   const groups = groupByCurrency(rows);
   return (
     <ChartPanel
-      title="Monthly commitments"
-      description="Accepted order value beside committed purchase orders. Each currency has its own scale; currencies are never added together."
+      title={t("intMonthlyTitle")}
+      description={t("intMonthlyDesc")}
       legend={legend}
       table={
         rows.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Month</TableHead>
-                <TableHead>Currency</TableHead>
-                <TableHead className="text-right">Accepted value</TableHead>
-                <TableHead className="text-right">Purchase commitments</TableHead>
-                <TableHead className="text-right">Orders</TableHead>
+                <TableHead>{t("intColMonth")}</TableHead>
+                <TableHead>{t("intColCurrency")}</TableHead>
+                <TableHead className="text-right">{t("intAccepted")}</TableHead>
+                <TableHead className="text-right">{t("intCommitments")}</TableHead>
+                <TableHead className="text-right">{t("intColOrders")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -184,10 +193,10 @@ export function MonthlyCommitmentsChart({ rows }: { rows: readonly MonthlyCommit
                   <TableCell className="font-mono">{row.month}</TableCell>
                   <TableCell className="font-mono">{row.currency}</TableCell>
                   <TableCell className="text-right font-mono">
-                    {formatMoney(row.accepted_value, row.currency)}
+                    {money(row.accepted_value, row.currency)}
                   </TableCell>
                   <TableCell className="text-right font-mono">
-                    {formatMoney(row.purchase_commitments, row.currency)}
+                    {money(row.purchase_commitments, row.currency)}
                   </TableCell>
                   <TableCell className="text-right font-mono">{row.order_count}</TableCell>
                 </TableRow>
@@ -198,7 +207,7 @@ export function MonthlyCommitmentsChart({ rows }: { rows: readonly MonthlyCommit
       }
     >
       {groups.length === 0 ? (
-        <ChartEmpty title="No monthly commitments" />
+        <ChartEmpty title={t("intNoMonthly")} />
       ) : (
         <div className="space-y-5">
           {groups.map(({ currency, rows: monthRows }) => {
@@ -215,8 +224,14 @@ export function MonthlyCommitmentsChart({ rows }: { rows: readonly MonthlyCommit
                     {monthRows.map((row, index) => {
                       const accepted = barShare(row.accepted_value, maximum);
                       const committed = barShare(row.purchase_commitments, maximum);
-                      const orders = `${row.order_count} order${row.order_count === 1 ? "" : "s"}`;
-                      const summary = `${row.month} · ${currency} · accepted ${formatMoney(row.accepted_value, currency)} · commitments ${formatMoney(row.purchase_commitments, currency)} · ${orders}`;
+                      const orders = orderWord(row.order_count);
+                      const summary = t("intMonthSummary", {
+                        month: row.month,
+                        currency,
+                        accepted: money(row.accepted_value, currency),
+                        commitments: money(row.purchase_commitments, currency),
+                        orders,
+                      });
                       return (
                         <div
                           key={row.month}
@@ -228,10 +243,12 @@ export function MonthlyCommitmentsChart({ rows }: { rows: readonly MonthlyCommit
                           <Tip align={tooltipAlign(index, monthRows.length)} inside>
                             <span className="block font-mono text-mist-100">{row.month}</span>
                             <span className="block">
-                              Accepted {formatMoney(row.accepted_value, currency)}
+                              {t("intTipAccepted", { amount: money(row.accepted_value, currency) })}
                             </span>
                             <span className="block">
-                              Commitments {formatMoney(row.purchase_commitments, currency)}
+                              {t("intTipCommitments", {
+                                amount: money(row.purchase_commitments, currency),
+                              })}
                             </span>
                             <span className="block text-mist-500">{orders}</span>
                           </Tip>
@@ -264,25 +281,27 @@ export function MonthlyCommitmentsChart({ rows }: { rows: readonly MonthlyCommit
 
 /** Estimated vs documented cost per currency; bars compare within a currency only. */
 export function CostComparisonChart({ rows }: { rows: readonly CostComparison[] }) {
+  const { t, locale } = useLocale();
+  const money = (value: string, currency: string): string => formatMoney(value, currency, locale);
   const legend = [
-    { label: "Estimated cost", swatch: SERIES.one.label },
-    { label: "Documented cost", swatch: SERIES.two.label },
+    { label: t("intLegendEstimated"), swatch: SERIES.one.label },
+    { label: t("intLegendDocumented"), swatch: SERIES.two.label },
   ];
   return (
     <ChartPanel
-      title="Estimated vs documented cost"
-      description="Only orders with a complete estimate and a complete documented basis. Variance is documented minus estimated."
+      title={t("intCostTitle")}
+      description={t("intCostDesc")}
       legend={legend}
       table={
         rows.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Currency</TableHead>
-                <TableHead className="text-right">Estimated</TableHead>
-                <TableHead className="text-right">Documented</TableHead>
-                <TableHead className="text-right">Variance</TableHead>
-                <TableHead className="text-right">Orders</TableHead>
+                <TableHead>{t("intColCurrency")}</TableHead>
+                <TableHead className="text-right">{t("intColEstimated")}</TableHead>
+                <TableHead className="text-right">{t("intColDocumented")}</TableHead>
+                <TableHead className="text-right">{t("intColVariance")}</TableHead>
+                <TableHead className="text-right">{t("intColOrders")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -290,13 +309,13 @@ export function CostComparisonChart({ rows }: { rows: readonly CostComparison[] 
                 <TableRow key={row.currency}>
                   <TableCell className="font-mono">{row.currency}</TableCell>
                   <TableCell className="text-right font-mono">
-                    {formatMoney(row.estimated_cost, row.currency)}
+                    {money(row.estimated_cost, row.currency)}
                   </TableCell>
                   <TableCell className="text-right font-mono">
-                    {formatMoney(row.documented_cost, row.currency)}
+                    {money(row.documented_cost, row.currency)}
                   </TableCell>
                   <TableCell className="text-right font-mono">
-                    {formatMoney(row.variance, row.currency)}
+                    {money(row.variance, row.currency)}
                   </TableCell>
                   <TableCell className="text-right font-mono">{row.order_count}</TableCell>
                 </TableRow>
@@ -307,7 +326,7 @@ export function CostComparisonChart({ rows }: { rows: readonly CostComparison[] 
       }
     >
       {rows.length === 0 ? (
-        <ChartEmpty title="No comparable orders" />
+        <ChartEmpty title={t("intNoComparable")} />
       ) : (
         <div className="space-y-5">
           {rows.map((row) => {
@@ -319,25 +338,38 @@ export function CostComparisonChart({ rows }: { rows: readonly CostComparison[] 
                 <div className="mb-2 flex items-baseline justify-between gap-3">
                   <p className="font-mono text-[10.5px] text-mist-400">{row.currency}</p>
                   <p className="text-[10.5px] text-mist-400">
-                    Variance{" "}
-                    <span className="font-mono text-mist-200">
-                      {formatMoney(row.variance, row.currency)}
-                    </span>{" "}
-                    · {row.order_count} order{row.order_count === 1 ? "" : "s"}
+                    {t("intVarianceLine", {
+                      amount: money(row.variance, row.currency),
+                      orders: t(row.order_count === 1 ? "intOrdersOne" : "intOrdersMany", {
+                        count: row.order_count,
+                      }),
+                    })}
                   </p>
                 </div>
                 <dl className="space-y-1.5">
                   {(
                     [
-                      ["Estimated", row.estimated_cost, estimated, SERIES.one.bar],
-                      ["Documented", row.documented_cost, documented, SERIES.two.bar],
+                      [
+                        t("intColEstimated"),
+                        row.estimated_cost,
+                        estimated,
+                        SERIES.one.bar,
+                        "intAriaEstimatedCost",
+                      ],
+                      [
+                        t("intColDocumented"),
+                        row.documented_cost,
+                        documented,
+                        SERIES.two.bar,
+                        "intAriaDocumentedCost",
+                      ],
                     ] as const
-                  ).map(([label, value, share, color]) => (
+                  ).map(([label, value, share, color, ariaKey]) => (
                     <div
                       key={label}
                       className="group relative grid grid-cols-[84px_1fr_auto] items-center gap-3 rounded outline-none focus-visible:ring-1 focus-visible:ring-accent-400"
                       tabIndex={0}
-                      aria-label={`${label} cost ${formatMoney(value, row.currency)}`}
+                      aria-label={t(ariaKey, { amount: money(value, row.currency) })}
                     >
                       <dt className="text-[10.5px] text-mist-500">{label}</dt>
                       <dd className="h-2 rounded-[3px] bg-white/[0.05]">
@@ -347,7 +379,7 @@ export function CostComparisonChart({ rows }: { rows: readonly CostComparison[] 
                         />
                       </dd>
                       <dd className="font-mono text-[10.5px] text-mist-200">
-                        {formatMoney(value, row.currency)}
+                        {money(value, row.currency)}
                       </dd>
                     </div>
                   ))}
@@ -363,19 +395,22 @@ export function CostComparisonChart({ rows }: { rows: readonly CostComparison[] 
 
 /** Order count per margin bucket (single series). */
 export function MarginDistributionChart({ buckets }: { buckets: readonly MarginBucket[] }) {
+  const { t } = useLocale();
+  const orderWord = (count: number): string =>
+    t(count === 1 ? "intOrdersOne" : "intOrdersMany", { count });
   const total = buckets.reduce((sum, bucket) => sum + bucket.count, 0);
   const maximum = Math.max(0, ...buckets.map((bucket) => bucket.count));
   return (
     <ChartPanel
-      title="Estimated margin distribution"
-      description="Orders per estimated gross-margin band. Orders without a complete estimate are not placed in a band."
+      title={t("intMarginTitle")}
+      description={t("intMarginDesc")}
       table={
         buckets.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Band</TableHead>
-                <TableHead className="text-right">Orders</TableHead>
+                <TableHead>{t("intColBand")}</TableHead>
+                <TableHead className="text-right">{t("intColOrders")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -391,7 +426,7 @@ export function MarginDistributionChart({ buckets }: { buckets: readonly MarginB
       }
     >
       {total === 0 ? (
-        <ChartEmpty title="No margin data" />
+        <ChartEmpty title={t("intNoMargin")} />
       ) : (
         <div className="flex h-32 items-end gap-3" role="list">
           {buckets.map((bucket, index) => (
@@ -399,14 +434,15 @@ export function MarginDistributionChart({ buckets }: { buckets: readonly MarginB
               key={bucket.key}
               role="listitem"
               tabIndex={0}
-              aria-label={`${bucket.label}: ${bucket.count} order${bucket.count === 1 ? "" : "s"}`}
+              aria-label={t("intAriaBand", {
+                label: bucket.label,
+                orders: orderWord(bucket.count),
+              })}
               className="group relative flex h-full min-w-8 flex-1 flex-col justify-end rounded outline-none focus-visible:ring-1 focus-visible:ring-accent-400"
             >
               <Tip align={tooltipAlign(index, buckets.length)}>
                 <span className="block text-mist-100">{bucket.label}</span>
-                <span className="block">
-                  {bucket.count} order{bucket.count === 1 ? "" : "s"}
-                </span>
+                <span className="block">{orderWord(bucket.count)}</span>
               </Tip>
               <p className="mb-1 text-center font-mono text-[10px] text-mist-300">{bucket.count}</p>
               <div className="flex flex-1 items-end justify-center">
@@ -434,7 +470,7 @@ export function RankedCountChart({
   description,
   items,
   emptyTitle,
-  columnLabel = "Count",
+  columnLabel,
 }: {
   title: string;
   description?: string;
@@ -442,6 +478,7 @@ export function RankedCountChart({
   emptyTitle: string;
   columnLabel?: string;
 }) {
+  const { t, locale } = useLocale();
   const ranked = [...items].sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
   const maximum = Math.max(0, ...ranked.map((item) => item.count));
   return (
@@ -453,14 +490,14 @@ export function RankedCountChart({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">{columnLabel}</TableHead>
+                <TableHead>{t("intColCategory")}</TableHead>
+                <TableHead className="text-right">{columnLabel ?? "#"}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {ranked.map((item) => (
                 <TableRow key={item.key}>
-                  <TableCell>{humanize(item.key)}</TableCell>
+                  <TableCell>{categoryWord(t, locale, item.key)}</TableCell>
                   <TableCell className="text-right font-mono">{item.count}</TableCell>
                 </TableRow>
               ))}
@@ -477,14 +514,14 @@ export function RankedCountChart({
             <li
               key={item.key}
               tabIndex={0}
-              aria-label={`${humanize(item.key)}: ${item.count}`}
+              aria-label={`${categoryWord(t, locale, item.key)}: ${item.count}`}
               className="group relative grid grid-cols-[minmax(0,1fr)_2fr_auto] items-center gap-3 rounded outline-none focus-visible:ring-1 focus-visible:ring-accent-400"
             >
               <span
                 className="line-clamp-2 text-[10.5px] leading-tight break-words text-mist-400"
-                title={humanize(item.key)}
+                title={categoryWord(t, locale, item.key)}
               >
-                {humanize(item.key)}
+                {categoryWord(t, locale, item.key)}
               </span>
               <span className="h-2 rounded-[3px] bg-white/[0.05]">
                 <span
@@ -513,6 +550,7 @@ export function CompletenessBar({
   description?: string;
   counts: readonly CompletenessCount[];
 }) {
+  const { t } = useLocale();
   const total = counts.reduce((sum, item) => sum + item.count, 0);
   return (
     <ChartPanel
@@ -523,14 +561,14 @@ export function CompletenessBar({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Orders</TableHead>
+                <TableHead>{t("intColStatus")}</TableHead>
+                <TableHead className="text-right">{t("intColOrders")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {counts.map((item) => (
                 <TableRow key={item.status}>
-                  <TableCell>{COMPLETENESS_LABELS[item.status]}</TableCell>
+                  <TableCell>{completenessWord(t, item.status)}</TableCell>
                   <TableCell className="text-right font-mono">{item.count}</TableCell>
                 </TableRow>
               ))}
@@ -540,7 +578,7 @@ export function CompletenessBar({
       }
     >
       {total === 0 ? (
-        <ChartEmpty title="No orders" />
+        <ChartEmpty title={t("intNoOrders")} />
       ) : (
         <div className="space-y-3">
           <div className="flex h-2.5 w-full gap-0.5 overflow-hidden rounded-[4px]" aria-hidden>
@@ -559,7 +597,7 @@ export function CompletenessBar({
             {counts.map((item) => (
               <li key={item.status} className="flex items-center gap-1.5 text-[10.5px]">
                 <span className={cn("size-2 rounded-[2px]", STATUS_BAR[item.status])} aria-hidden />
-                <span className="text-mist-400">{COMPLETENESS_LABELS[item.status]}</span>
+                <span className="text-mist-400">{completenessWord(t, item.status)}</span>
                 <span className="ml-auto font-mono text-mist-200">{item.count}</span>
               </li>
             ))}
