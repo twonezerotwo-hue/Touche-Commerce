@@ -17,7 +17,7 @@ typed catalogues with parity tests) is complete. Screen coverage is not.
 | Command Center (dashboard) | Greeting, KPI tiles, recent deals, pipeline and status cards, audit trail, platform health, execution strip; the deal status words (Draft/Open/Negotiation/Won/Lost/Cancelled) are translated wherever the badge appears | vitest, Playwright |
 | Deals | List with status filters and search, new-deal page and form, detail (figures, lines, history, conversion area), edit form, status transition panel; singular/plural counts | vitest (EN + TR), Playwright (Chromium + WebKit) |
 | Sales orders | Order list, order detail (accepted lines, fulfilment, shipments, trade documents, draft invoice preview, accepted commercial terms), cancel/confirm actions with the mandatory reason, the acceptance-and-conversion form; the 24 operations status codes, 14 document types, transport modes, fulfilment models and acceptance channels are shown as words | vitest (EN + TR), Playwright (Chromium + WebKit) |
-| Purchase orders, shipments and the document register (Stage 12F) | Purchase-order list and detail (items, history and evidence, procurement workflow: approve, record the send with channel and reference, supplier confirmation, cancel with reason, facts); shipment list, planner, detail (allocated quantities, timeline, logistics costs, references, milestone workflow, movement notes, cost and reference forms, shipping documents); the trade-document register (upload, draft invoice/packing-list preview, filters, verify/reject/archive). The upload and document-action components are shared with the sales-order page, which now also shows them in the reader's language. Words for shipment events, cost stages, reference types, linked-record kinds and tracking provenance are translated; the codes the API stores are not changed. Money, quantities, dates and file sizes follow the reader's language | vitest (EN + TR), Playwright (Chromium) |
+| Purchase orders, shipments and the document register (Stage 12F) | Purchase-order list and detail (items, history and evidence, procurement workflow: approve, record the send with channel and reference, supplier confirmation, cancel with reason, facts); shipment list, planner, detail (allocated quantities, timeline, logistics costs, references, milestone workflow, movement notes, cost and reference forms, shipping documents); the trade-document register (upload, draft invoice/packing-list preview, filters, verify/reject/archive). The upload and document-action components are shared with the sales-order page, which now also shows them in the reader's language. Words for shipment events, cost stages, reference types, linked-record kinds and tracking provenance are translated; the codes the API stores are not changed. Money, quantities, dates and file sizes follow the reader's language | vitest (EN + TR), Playwright (Chromium + WebKit) |
 | Sourcing and pricing (Stage 12E) | RFQ list, new RFQ, RFQ detail and lifecycle panel (prepare, send with channel and evidence, cancel with reason); supplier-quote list and detail and the quote-recording form; landed-cost scenario list and detail (stats, priced lines, cost components) and the pricing form; sales-quote list and detail, approval trail and workflow panel; FX snapshot list and form. Status words, cost types, bases and verification states are translated; the codes the API stores are not changed | vitest (EN + TR), Playwright (Chromium + WebKit) |
 
 Stored trade data (names, descriptions, notes, SKUs) is never translated. Words the API stores in
@@ -97,7 +97,7 @@ does not change between the server and a browser in another zone. Screens transl
 | Screens | 6 routes: `/purchase-orders`, `/purchase-orders/[id]`, `/shipments`, `/shipments/new`, `/shipments/[id]`, `/documents`; plus the shared upload and document-action components used on the sales-order page |
 | Catalogue | `lib/i18n/catalog/logistics.ts`, 222 keys per language, typed so a missing Turkish text does not compile. `messages.test.ts` now also fails if two catalogues declare the same key (a spread silently kept the last one: `dealCountOne` was declared twice, with identical text, and one copy is removed) |
 | Unit tests | `logistics-turkish.test.tsx` (every purchase-order, shipment, document-type, cost, reference and entity code has a word in both languages; purchase-order workflow, shipment milestones, cost form, planner and upload/verify components in Turkish; Turkish file sizes), `format.test.ts` (`unallocatedQuantity`). Frontend: 286 tests pass, lint, type check and Prettier clean |
-| Browser tests | `e2e/tests/logistics.spec.ts` (4 journeys on a converted order with a supplier-confirmed purchase order, a draft one, an in-transit shipment with an incurred freight cost, a container reference and an uploaded document: read every screen in Turkish and the same figures in English; plan a second shipment, record a cost, book it, upload and verify a document in Turkish; cancel a draft purchase order with a reason, and only the approver is offered approval; a read-only role) and `responsive.spec.ts` (the four new list/planner pages at phone width and at 375, 768, 1024 and 1440 px in Turkish, plus the first order, purchase-order and shipment detail page at phone width in both languages). **Chromium: full suite 50 passed, 5 live-integration specs skipped, 0 failed. WebKit was not run for this batch**: the sandbox could not download the pinned WebKit build (`cdn.playwright.dev` is blocked), so the WebKit result for 12F is unverified |
+| Browser tests | `e2e/tests/logistics.spec.ts` (4 journeys on a converted order with a supplier-confirmed purchase order, a draft one, an in-transit shipment with an incurred freight cost, a container reference and an uploaded document: read every screen in Turkish and the same figures in English; plan a second shipment, record a cost, book it, upload and verify a document in Turkish; cancel a draft purchase order with a reason, and only the approver is offered approval; a read-only role) and `responsive.spec.ts` (the four new list/planner pages at phone width and at 375, 768, 1024 and 1440 px in Turkish, plus the first order, purchase-order and shipment detail page at phone width in both languages). **Original run (2026-10-25, Chromium only): full suite 50 passed, 5 live-integration specs skipped, 0 failed. Re-run before merge (2026-11-09): `logistics` and `responsive` on Chromium and WebKit, 24 of 24 passed**, including the eight detail-page phone-width checks |
 | Financial figures | Purchase cost 100 kg x 1.60 = `160,00` and incurred freight `512,50` are asserted in Turkish, `512.50` in English; no calculation code was touched |
 
 ### Defects found while doing 12F
@@ -118,14 +118,31 @@ does not change between the server and a browser in another zone. Screens transl
    (only lists were), so this had gone unnoticed.
 4. The duplicate `dealCountOne` key noted above.
 
+### Gaps found in 12F and how they were closed
+
+The first version of this batch (2026-10-25) listed four open gaps. They were closed before merging:
+
+* **Detail pages that scrolled sideways on a phone.** The quotes, pricing, sales-quote, RFQ and deal
+  detail pages (measured at 375 px: 558, 756, 558 and 431 px) and the finance order, reconciliation
+  and intelligence detail grids used the same two-column pattern. They now start as `grid-cols-1`
+  with `minmax(0, ...)` columns from `lg`. The phone-width spec opens the first record of each of the
+  eight lists (orders, purchase orders, shipments, deals, RFQs, supplier quotes, pricing scenarios,
+  sales quotes) in both languages. The finance detail pages have the same one-line change but their
+  records need a live Finance service, so they are not opened by the spec.
+* **WebKit.** The sandbox that produced the first version could not download WebKit. On this PC the
+  `logistics` and `responsive` specs (24 runs: Chromium and WebKit) pass.
+* **Movement time default.** The "occurred at" field of the shipment movement-note form was filled
+  with the current UTC time but read back as local time, so the recorded instant was off by the
+  browser's UTC offset (three hours in Turkey). It now uses `toLocalInputValue()` (unit-tested);
+  sending still converts the local value to the UTC instant the API stores.
+* **`concurrency.spec.ts` "identical file".** The check read the product count once, right after
+  either page showed any outcome, so it could run before the winning import had committed. It now
+  waits (up to 20 s) for the final count and still requires exactly five records, so a real
+  double-failure (0) or duplicate (10) would still fail. The import code itself was read and has no
+  path that writes twice: the file hash is recorded in the same transaction as the rows.
+
 ### Known gaps after 12F
 
-* The detail pages of **quotes, pricing, sales quotes and deals** (Stages 12D/12E) have the same
-  two-column grid pattern and still scroll sideways on a phone (measured at 375 px: 558, 756, 558
-  and 431 px). The finance detail pages use the same pattern and have not been measured. Not changed
-  here; the fix is the same one-line grid change and the responsive spec has the loop to extend.
-* WebKit for 12F (see above), and the intermittent `concurrency.spec.ts` "identical file" failure
-  already recorded for 12E: it failed once in a full Chromium run here and passed twice alone and in
-  the final full run.
-* The "occurred at" field of the shipment movement-note form defaults to the current UTC time but is
-  read back as local time, so the default can be off by the browser's UTC offset. Not changed.
+* The finance detail pages are not opened by the phone-width spec (no live Finance service in the
+  acceptance stack); they get the same grid fix and are covered with the finance batch.
+* Five live-integration specs (Finance and E-YAY) stay skipped unless a live service is running.
