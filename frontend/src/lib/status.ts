@@ -6,6 +6,7 @@
  */
 
 import type { ApiResult, HealthReadiness } from "./api/client";
+import type { MessageKey } from "./i18n/messages";
 
 export type ProbeState = "operational" | "degraded" | "unreachable";
 
@@ -14,6 +15,17 @@ export const PROBE_STATE_LABEL: Record<ProbeState, string> = {
   degraded: "Degraded",
   unreachable: "Unreachable",
 };
+
+/** The state word in the reader's language (the English words above are unchanged). */
+export function probeStateLabel(t: (key: MessageKey) => string, state: ProbeState): string {
+  return t(
+    state === "operational"
+      ? "stOperational"
+      : state === "degraded"
+        ? "stDegraded"
+        : "stUnreachable",
+  );
+}
 
 export const PROBE_STATE_BADGE: Record<ProbeState, "success" | "warning" | "danger"> = {
   operational: "success",
@@ -26,6 +38,9 @@ export const PROBE_STATE_DOT: Record<ProbeState, string> = {
   degraded: "bg-amber-400",
   unreachable: "bg-crimson-400",
 };
+
+/** Written by this app, not the API, so the status page can show it in the reader's language. */
+export const NO_DATABASE_CHECK_DETAIL = "The readiness response contained no database check.";
 
 export interface DatabaseSummary {
   state: ProbeState;
@@ -64,7 +79,7 @@ export function summariseDatabase(result: ApiResult<HealthReadiness>): DatabaseS
     if (!check) {
       return {
         state: "degraded",
-        detail: "The readiness response contained no database check.",
+        detail: NO_DATABASE_CHECK_DETAIL,
         server: null,
         role: null,
         latencyMs: null,

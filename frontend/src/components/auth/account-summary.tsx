@@ -1,17 +1,15 @@
+"use client";
+
 import { KeyRound, MapPin, ShieldCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import type { AuthSession } from "@/lib/auth/types";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { recordStatusLabel, roleLabel } from "@/lib/i18n/value-labels";
 import { formatUtcTimestamp } from "@/lib/status";
 
-const ROLE_LABEL: Record<string, string> = {
-  viewer: "Viewer",
-  trader: "Trader",
-  approver: "Approver",
-  admin: "Administrator",
-};
-
 export function AccountSummary({ session }: { session: AuthSession }) {
+  const { t, locale } = useLocale();
   const { user } = session;
   const view = session.session;
   const company = view.company;
@@ -19,22 +17,25 @@ export function AccountSummary({ session }: { session: AuthSession }) {
   return (
     <div className="space-y-5">
       <dl className="grid gap-4 sm:grid-cols-2">
-        <Detail label="Name" value={user.display_name} />
-        <Detail label="Email" value={user.email} mono />
-        <Detail label="Account status" value={user.status} />
+        <Detail label={t("sumName")} value={user.display_name} />
+        <Detail label={t("sumEmail")} value={user.email} mono />
         <Detail
-          label="Role in active company"
-          value={company ? (ROLE_LABEL[company.role] ?? company.role) : "No active company"}
+          label={t("sumStatus")}
+          value={locale === "tr" ? recordStatusLabel(t, user.status) : user.status}
         />
         <Detail
-          label="Active company"
-          value={company ? `${company.name} · ${company.country}` : "Not selected"}
+          label={t("sumRole")}
+          value={company ? roleLabel(t, company.role) : t("sumNoCompany")}
         />
-        <Detail label="Session started" value={formatUtcTimestamp(view.created_at)} />
-        <Detail label="Last activity" value={formatUtcTimestamp(view.last_activity_at)} />
-        <Detail label="Expires (absolute)" value={formatUtcTimestamp(view.expires_at)} />
-        <Detail label="Expires (idle)" value={formatUtcTimestamp(view.idle_expires_at)} />
-        <Detail label="Session id" value={view.session_id} mono />
+        <Detail
+          label={t("sumActiveCompany")}
+          value={company ? `${company.name} · ${company.country}` : t("sumNotSelected")}
+        />
+        <Detail label={t("sumStarted")} value={formatUtcTimestamp(view.created_at)} />
+        <Detail label={t("sumLastActivity")} value={formatUtcTimestamp(view.last_activity_at)} />
+        <Detail label={t("sumExpiresAbsolute")} value={formatUtcTimestamp(view.expires_at)} />
+        <Detail label={t("sumExpiresIdle")} value={formatUtcTimestamp(view.idle_expires_at)} />
+        <Detail label={t("sumSessionId")} value={view.session_id} mono />
       </dl>
 
       <div className="rule" />
@@ -42,7 +43,7 @@ export function AccountSummary({ session }: { session: AuthSession }) {
       <div className="space-y-2">
         <p className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.16em] text-mist-600">
           <ShieldCheck className="size-3.5 text-accent-400" aria-hidden />
-          Permissions granted by this membership
+          {t("sumPermissions")}
         </p>
         {company && company.permissions.length > 0 ? (
           <ul className="flex flex-wrap gap-1.5">
@@ -56,9 +57,7 @@ export function AccountSummary({ session }: { session: AuthSession }) {
             ))}
           </ul>
         ) : (
-          <p className="text-[12px] text-mist-500">
-            No permissions apply until a company is selected.
-          </p>
+          <p className="text-[12px] text-mist-500">{t("sumNoPermissions")}</p>
         )}
       </div>
 
@@ -68,8 +67,10 @@ export function AccountSummary({ session }: { session: AuthSession }) {
           <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-mist-600">
             <MapPin className="mt-[2px] size-3.5 shrink-0" aria-hidden />
             <span>
-              Session origin: {view.ip_address ?? "unknown address"}
-              {view.user_agent ? ` · ${view.user_agent}` : ""}
+              {t("sumOrigin", {
+                address: view.ip_address ?? t("sumUnknownAddress"),
+                agent: view.user_agent ? ` · ${view.user_agent}` : "",
+              })}
             </span>
           </p>
         </>

@@ -1,19 +1,22 @@
 import type { Metadata } from "next";
 
 import { LocaleProvider } from "@/lib/i18n/locale-provider";
-import { getServerLocale } from "@/lib/i18n/server";
+import { getServerLocale, getServerT } from "@/lib/i18n/server";
 
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: {
-    default: "TOUCHE COMMERCE — Command Center",
-    template: "%s · TOUCHE COMMERCE",
-  },
-  description: "Independent, premium international trade management.",
-  applicationName: "TOUCHE COMMERCE",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getServerT();
+  return {
+    title: {
+      default: t("metaDefaultTitle"),
+      template: "%s · TOUCHE COMMERCE",
+    },
+    description: t("metaDescription"),
+    applicationName: "TOUCHE COMMERCE",
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // The language is a cookie, so the very first byte is already in the chosen language.

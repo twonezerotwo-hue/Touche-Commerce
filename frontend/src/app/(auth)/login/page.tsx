@@ -4,10 +4,10 @@ import { LoginForm } from "@/components/auth/login-form";
 import { Badge } from "@/components/ui/badge";
 import { resolveRoute } from "@/lib/auth/guard";
 import { loadSession } from "@/lib/auth/session";
-import { getServerT } from "@/lib/i18n/server";
+import { getServerT, titleFor } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Sign in" };
+export const generateMetadata = () => titleFor("loginTitle");
 
 export default async function LoginPage({
   searchParams,

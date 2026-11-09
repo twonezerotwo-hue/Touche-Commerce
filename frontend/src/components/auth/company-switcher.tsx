@@ -8,14 +8,9 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { switchCompany } from "@/lib/auth/client";
 import type { CompanyAccess } from "@/lib/auth/types";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { roleLabel } from "@/lib/i18n/value-labels";
 import { cn } from "@/lib/utils";
-
-const ROLE_LABEL: Record<string, string> = {
-  viewer: "Viewer",
-  trader: "Trader",
-  approver: "Approver",
-  admin: "Administrator",
-};
 
 export function CompanySwitcher({
   companies,
@@ -30,6 +25,7 @@ export function CompanySwitcher({
   onSelected?: () => void;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,8 +47,8 @@ export function CompanySwitcher({
 
   if (companies.length === 0) {
     return (
-      <Alert variant="warning" title="No company access">
-        Your account has no active company membership. Ask an administrator to grant access.
+      <Alert variant="warning" title={t("swNoAccessTitle")}>
+        {t("swNoAccessBody")}
       </Alert>
     );
   }
@@ -96,18 +92,17 @@ export function CompanySwitcher({
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[13.5px] text-mist-100">{company.name}</span>
                   <span className="mt-0.5 block text-[11px] text-mist-600">
-                    {company.country} · {company.default_currency} ·{" "}
-                    {ROLE_LABEL[company.role] ?? company.role}
+                    {company.country} · {company.default_currency} · {roleLabel(t, company.role)}
                   </span>
                 </span>
                 {isActive ? (
                   <Badge variant="default">
                     <Check className="size-3" aria-hidden />
-                    Current
+                    {t("swCurrent")}
                   </Badge>
                 ) : (
                   <span className="text-[10px] uppercase tracking-[0.14em] text-mist-600">
-                    {isPending ? "Switching" : "Select"}
+                    {isPending ? t("swSwitching") : t("swSelect")}
                   </span>
                 )}
               </button>

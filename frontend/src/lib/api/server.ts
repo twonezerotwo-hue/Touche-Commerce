@@ -9,11 +9,15 @@
 
 import { cookies } from "next/headers";
 
+import { translate } from "@/lib/i18n/messages";
+import { getServerLocale } from "@/lib/i18n/server";
+
 import { API_BASE_URL, API_PREFIX, API_REQUEST_TIMEOUT_MS } from "@/lib/api/config";
 import { parseErrorEnvelope, type ApiResult } from "@/lib/api/client";
 
 export async function serverGet<T>(path: string): Promise<ApiResult<T>> {
   const cookieHeader = (await cookies()).toString();
+  const locale = await getServerLocale();
   const startedAt = Date.now();
 
   try {
@@ -32,7 +36,7 @@ export async function serverGet<T>(path: string): Promise<ApiResult<T>> {
         ok: false,
         status: response.status,
         code: envelope?.error.code ?? `HTTP_${response.status}`,
-        message: envelope?.error.message ?? "The API returned an unexpected error response.",
+        message: envelope?.error.message ?? translate(locale, "failUnexpected"),
         requestId: envelope?.error.request_id ?? requestId,
         details: envelope?.error.details ?? null,
         latencyMs,
@@ -44,7 +48,7 @@ export async function serverGet<T>(path: string): Promise<ApiResult<T>> {
         ok: false,
         status: response.status,
         code: "INVALID_RESPONSE",
-        message: "The API responded with a body that is not valid JSON.",
+        message: translate(locale, "failBadJson"),
         requestId,
         details: null,
         latencyMs,
@@ -57,7 +61,7 @@ export async function serverGet<T>(path: string): Promise<ApiResult<T>> {
       ok: false,
       status: null,
       code: "UNREACHABLE",
-      message: `Cannot reach the API at ${API_BASE_URL}. Confirm FastAPI is running.`,
+      message: translate(locale, "failUnreachableAt", { url: API_BASE_URL }),
       requestId: null,
       details: null,
       latencyMs: Date.now() - startedAt,

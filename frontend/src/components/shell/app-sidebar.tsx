@@ -3,6 +3,8 @@
 import Link from "next/link";
 
 import { Avatar } from "@/components/ui/avatar";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { roleLabel } from "@/lib/i18n/value-labels";
 import { NAV_GROUPS } from "@/lib/navigation";
 
 import { SidebarNav } from "./sidebar-nav";
@@ -17,17 +19,14 @@ export interface AppSidebarProps {
 }
 
 export function AppSidebar({ identity }: AppSidebarProps) {
+  const { t, locale } = useLocale();
   const available = NAV_GROUPS.filter((group) => group.items.some((item) => item.href));
   const roadmap = NAV_GROUPS.filter((group) => group.items.every((item) => !item.href));
 
   return (
     <aside className="relative z-20 hidden w-[252px] shrink-0 border-r border-white/[0.06] bg-ink-900/60 backdrop-blur-xl lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
       <div className="px-5 pt-6 pb-5">
-        <Link
-          href="/"
-          className="group flex items-center gap-3"
-          aria-label="TOUCHE COMMERCE — home"
-        >
+        <Link href="/" className="group flex items-center gap-3" aria-label={t("shellHomeAria")}>
           <span className="relative flex size-9 items-center justify-center rounded-lg border border-accent-400/35 bg-gradient-to-b from-accent-400/20 to-accent-500/5 font-display text-[15px] text-accent-100 shadow-[0_10px_24px_-16px_rgb(47_127_232/0.9)]">
             T
             <span className="absolute -right-px -bottom-px size-1.5 rounded-full bg-accent-400 shadow-[0_0_10px_2px_rgb(90_162_255/0.35)]" />
@@ -45,7 +44,10 @@ export function AppSidebar({ identity }: AppSidebarProps) {
 
       <div className="hairline mx-5" />
 
-      <nav aria-label="Primary" className="flex-1 overflow-y-auto px-3 py-5 [scrollbar-width:thin]">
+      <nav
+        aria-label={t("shellPrimaryAria")}
+        className="flex-1 overflow-y-auto px-3 py-5 [scrollbar-width:thin]"
+      >
         {available.map((group) => (
           <SidebarNav key={group.label} group={group} />
         ))}
@@ -74,7 +76,11 @@ export function AppSidebar({ identity }: AppSidebarProps) {
         </Link>
         <div className="mt-3 flex items-center justify-between px-1.5">
           <span className="text-[9px] uppercase tracking-[0.18em] text-mist-600">
-            {identity.role ? identity.role.replace(/_/g, " ") : "No membership"}
+            {identity.role
+              ? locale === "tr"
+                ? roleLabel(t, identity.role)
+                : identity.role.replace(/_/g, " ")
+              : t("shellNoMembership")}
           </span>
           <span className="rounded-full border border-white/10 px-1.5 py-px text-[8.5px] tracking-[0.12em] text-mist-500">
             S2

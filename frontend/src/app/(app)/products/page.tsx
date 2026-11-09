@@ -19,13 +19,13 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
-import { getServerT } from "@/lib/i18n/server";
+import { getServerT, titleForNav } from "@/lib/i18n/server";
 import { recordStatusLabel } from "@/lib/i18n/value-labels";
 import { formatMoney, formatTimestamp, withQuery } from "@/lib/trade/format";
 import type { ProductList } from "@/lib/trade/types";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Products" };
+export const generateMetadata = () => titleForNav("Products");
 
 const PAGE_SIZE = 25;
 
@@ -36,7 +36,7 @@ export default async function ProductsPage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
-  const { t } = await getServerT();
+  const { t, locale } = await getServerT();
 
   const params = await searchParams;
   const canWrite = state.session.session.company?.permissions.includes("trade.write") ?? false;
@@ -167,7 +167,7 @@ export default async function ProductsPage({
                   </TableCell>
                   <TableCell className="text-right whitespace-nowrap">
                     <span className="data-value text-[12px] text-mist-200">
-                      {formatMoney(product.unit_price, product.currency)}
+                      {formatMoney(product.unit_price, product.currency, locale)}
                     </span>
                   </TableCell>
                   <TableCell className="font-mono text-[10.5px] text-mist-600">
@@ -179,7 +179,7 @@ export default async function ProductsPage({
                     </Badge>
                   </TableCell>
                   <TableCell className="pr-4 text-right font-mono text-[10.5px] whitespace-nowrap text-mist-600">
-                    {formatTimestamp(product.updated_at)}
+                    {formatTimestamp(product.updated_at, locale)}
                   </TableCell>
                 </TableRow>
               ))}

@@ -12,6 +12,8 @@
 import type { NextRequest } from "next/server";
 
 import { API_PROXY_TARGET } from "@/lib/api/config";
+import { translate } from "@/lib/i18n/messages";
+import { localeFromCookieHeader } from "@/lib/i18n/runtime";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -70,7 +72,10 @@ async function proxy(
       {
         error: {
           code: "UPSTREAM_UNAVAILABLE",
-          message: "The TOUCHE COMMERCE API is not reachable.",
+          message: translate(
+            localeFromCookieHeader(request.headers.get("cookie")),
+            "failProxyDown",
+          ),
           request_id: null,
           timestamp: new Date().toISOString(),
           details: null,

@@ -11,6 +11,8 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 
 import { API_BASE_URL, API_PREFIX, API_REQUEST_TIMEOUT_MS } from "@/lib/api/config";
+import { translate } from "@/lib/i18n/messages";
+import { getServerLocale } from "@/lib/i18n/server";
 
 import type { AuthSession, SessionState } from "./types";
 
@@ -19,6 +21,7 @@ const SESSION_COOKIE_MARKER = "touche_session";
 export const loadSession = cache(async (): Promise<SessionState> => {
   const cookieStore = await cookies();
   const cookieHeader = cookieStore.toString();
+  const locale = await getServerLocale();
   if (!cookieHeader.includes(SESSION_COOKIE_MARKER)) {
     return { status: "anonymous" };
   }
@@ -36,14 +39,14 @@ export const loadSession = cache(async (): Promise<SessionState> => {
     if (!response.ok) {
       return {
         status: "unavailable",
-        message: `The API answered HTTP ${response.status} while checking the session.`,
+        message: translate(locale, "failSessionHttp", { status: response.status }),
       };
     }
     return { status: "authenticated", session: (await response.json()) as AuthSession };
   } catch {
     return {
       status: "unavailable",
-      message: `Cannot reach the API at ${API_BASE_URL}. Confirm FastAPI is running.`,
+      message: translate(locale, "failUnreachableAt", { url: API_BASE_URL }),
     };
   }
 });

@@ -17,13 +17,13 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
-import { getServerT } from "@/lib/i18n/server";
+import { getServerT, titleForNav } from "@/lib/i18n/server";
 import { fulfilmentModelText, operationsStatusText } from "@/lib/i18n/value-labels";
 import { SALES_ORDER_STATUSES, type SalesOrderList } from "@/lib/operations/types";
 import { formatMoney, formatTimestamp, withQuery } from "@/lib/trade/format";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Sales orders" };
+export const generateMetadata = () => titleForNav("Sales orders");
 
 const PAGE_SIZE = 25;
 
@@ -34,7 +34,7 @@ export default async function OrdersPage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
-  const { t } = await getServerT();
+  const { t, locale } = await getServerT();
 
   const params = await searchParams;
   const query = new URLSearchParams({ limit: String(PAGE_SIZE) });
@@ -144,13 +144,13 @@ export default async function OrdersPage({
                     <OperationsStatusBadge status={order.status} />
                   </TableCell>
                   <TableCell className="text-right whitespace-nowrap text-[12px] text-mist-200">
-                    {formatMoney(order.order_total, order.currency)}
+                    {formatMoney(order.order_total, order.currency, locale)}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-[11px] text-mist-400">
                     {order.expected_delivery_date ?? "—"}
                   </TableCell>
                   <TableCell className="pr-4 text-right font-mono text-[10.5px] whitespace-nowrap text-mist-600">
-                    {formatTimestamp(order.updated_at)}
+                    {formatTimestamp(order.updated_at, locale)}
                   </TableCell>
                 </TableRow>
               ))}

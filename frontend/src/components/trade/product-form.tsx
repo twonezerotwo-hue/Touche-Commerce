@@ -131,7 +131,7 @@ export function ProductForm({ csrfToken, canWrite }: { csrfToken: string; canWri
             id="product-name"
             value={values.name}
             onChange={(event) => update("name", event.target.value)}
-            placeholder="Aluminium ingot A7"
+            placeholder={t("productNamePlaceholder")}
             maxLength={160}
             required
           />

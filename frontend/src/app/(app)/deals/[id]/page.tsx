@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import type { Locale } from "@/lib/i18n/messages";
 import { getServerT, type ServerTranslator } from "@/lib/i18n/server";
 import { dealStatusLabel } from "@/lib/i18n/value-labels";
 import type {
@@ -37,7 +38,7 @@ export const dynamic = "force-dynamic";
 export default async function DealDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
-  const { t } = await getServerT();
+  const { t, locale } = await getServerT();
 
   const { id } = await params;
   const result = await serverGet<Deal>(`/deals/${id}`);
@@ -92,8 +93,10 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
         description={
           <>
             {deal.counterparty_name} ·{" "}
-            {t("dealExpectedCloseInline", { date: formatDate(deal.expected_close_date) })} ·{" "}
-            <span className="data-value">{formatMoney(deal.total_value, deal.currency)}</span>
+            {t("dealExpectedCloseInline", { date: formatDate(deal.expected_close_date, locale) })} ·{" "}
+            <span className="data-value">
+              {formatMoney(deal.total_value, deal.currency, locale)}
+            </span>
           </>
         }
         actions={
@@ -109,7 +112,7 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat
           label={t("dealStatValue")}
-          value={formatMoney(deal.total_value, deal.currency)}
+          value={formatMoney(deal.total_value, deal.currency, locale)}
           detail={
             deal.items.length === 1
               ? t("dealComputedOne")
@@ -131,8 +134,8 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
         />
         <Stat
           label={t("dealsColCreated")}
-          value={formatDate(deal.created_at)}
-          detail={formatTimestamp(deal.created_at)}
+          value={formatDate(deal.created_at, locale)}
+          detail={formatTimestamp(deal.created_at, locale)}
           tone="neutral"
         />
       </section>
@@ -209,14 +212,14 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
                       </span>
                     </TableCell>
                     <TableCell className="text-right text-[12px] whitespace-nowrap">
-                      {formatQuantity(item.quantity, item.unit)}
+                      {formatQuantity(item.quantity, item.unit, locale)}
                     </TableCell>
                     <TableCell className="text-right text-[12px] whitespace-nowrap">
-                      {formatMoney(item.unit_price, deal.currency)}
+                      {formatMoney(item.unit_price, deal.currency, locale)}
                     </TableCell>
                     <TableCell className="pr-5 text-right whitespace-nowrap">
                       <span className="data-value text-[12px] text-mist-100">
-                        {formatMoney(item.line_total, deal.currency)}
+                        {formatMoney(item.line_total, deal.currency, locale)}
                       </span>
                     </TableCell>
                   </TableRow>
@@ -228,7 +231,7 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
                 {t("dealTotalValue")}
               </span>
               <span className="data-value text-[14px] text-mist-100">
-                {formatMoney(deal.total_value, deal.currency)}
+                {formatMoney(deal.total_value, deal.currency, locale)}
               </span>
             </div>
           </div>
@@ -242,7 +245,7 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
             </div>
           ) : null}
 
-          <HistoryPanel deal={deal} t={t} />
+          <HistoryPanel deal={deal} t={t} locale={locale} />
         </div>
 
         <aside className="space-y-4 self-start xl:sticky xl:top-20">
@@ -274,7 +277,15 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
   );
 }
 
-function HistoryPanel({ deal, t }: { deal: Deal; t: ServerTranslator["t"] }) {
+function HistoryPanel({
+  deal,
+  t,
+  locale,
+}: {
+  deal: Deal;
+  t: ServerTranslator["t"];
+  locale: Locale;
+}) {
   return (
     <div className="panel overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4.5 pb-3">
@@ -328,7 +339,7 @@ function HistoryPanel({ deal, t }: { deal: Deal; t: ServerTranslator["t"] }) {
                   </p>
                 ) : null}
                 <p className="mt-0.5 font-mono text-[10px] text-mist-600">
-                  v{transition.version_after} · {formatTimestamp(transition.occurred_at)}
+                  v{transition.version_after} · {formatTimestamp(transition.occurred_at, locale)}
                 </p>
               </div>
             </li>

@@ -98,7 +98,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             <span className="font-mono text-[10px] text-mist-600">v{order.version}</span>
           </div>
         }
-        title={`${order.order_number} · ${formatMoney(order.order_total, order.currency)}`}
+        title={`${order.order_number} · ${formatMoney(order.order_total, order.currency, locale)}`}
         description={t("ordDetailDescription", {
           customer: order.customer_name,
           quote: order.quote_number,
@@ -148,13 +148,13 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                         {line.description}
                       </TableCell>
                       <TableCell className="text-right text-[12px] whitespace-nowrap text-mist-200">
-                        {formatQuantity(line.quantity, line.unit)}
+                        {formatQuantity(line.quantity, line.unit, locale)}
                       </TableCell>
                       <TableCell className="text-right text-[12px] whitespace-nowrap text-mist-300">
-                        {formatMoney(line.unit_price, order.currency)}
+                        {formatMoney(line.unit_price, order.currency, locale)}
                       </TableCell>
                       <TableCell className="text-right text-[12px] whitespace-nowrap text-mist-100">
-                        {formatMoney(line.line_total, order.currency)}
+                        {formatMoney(line.line_total, order.currency, locale)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -368,14 +368,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <div className="flex items-baseline justify-between gap-3">
                   <dt className="eyebrow">{t("ordConfirmed")}</dt>
                   <dd className="text-right text-mist-300">
-                    {formatTimestamp(order.confirmed_at)}
+                    {formatTimestamp(order.confirmed_at, locale)}
                   </dd>
                 </div>
                 {order.cancelled_at ? (
                   <div className="flex items-baseline justify-between gap-3">
                     <dt className="eyebrow">{t("ordCancelled")}</dt>
                     <dd className="text-right text-crimson-400">
-                      {formatTimestamp(order.cancelled_at)}
+                      {formatTimestamp(order.cancelled_at, locale)}
                     </dd>
                   </div>
                 ) : null}
@@ -411,7 +411,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     <div className="flex justify-between gap-3">
                       <dt className="eyebrow">{t("ordColTotal")}</dt>
                       <dd className="text-mist-100">
-                        {formatMoney(preview.data.header.order_total, preview.data.header.currency)}
+                        {formatMoney(
+                          preview.data.header.order_total,
+                          preview.data.header.currency,
+                          locale,
+                        )}
                       </dd>
                     </div>
                   </dl>
@@ -447,7 +451,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     </span>
                   </div>
                   <p className="text-[10px] text-mist-500">
-                    {formatTimestamp(transition.occurred_at)}
+                    {formatTimestamp(transition.occurred_at, locale)}
                     {transition.reason ? ` · ${transition.reason}` : ""}
                   </p>
                 </div>
@@ -459,7 +463,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 >
                   <p className="text-[11.5px] text-amber-300">{t("ordAmendment")}</p>
                   <p className="text-[10px] text-mist-400">
-                    {amendment.reason} · {formatTimestamp(amendment.created_at)}
+                    {amendment.reason} · {formatTimestamp(amendment.created_at, locale)}
                   </p>
                 </div>
               ))}

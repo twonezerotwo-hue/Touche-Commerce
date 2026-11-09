@@ -16,7 +16,7 @@ export interface SidebarNavProps {
 
 export function SidebarNav({ group, muted = false }: SidebarNavProps) {
   const pathname = usePathname();
-  const { locale } = useLocale();
+  const { t, locale } = useLocale();
   const activeHref = resolveActiveHref(pathname);
 
   return (
@@ -31,7 +31,10 @@ export function SidebarNav({ group, muted = false }: SidebarNavProps) {
               <li key={item.label}>
                 <div
                   aria-disabled="true"
-                  title={`${item.description} — planned for ${item.stage}`}
+                  title={t("navPlannedTip", {
+                    description: localizeNavigation(locale, item.description),
+                    stage: locale === "tr" ? item.stage.replace("Stage", "Aşama") : item.stage,
+                  })}
                   className="flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[12.5px] text-mist-600/85"
                 >
                   <Icon className="size-[15px] shrink-0 text-mist-600/60" aria-hidden />

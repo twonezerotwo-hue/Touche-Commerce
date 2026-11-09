@@ -7,6 +7,7 @@ import { Activity, Building2, ChevronRight, ShieldCheck } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { useLocale } from "@/lib/i18n/locale-provider";
 import { localizeNavigation } from "@/lib/i18n/navigation-labels";
+import { roleLabel } from "@/lib/i18n/value-labels";
 import { resolveWorkspaceContext } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +30,10 @@ export function TopBar({ identity }: TopBarProps) {
       <div className="flex h-14 items-center gap-3 px-4 lg:px-10">
         <MobileNav identity={identity} />
 
-        <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-2 lg:flex">
+        <nav
+          aria-label={t("shellBreadcrumbAria")}
+          className="hidden min-w-0 items-center gap-2 lg:flex"
+        >
           <span className="text-[11px] tracking-[0.02em] text-mist-600">{t("workspace")}</span>
           <ChevronRight className="size-3 text-mist-600/70" aria-hidden />
           <span className={cn("text-[11px]", page === section ? "text-mist-300" : "text-mist-500")}>
@@ -60,7 +64,7 @@ export function TopBar({ identity }: TopBarProps) {
               <span className="truncate">{identity.companyName}</span>
               {identity.role ? (
                 <span className="rounded-full bg-accent-400/10 px-1.5 py-px text-[9px] tracking-[0.08em] text-accent-300 uppercase">
-                  {identity.role.replace(/_/g, " ")}
+                  {locale === "tr" ? roleLabel(t, identity.role) : identity.role.replace(/_/g, " ")}
                 </span>
               ) : null}
             </span>

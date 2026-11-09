@@ -191,13 +191,13 @@ export const intelligenceEn = {
   expRequest: "request {id}",
 
   // Order profitability page
-  ordTitle: "Order profitability",
-  ordDescription:
+  intOrdTitle: "Order profitability",
+  intOrdDescription:
     "Every accepted order with its estimated, committed and documented position, per currency.",
   ordFilterOptionsUnavailable: "Filter options unavailable",
   ordTabAll: "All orders",
   ordTabVariance: "Cost variance",
-  ordUnavailable: "Order profitability unavailable",
+  intOrdUnavailable: "Order profitability unavailable",
   ordCalcLine: "calculation {version}",
   ordAsOfLine: "As of {date} · calculation {version}",
   ordVarianceTitle: "Variance needs two complete bases",
@@ -500,13 +500,13 @@ export const intelligenceTr: Record<keyof typeof intelligenceEn, string> = {
   expUnreachable: "API'ye ulaşılamıyor. Hizmetin çalıştığını doğrulayıp yeniden deneyin.",
   expRequest: "istek {id}",
 
-  ordTitle: "Sipariş kârlılığı",
-  ordDescription:
+  intOrdTitle: "Sipariş kârlılığı",
+  intOrdDescription:
     "Kabul edilen her sipariş; tahmini, taahhüt edilen ve belgelenen konumuyla, para birimi başına.",
   ordFilterOptionsUnavailable: "Süzgeç seçenekleri alınamadı",
   ordTabAll: "Tüm siparişler",
   ordTabVariance: "Maliyet farkı",
-  ordUnavailable: "Sipariş kârlılığı alınamadı",
+  intOrdUnavailable: "Sipariş kârlılığı alınamadı",
   ordCalcLine: "hesaplama {version}",
   ordAsOfLine: "{date} itibarıyla · hesaplama {version}",
   ordVarianceTitle: "Fark için iki eksiksiz esas gerekir",

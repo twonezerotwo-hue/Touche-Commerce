@@ -194,7 +194,7 @@ export function CounterpartyForm({
           value={values.notes}
           onChange={(event) => update("notes", event.target.value)}
           maxLength={2000}
-          placeholder="Payment terms, incoterms, history…"
+          placeholder={t("cpNotesPlaceholder")}
         />
       </div>
 

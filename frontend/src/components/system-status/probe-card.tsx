@@ -1,11 +1,9 @@
+"use client";
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardTitle } from "@/components/ui/card";
-import {
-  PROBE_STATE_BADGE,
-  PROBE_STATE_DOT,
-  PROBE_STATE_LABEL,
-  type ProbeState,
-} from "@/lib/status";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { PROBE_STATE_BADGE, PROBE_STATE_DOT, probeStateLabel, type ProbeState } from "@/lib/status";
 import { cn } from "@/lib/utils";
 
 export interface ProbeRow {
@@ -25,6 +23,7 @@ export interface ProbeCardProps {
 }
 
 export function ProbeCard({ eyebrow, title, state, value, rows, footer }: ProbeCardProps) {
+  const { t } = useLocale();
   return (
     <Card className="flex h-full flex-col" data-probe-state={state}>
       <div className="px-5 pt-4.5">
@@ -32,7 +31,7 @@ export function ProbeCard({ eyebrow, title, state, value, rows, footer }: ProbeC
           <span className="eyebrow">{eyebrow}</span>
           <Badge variant={PROBE_STATE_BADGE[state]}>
             <span className={cn("size-1.5 rounded-full", PROBE_STATE_DOT[state])} aria-hidden />
-            {PROBE_STATE_LABEL[state]}
+            {probeStateLabel(t, state)}
           </Badge>
         </div>
         <CardTitle className="mt-2.5">{title}</CardTitle>

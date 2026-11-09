@@ -15,6 +15,7 @@ import { acceptanceChannelText } from "@/lib/i18n/value-labels";
 import { convertDealToOrder, recordCustomerAcceptance } from "@/lib/operations/client";
 import { newIdempotencyKey } from "@/lib/sourcing/client";
 import type { CustomerAcceptance, SalesQuoteOption } from "@/lib/operations/types";
+import { formatTimestamp } from "@/lib/trade/format";
 
 const CHANNELS = ["SIGNED_QUOTE", "PURCHASE_ORDER", "EMAIL", "PORTAL", "OTHER"] as const;
 
@@ -33,8 +34,11 @@ export function defaultAcceptedAt(approvedAt: string | null | undefined, now = n
   const flooredNow = new Date(Math.floor(now.getTime() / 60_000) * 60_000);
   const approved = approvedAt ? new Date(approvedAt) : null;
   if (approved && !Number.isNaN(approved.getTime()) && approved > flooredNow) {
-    // The input has whole-second precision; round up so the value is not before the approval.
-    return toLocalInput(new Date(Math.ceil(approved.getTime() / 1000) * 1000), true);
+    // The input has whole-second precision. A JavaScript Date keeps milliseconds only, while the
+    // API's timestamp has microseconds, so an approval at exactly 10:30:15.000400 reads as
+    // 10:30:15.000 here: rounding *up* would return that same second, which is before the true
+    // approval. The next whole second is always after it.
+    return toLocalInput(new Date((Math.floor(approved.getTime() / 1000) + 1) * 1000), true);
   }
   return toLocalInput(flooredNow, false);
 }
@@ -214,9 +218,7 @@ export function OrderConversionPanel({
             name: existing.accepted_by_name,
             revision: existing.sales_quote_revision,
             channel: acceptanceChannelText(t, existing.channel),
-            date: new Date(existing.accepted_at).toLocaleString(
-              locale === "tr" ? "tr-TR" : "en-GB",
-            ),
+            date: formatTimestamp(existing.accepted_at, locale),
             reference: existing.evidence_reference,
           })}
         </Alert>

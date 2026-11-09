@@ -6,13 +6,14 @@ import { AppSidebar } from "@/components/shell/app-sidebar";
 import { TopBar } from "@/components/shell/top-bar";
 import { resolveRoute } from "@/lib/auth/guard";
 import { loadSession } from "@/lib/auth/session";
-import { PLATFORM_STAGE_LABEL } from "@/lib/navigation";
+import { getServerT } from "@/lib/i18n/server";
 
 // The session must be re-validated on every request; never prerender this shell.
 export const dynamic = "force-dynamic";
 
 export default async function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const state = await loadSession();
+  const { t } = await getServerT();
   const pathname = (await headers()).get("x-pathname") ?? "/";
   const decision = resolveRoute(state, pathname);
   if (decision.redirectTo) redirect(decision.redirectTo);
@@ -49,8 +50,8 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
         <main className="flex-1 px-4 py-7 sm:px-6 lg:px-10 lg:py-9">{children}</main>
         <footer className="border-t border-white/[0.06] px-4 py-4 sm:px-6 lg:px-10">
           <div className="mx-auto flex max-w-[1360px] flex-wrap items-center justify-between gap-2 text-[9.5px] tracking-[0.18em] text-mist-600 uppercase">
-            <span>TOUCHE COMMERCE · Internal trade platform</span>
-            <span>{PLATFORM_STAGE_LABEL}</span>
+            <span>TOUCHE COMMERCE · {t("internalPlatform")}</span>
+            <span>{t("shellStageLabel")}</span>
           </div>
         </footer>
       </div>

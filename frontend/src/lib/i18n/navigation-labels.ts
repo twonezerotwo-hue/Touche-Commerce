@@ -53,6 +53,7 @@ const turkishNavigation: Record<string, string> = {
   "Select company": "Şirket seç",
   Settings: "Ayarlar",
   "System status": "Sistem durumu",
+  "Company settings and administration": "Şirket ayarları ve yönetim",
 };
 
 /** Unknown identifiers are left untouched, never used as auth keys. */

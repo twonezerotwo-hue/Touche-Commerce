@@ -1,6 +1,7 @@
 "use client";
 
 import { parseErrorEnvelope } from "@/lib/api/client";
+import { browserT } from "@/lib/i18n/runtime";
 import { BROWSER_API_PREFIX } from "@/lib/api/config";
 import type { components } from "@/lib/api/schema";
 
@@ -44,7 +45,7 @@ export async function saveCompanyProfile(
     return {
       ok: false,
       code: envelope?.error.code ?? `HTTP_${response.status}`,
-      message: envelope?.error.message ?? "The request could not be completed.",
+      message: envelope?.error.message ?? browserT("failGeneric"),
       conflict: response.status === 409 || response.status === 428,
       fields,
     };
@@ -52,7 +53,7 @@ export async function saveCompanyProfile(
     return {
       ok: false,
       code: "UNREACHABLE",
-      message: "Cannot reach the API. Confirm the service is running and try again.",
+      message: browserT("failUnreachable"),
       conflict: false,
       fields: [],
     };

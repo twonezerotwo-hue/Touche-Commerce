@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { fetchContract, fetchLiveness, fetchReadiness } from "@/lib/api/client";
 import { API_URLS } from "@/lib/api/config";
+import { getServerT, titleFor } from "@/lib/i18n/server";
 import {
+  NO_DATABASE_CHECK_DETAIL,
   formatLatency,
   formatUtcTimestamp,
   stateFromResult,
@@ -17,7 +19,7 @@ import {
 } from "@/lib/status";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "System status" };
+export const generateMetadata = () => titleFor("stPageTitle");
 
 /**
  * Public, read-only infrastructure status.
@@ -26,51 +28,56 @@ export const metadata = { title: "System status" };
  * even when nobody can sign in. It exposes no session, company or user data.
  */
 export default async function PublicStatusPage() {
+  const { t, locale } = await getServerT();
   const [live, readiness, contract] = await Promise.all([
-    fetchLiveness(),
-    fetchReadiness(),
-    fetchContract(),
+    fetchLiveness(locale),
+    fetchReadiness(locale),
+    fetchContract(locale),
   ]);
 
   const database = summariseDatabase(readiness);
+  // A message the API wrote stays as received; the one sentence this app wrote is translated.
+  const databaseDetail =
+    database.detail === NO_DATABASE_CHECK_DETAIL ? t("stNoDbCheck") : database.detail;
+  const notReported = t("stNotReported");
   const issues: { title: string; detail: string }[] = [];
   if (!live.ok) {
     issues.push({
-      title: "API unreachable",
-      detail: `${live.message} Start it with scripts\\dev-backend.ps1 and listen on port 8000.`,
+      title: t("stApiDownTitle"),
+      detail: `${live.message} ${t("stApiDownHint")}`,
     });
   }
   if (live.ok && !readiness.ok) {
     issues.push({
-      title: "Database not ready",
-      detail: `${database.detail} Start PostgreSQL (scripts\\db\\start-local-postgres.ps1) and apply migrations (scripts\\migrate.ps1).`,
+      title: t("stDbDownTitle"),
+      detail: `${databaseDetail} ${t("stDbDownHint")}`,
     });
   }
   if (!contract.ok) {
     issues.push({
-      title: "OpenAPI contract unavailable",
-      detail: `${contract.message} Regenerate frontend types with scripts\\generate-api-types.ps1.`,
+      title: t("stContractDownTitle"),
+      detail: `${contract.message} ${t("stContractDownHint")}`,
     });
   }
 
   return (
     <div className="relative min-h-screen">
       <div className="hairline-grid pointer-events-none absolute inset-0 opacity-70" aria-hidden />
-      <div className="relative mx-auto max-w-[1180px] space-y-8 px-6 py-10">
+      <main className="relative mx-auto max-w-[1180px] space-y-8 px-6 py-10">
         <PageHeader
-          eyebrow="Platform"
+          eyebrow={t("stEyebrow")}
           meta={
             <Badge variant="outline">
               <ShieldCheck className="size-3 text-accent-300" aria-hidden />
-              Public · read only
+              {t("stBadge")}
             </Badge>
           }
-          title="System status"
-          description="Live connectivity between the web shell, the FastAPI service and PostgreSQL. This page requires no session and shows no user, company or business data."
+          title={t("stTitle")}
+          description={t("stDescription")}
           actions={
             <>
               <span className="hidden text-[10.5px] text-mist-600 sm:inline">
-                Rendered {formatUtcTimestamp(new Date().toISOString())}
+                {t("stRendered", { time: formatUtcTimestamp(new Date().toISOString()) })}
               </span>
               <RefreshButton />
             </>
@@ -87,67 +94,74 @@ export default async function PublicStatusPage() {
           </section>
         ) : null}
 
-        <section className="grid gap-4 lg:grid-cols-3">
+        <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <ProbeCard
-            eyebrow="Liveness"
-            title="FastAPI service"
+            eyebrow={t("stLivenessEyebrow")}
+            title={t("stLivenessTitle")}
             state={stateFromResult(live)}
             value={
               live.ok
-                ? `${live.data.service} v${live.data.version} answered HTTP ${live.status}.`
+                ? t("stLivenessAnswered", {
+                    service: live.data.service,
+                    version: live.data.version,
+                    status: live.status,
+                  })
                 : live.message
             }
             rows={[
-              { label: "Endpoint", value: "/api/v1/health/live" },
-              { label: "Request ID", value: live.requestId ?? "—", mono: true },
-              { label: "Latency", value: formatLatency(live.latencyMs) },
+              { label: t("stRowEndpoint"), value: "/api/v1/health/live" },
+              { label: t("stRowRequestId"), value: live.requestId ?? "—", mono: true },
+              { label: t("stRowLatency"), value: formatLatency(live.latencyMs) },
             ]}
-            footer="Liveness never touches PostgreSQL."
+            footer={t("stLivenessFooter")}
           />
           <ProbeCard
-            eyebrow="Readiness"
-            title="PostgreSQL"
+            eyebrow={t("stReadinessEyebrow")}
+            title={t("stReadinessTitle")}
             state={database.state}
-            value={database.detail}
+            value={databaseDetail}
             rows={[
-              { label: "Server", value: database.server ?? "not reported" },
-              { label: "Role", value: database.role ?? "not reported", mono: true },
-              { label: "Latency", value: formatLatency(database.latencyMs) },
+              { label: t("stRowServer"), value: database.server ?? notReported },
+              { label: t("stRowRole"), value: database.role ?? notReported, mono: true },
+              { label: t("stRowLatency"), value: formatLatency(database.latencyMs) },
             ]}
-            footer="Readiness uses the runtime role (no DDL, no BYPASSRLS)."
+            footer={t("stReadinessFooter")}
           />
           <ProbeCard
-            eyebrow="Contract"
-            title="Typed API contract"
+            eyebrow={t("stContractEyebrow")}
+            title={t("stContractTitle")}
             state={stateFromResult(contract)}
             value={
               contract.ok
-                ? `${contract.data.operationCount} operations published by ${
-                    contract.data.title ?? "the API"
-                  }.`
+                ? t("stContractPublished", {
+                    count: contract.data.operationCount,
+                    title: contract.data.title ?? t("stContractTheApi"),
+                  })
                 : contract.message
             }
             rows={[
-              { label: "Document", value: "/api/v1/openapi.json", mono: true },
-              { label: "Version", value: contract.ok ? (contract.data.version ?? "—") : "—" },
-              { label: "Latency", value: formatLatency(contract.latencyMs) },
+              { label: t("stRowDocument"), value: "/api/v1/openapi.json", mono: true },
+              {
+                label: t("stRowVersion"),
+                value: contract.ok ? (contract.data.version ?? "—") : "—",
+              },
+              { label: t("stRowLatency"), value: formatLatency(contract.latencyMs) },
             ]}
-            footer="Generated types are drift-checked in CI."
+            footer={t("stContractFooter")}
           />
         </section>
 
         <section className="panel overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
             <div>
-              <span className="eyebrow">Need to work?</span>
+              <span className="eyebrow">{t("stNeedTitle")}</span>
               <p className="mt-1.5 max-w-xl text-[12px] leading-relaxed text-mist-400">
-                The workspace — deals, documents and settlement — requires a signed-in session
-                scoped to a company membership.
+                {t("stNeedBody")}
               </p>
             </div>
             <Button asChild variant="outline" size="sm">
               <Link href="/login">
-                Sign in
+                {t("stSignIn")}
                 <ArrowRight className="size-3.5" aria-hidden />
               </Link>
             </Button>
@@ -157,18 +171,19 @@ export default async function PublicStatusPage() {
         <footer className="flex flex-wrap items-center gap-x-6 gap-y-2 pb-4 text-[11px] text-mist-600">
           <span className="inline-flex items-center gap-1.5">
             <Server className="size-3.5" aria-hidden />
-            API {API_URLS.base}
+            {t("stFooterApi", { url: API_URLS.base })}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Database className="size-3.5" aria-hidden />
-            PostgreSQL 17 · schema <span className="font-mono text-mist-500">touche</span>
+            PostgreSQL 17 · {t("stFooterSchema")}{" "}
+            <span className="font-mono text-mist-500">touche</span>
           </span>
           <span className="inline-flex items-center gap-1.5">
             <FileJson className="size-3.5" aria-hidden />
-            OpenAPI {API_URLS.openapi}
+            {t("stFooterOpenApi", { url: API_URLS.openapi })}
           </span>
         </footer>
-      </div>
+      </main>
     </div>
   );
 }

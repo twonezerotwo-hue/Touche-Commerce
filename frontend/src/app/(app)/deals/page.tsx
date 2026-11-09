@@ -18,14 +18,14 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
-import { getServerT } from "@/lib/i18n/server";
+import { getServerT, titleForNav } from "@/lib/i18n/server";
 import { dealStatusLabel } from "@/lib/i18n/value-labels";
 import { formatDate, formatMoney, formatTimestamp, withQuery } from "@/lib/trade/format";
 import { DEAL_STATUSES, type DealList } from "@/lib/trade/types";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Deals" };
+export const generateMetadata = () => titleForNav("Deals");
 
 const PAGE_SIZE = 25;
 
@@ -36,7 +36,7 @@ export default async function DealsPage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
-  const { t } = await getServerT();
+  const { t, locale } = await getServerT();
 
   const params = await searchParams;
   const canWrite = state.session.session.company?.permissions.includes("trade.write") ?? false;
@@ -205,7 +205,7 @@ export default async function DealsPage({
                         {overdue ? (
                           <CalendarClock className="size-3 text-amber-400" aria-hidden />
                         ) : null}
-                        {formatDate(deal.expected_close_date)}
+                        {formatDate(deal.expected_close_date, locale)}
                       </span>
                       {overdue ? (
                         <span className="mt-0.5 block text-[9.5px] tracking-[0.08em] text-amber-400 uppercase">
@@ -215,11 +215,11 @@ export default async function DealsPage({
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap">
                       <span className="data-value text-[12px] text-mist-200">
-                        {formatMoney(deal.total_value, deal.currency)}
+                        {formatMoney(deal.total_value, deal.currency, locale)}
                       </span>
                     </TableCell>
                     <TableCell className="pr-4 text-right font-mono text-[10.5px] whitespace-nowrap text-mist-600">
-                      {formatTimestamp(deal.created_at)}
+                      {formatTimestamp(deal.created_at, locale)}
                     </TableCell>
                     <TableCell className="pr-3 text-right">
                       <Link

@@ -8,6 +8,19 @@ const RECORD_STATUS: Record<string, MessageKey> = {
   inactive: "statusInactive",
 };
 
+const ROLE: Record<string, MessageKey> = {
+  viewer: "roleViewer",
+  trader: "roleTrader",
+  approver: "roleApprover",
+  admin: "roleAdmin",
+};
+
+/** A membership role ("trader") as a word; an unknown role is shown as stored. */
+export function roleLabel(t: TFn, role: string): string {
+  const key = ROLE[role];
+  return key ? t(key) : role;
+}
+
 const COUNTERPARTY_TYPE: Record<string, MessageKey> = {
   buyer: "typeBuyer",
   supplier: "typeSupplier",

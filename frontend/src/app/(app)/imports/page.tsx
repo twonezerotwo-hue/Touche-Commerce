@@ -4,17 +4,17 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
-import { getServerT } from "@/lib/i18n/server";
+import { getServerT, titleForNav } from "@/lib/i18n/server";
 import type { ImportBatchList } from "@/lib/imports/client";
 import { formatTimestamp } from "@/lib/trade/format";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Import" };
+export const generateMetadata = () => titleForNav("Import");
 
 export default async function ImportsPage() {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
-  const { t } = await getServerT();
+  const { t, locale } = await getServerT();
 
   const company = state.session.session.company;
   const canWrite = company?.permissions.includes("trade.write") ?? false;
@@ -69,7 +69,7 @@ export default async function ImportsPage() {
                       {batch.skipped_rows}
                     </td>
                     <td className="px-4 py-2.5 font-mono text-[11px] text-mist-400">
-                      {formatTimestamp(batch.created_at)}
+                      {formatTimestamp(batch.created_at, locale)}
                     </td>
                   </tr>
                 ))}

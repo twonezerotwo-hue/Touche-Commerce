@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
-import { getServerT } from "@/lib/i18n/server";
+import { getServerT, titleForNav } from "@/lib/i18n/server";
 import type { CounterpartyList, ProductList } from "@/lib/trade/types";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "New deal" };
+export const generateMetadata = () => titleForNav("New deal");
 
 export default async function NewDealPage() {
   const state = await loadSession();

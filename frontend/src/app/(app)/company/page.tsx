@@ -5,10 +5,10 @@ import { PageHeader } from "@/components/ui/page-header";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
 import type { CompanyProfile } from "@/lib/company/client";
-import { getServerT } from "@/lib/i18n/server";
+import { getServerT, titleForNav } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Company profile" };
+export const generateMetadata = () => titleForNav("Company profile");
 
 export default async function CompanyProfilePage() {
   const state = await loadSession();

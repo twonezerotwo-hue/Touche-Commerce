@@ -41,14 +41,15 @@ import {
 import { API_URLS } from "@/lib/api/config";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
-import { getServerT, type ServerTranslator } from "@/lib/i18n/server";
+import type { Locale } from "@/lib/i18n/messages";
+import { getServerT, type ServerTranslator, titleForNav } from "@/lib/i18n/server";
 import type { OperationsSummary } from "@/lib/operations/types";
 import { formatDate, formatMoney, formatTimestamp } from "@/lib/trade/format";
 import type { DashboardSummary } from "@/lib/trade/types";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Command Center" };
+export const generateMetadata = () => titleForNav("Command Center");
 
 type T = ServerTranslator["t"];
 
@@ -57,7 +58,7 @@ const OPEN_STATUSES = new Set(["DRAFT", "OPEN", "NEGOTIATION"]);
 export default async function CommandCenterPage() {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
-  const { t } = await getServerT();
+  const { t, locale } = await getServerT();
 
   const { user, session } = state.session;
   const company = session.company;
@@ -66,9 +67,9 @@ export default async function CommandCenterPage() {
   const [summary, operations, live, readiness, contract] = await Promise.all([
     serverGet<DashboardSummary>("/dashboard/summary"),
     serverGet<OperationsSummary>("/operations/summary"),
-    fetchLiveness(),
-    fetchReadiness(),
-    fetchContract(),
+    fetchLiveness(locale),
+    fetchReadiness(locale),
+    fetchContract(locale),
   ]);
 
   const issues: string[] = [];
@@ -89,7 +90,7 @@ export default async function CommandCenterPage() {
             </Badge>
             {summary.ok ? (
               <span className="font-mono text-[10px] text-mist-600">
-                {formatTimestamp(summary.data.generated_at)}
+                {formatTimestamp(summary.data.generated_at, locale)}
               </span>
             ) : null}
           </>
@@ -142,10 +143,10 @@ export default async function CommandCenterPage() {
           ) : null}
         </Alert>
       ) : (
-        <DashboardBody summary={summary.data} canWrite={canWrite} t={t} />
+        <DashboardBody summary={summary.data} canWrite={canWrite} t={t} locale={locale} />
       )}
 
-      <OperationsStrip operations={operations} t={t} />
+      <OperationsStrip operations={operations} t={t} locale={locale} />
 
       <PlatformHealth live={live} readiness={readiness} contract={contract} t={t} />
 
@@ -178,10 +179,12 @@ function DashboardBody({
   summary,
   canWrite,
   t,
+  locale,
 }: {
   summary: DashboardSummary;
   canWrite: boolean;
   t: T;
+  locale: Locale;
 }) {
   const openDealCount = summary.status_counts
     .filter((item) => OPEN_STATUSES.has(item.status))
@@ -206,7 +209,7 @@ function DashboardBody({
             !primaryPipeline
               ? "—"
               : summary.pipeline.length === 1
-                ? formatMoney(primaryPipeline.total_value, primaryPipeline.currency)
+                ? formatMoney(primaryPipeline.total_value, primaryPipeline.currency, locale)
                 : t("statCurrencies", { count: summary.pipeline.length })
           }
           detail={
@@ -324,11 +327,11 @@ function DashboardBody({
                         <DealStatusBadge status={deal.status} />
                       </TableCell>
                       <TableCell className="text-[11.5px] whitespace-nowrap text-mist-500">
-                        {formatDate(deal.expected_close_date)}
+                        {formatDate(deal.expected_close_date, locale)}
                       </TableCell>
                       <TableCell className="pr-5 text-right text-[12px] whitespace-nowrap text-mist-200">
                         <span className="data-value">
-                          {formatMoney(deal.total_value, deal.currency)}
+                          {formatMoney(deal.total_value, deal.currency, locale)}
                         </span>
                       </TableCell>
                     </TableRow>
@@ -340,17 +343,17 @@ function DashboardBody({
         </div>
 
         <div className="space-y-4">
-          <PipelineCard summary={summary} t={t} />
+          <PipelineCard summary={summary} t={t} locale={locale} />
           <StatusCard summary={summary} t={t} />
         </div>
       </section>
 
-      <ActivityCard summary={summary} t={t} />
+      <ActivityCard summary={summary} t={t} locale={locale} />
     </div>
   );
 }
 
-function PipelineCard({ summary, t }: { summary: DashboardSummary; t: T }) {
+function PipelineCard({ summary, t, locale }: { summary: DashboardSummary; t: T; locale: Locale }) {
   const totalDeals = summary.pipeline.reduce((total, item) => total + item.deal_count, 0);
 
   return (
@@ -378,7 +381,7 @@ function PipelineCard({ summary, t }: { summary: DashboardSummary; t: T }) {
                     {item.currency}
                   </span>
                   <span className="data-value text-[14px] text-mist-100">
-                    {formatMoney(item.total_value, item.currency)}
+                    {formatMoney(item.total_value, item.currency, locale)}
                   </span>
                 </div>
                 <Meter value={share} tone="accent" className="mt-2" />
@@ -448,7 +451,7 @@ function StatusCard({ summary, t }: { summary: DashboardSummary; t: T }) {
   );
 }
 
-function ActivityCard({ summary, t }: { summary: DashboardSummary; t: T }) {
+function ActivityCard({ summary, t, locale }: { summary: DashboardSummary; t: T; locale: Locale }) {
   return (
     <div className="panel overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4.5 pb-3">
@@ -487,7 +490,7 @@ function ActivityCard({ summary, t }: { summary: DashboardSummary; t: T }) {
               <div className="text-right">
                 <p className="text-[10.5px] text-mist-400">{outcomeLabel(t, entry.outcome)}</p>
                 <p className="data-value mt-0.5 font-mono text-[9.5px] text-mist-600">
-                  {formatTimestamp(entry.occurred_at)}
+                  {formatTimestamp(entry.occurred_at, locale)}
                 </p>
               </div>
             </li>
@@ -603,7 +606,15 @@ function HealthCell({
   );
 }
 
-function OperationsStrip({ operations, t }: { operations: ApiResult<OperationsSummary>; t: T }) {
+function OperationsStrip({
+  operations,
+  t,
+  locale,
+}: {
+  operations: ApiResult<OperationsSummary>;
+  t: T;
+  locale: Locale;
+}) {
   if (!operations.ok) {
     return (
       <Alert variant="warning" title={t("opsUnavailable")}>
@@ -632,7 +643,9 @@ function OperationsStrip({ operations, t }: { operations: ApiResult<OperationsSu
           <Link href="/documents" className="text-accent-200 hover:text-accent-100">
             {t("opsDocuments")}
           </Link>
-          <span className="font-mono text-mist-600">{formatTimestamp(data.generated_at)}</span>
+          <span className="font-mono text-mist-600">
+            {formatTimestamp(data.generated_at, locale)}
+          </span>
         </div>
       </div>
       <div className="hairline" />
@@ -642,7 +655,7 @@ function OperationsStrip({ operations, t }: { operations: ApiResult<OperationsSu
           value={data.orders_total}
           detail={
             primary
-              ? `${formatMoney(primary.total_value, primary.currency)}${data.order_value_by_currency.length > 1 ? ` ${t("opsMoreCurrencies", { count: data.order_value_by_currency.length - 1 })}` : ""}`
+              ? `${formatMoney(primary.total_value, primary.currency, locale)}${data.order_value_by_currency.length > 1 ? ` ${t("opsMoreCurrencies", { count: data.order_value_by_currency.length - 1 })}` : ""}`
               : t("opsNoOrders")
           }
           href="/orders"

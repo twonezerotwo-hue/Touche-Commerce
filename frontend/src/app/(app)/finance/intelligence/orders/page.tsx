@@ -23,7 +23,7 @@ import { getServerT, titleFor } from "@/lib/i18n/server";
 import { formatDate, withQuery } from "@/lib/trade/format";
 
 export const dynamic = "force-dynamic";
-export const generateMetadata = () => titleFor("ordTitle");
+export const generateMetadata = () => titleFor("intOrdTitle");
 
 const BASE = "/finance/intelligence/orders";
 const PAGE_SIZE = 25;
@@ -77,8 +77,8 @@ export default async function OrderProfitabilityPage({
             <Badge variant="outline">{t("intBadgeReadOnly")}</Badge>
           </div>
         }
-        title={t("ordTitle")}
-        description={t("ordDescription")}
+        title={t("intOrdTitle")}
+        description={t("intOrdDescription")}
         actions={
           <div className="flex flex-wrap gap-2">
             <Button asChild size="sm" variant="outline">
@@ -126,7 +126,7 @@ export default async function OrderProfitabilityPage({
       />
 
       {!listResult.ok ? (
-        <ApiErrorAlert title={t("ordUnavailable")} failure={listResult} />
+        <ApiErrorAlert title={t("intOrdUnavailable")} failure={listResult} />
       ) : (
         <>
           <div className="flex flex-wrap items-start justify-between gap-3">

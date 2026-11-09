@@ -7,6 +7,8 @@
  * backend answered.
  */
 
+import { translate, type Locale } from "@/lib/i18n/messages";
+
 import { API_BASE_URL, API_PREFIX, API_REQUEST_TIMEOUT_MS } from "./config";
 import type { components } from "./schema";
 
@@ -83,7 +85,7 @@ async function readJson(response: Response): Promise<unknown> {
   }
 }
 
-async function getJson<T>(path: string): Promise<ApiResult<T>> {
+async function getJson<T>(path: string, locale: Locale = "en"): Promise<ApiResult<T>> {
   const url = `${API_BASE_URL}${API_PREFIX}${path}`;
   const startedAt = Date.now();
   const controller = new AbortController();
@@ -105,7 +107,7 @@ async function getJson<T>(path: string): Promise<ApiResult<T>> {
         ok: false,
         status: response.status,
         code: envelope?.error.code ?? `HTTP_${response.status}`,
-        message: envelope?.error.message ?? "The API returned an unexpected error response.",
+        message: envelope?.error.message ?? translate(locale, "failUnexpected"),
         requestId: envelope?.error.request_id ?? headerRequestId,
         details: envelope?.error.details ?? null,
         latencyMs,
@@ -117,7 +119,7 @@ async function getJson<T>(path: string): Promise<ApiResult<T>> {
         ok: false,
         status: response.status,
         code: "INVALID_RESPONSE",
-        message: "The API responded with a body that is not valid JSON.",
+        message: translate(locale, "failBadJson"),
         requestId: headerRequestId,
         details: null,
         latencyMs,
@@ -139,8 +141,8 @@ async function getJson<T>(path: string): Promise<ApiResult<T>> {
       status: null,
       code: aborted ? "TIMEOUT" : "UNREACHABLE",
       message: aborted
-        ? `The API did not answer within ${API_REQUEST_TIMEOUT_MS} ms.`
-        : `Cannot reach the API at ${API_BASE_URL}. Confirm FastAPI is running.`,
+        ? translate(locale, "failTimeout", { ms: API_REQUEST_TIMEOUT_MS })
+        : translate(locale, "failUnreachableAt", { url: API_BASE_URL }),
       requestId: null,
       details: null,
       latencyMs,
@@ -151,18 +153,18 @@ async function getJson<T>(path: string): Promise<ApiResult<T>> {
 }
 
 /** GET /api/v1/health/live — process liveness (no database dependency). */
-export function fetchLiveness(): Promise<ApiResult<HealthLive>> {
-  return getJson<HealthLive>("/health/live");
+export function fetchLiveness(locale: Locale = "en"): Promise<ApiResult<HealthLive>> {
+  return getJson<HealthLive>("/health/live", locale);
 }
 
 /** GET /api/v1/health/ready — readiness incl. PostgreSQL probe. */
-export function fetchReadiness(): Promise<ApiResult<HealthReadiness>> {
-  return getJson<HealthReadiness>("/health/ready");
+export function fetchReadiness(locale: Locale = "en"): Promise<ApiResult<HealthReadiness>> {
+  return getJson<HealthReadiness>("/health/ready", locale);
 }
 
 /** GET /api/v1/openapi.json — proves the typed contract is being served. */
-export async function fetchContract(): Promise<ApiResult<OpenApiContract>> {
-  const result = await getJson<unknown>("/openapi.json");
+export async function fetchContract(locale: Locale = "en"): Promise<ApiResult<OpenApiContract>> {
+  const result = await getJson<unknown>("/openapi.json", locale);
   if (!result.ok) return result;
 
   const summary = summariseOpenApi(result.data);
@@ -171,7 +173,7 @@ export async function fetchContract(): Promise<ApiResult<OpenApiContract>> {
       ok: false,
       status: result.status,
       code: "INVALID_CONTRACT",
-      message: "The OpenAPI document could not be parsed.",
+      message: translate(locale, "failOpenApi"),
       requestId: result.requestId,
       details: null,
       latencyMs: result.latencyMs,

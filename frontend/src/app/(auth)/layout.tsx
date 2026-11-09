@@ -2,10 +2,10 @@ import Link from "next/link";
 import { Activity, ArrowRight, ShieldCheck } from "lucide-react";
 
 import { LocaleSwitcher } from "@/components/shell/locale-switcher";
-import { getServerT } from "@/lib/i18n/server";
+import { getServerT, titleFor } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/messages";
 
-export const metadata = { title: "Sign in" };
+export const generateMetadata = () => titleFor("loginTitle");
 
 const ASSURANCES: readonly MessageKey[] = [
   "authAssuranceSessions",
@@ -41,7 +41,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
           </div>
         </header>
 
-        <div className="grid flex-1 items-center gap-12 py-10 lg:grid-cols-[1.05fr_0.95fr]">
+        <main className="grid flex-1 items-center gap-12 py-10 lg:grid-cols-[1.05fr_0.95fr]">
           <section className="hidden max-w-md lg:block">
             <span className="eyebrow">{t("authHeroEyebrow")}</span>
             <h1 className="mt-3 font-display text-[34px] leading-[1.14] tracking-tight text-mist-100">
@@ -69,7 +69,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
           <section className="w-full max-w-md justify-self-center lg:justify-self-end">
             {children}
           </section>
-        </div>
+        </main>
 
         <footer className="flex flex-wrap items-center justify-between gap-2 text-[10px] tracking-[0.18em] text-mist-600 uppercase">
           <span>{t("authFooterPlatform")}</span>

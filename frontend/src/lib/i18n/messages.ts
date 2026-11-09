@@ -7,6 +7,7 @@
  * never translated: only interface text is.
  */
 
+import { accountEn, accountTr } from "./catalog/account";
 import { assistantEn, assistantTr } from "./catalog/assistant";
 import { authEn, authTr } from "./catalog/auth";
 import { commonEn, commonTr } from "./catalog/common";
@@ -71,6 +72,7 @@ const en = {
   ...financeEn,
   ...intelligenceEn,
   ...assistantEn,
+  ...accountEn,
 } as const;
 export type MessageKey = keyof typeof en;
 type Dictionary = Record<MessageKey, string>;
@@ -90,6 +92,7 @@ const tr: Dictionary = {
   ...financeTr,
   ...intelligenceTr,
   ...assistantTr,
+  ...accountTr,
 };
 
 const dictionaries: Record<Locale, Dictionary> = { en, tr };

@@ -19,13 +19,13 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
-import { getServerT } from "@/lib/i18n/server";
+import { getServerT, titleForNav } from "@/lib/i18n/server";
 import { counterpartyTypeLabel, recordStatusLabel } from "@/lib/i18n/value-labels";
 import { formatTimestamp, withQuery } from "@/lib/trade/format";
 import type { CounterpartyList } from "@/lib/trade/types";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "CRM" };
+export const generateMetadata = () => titleForNav("CRM");
 
 const PAGE_SIZE = 25;
 
@@ -36,7 +36,7 @@ export default async function CrmPage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
-  const { t } = await getServerT();
+  const { t, locale } = await getServerT();
 
   const params = await searchParams;
   const company = state.session.session.company;
@@ -177,7 +177,7 @@ export default async function CrmPage({
                     </Badge>
                   </TableCell>
                   <TableCell className="pr-4 text-right font-mono text-[10.5px] whitespace-nowrap text-mist-600">
-                    {formatTimestamp(counterparty.updated_at)}
+                    {formatTimestamp(counterparty.updated_at, locale)}
                   </TableCell>
                 </TableRow>
               ))}

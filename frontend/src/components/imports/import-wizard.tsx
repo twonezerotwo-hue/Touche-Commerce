@@ -151,7 +151,7 @@ export function ImportWizard({ csrfToken, canWrite }: { csrfToken: string; canWr
 
   return (
     <div className="space-y-4">
-      <ol className="flex flex-wrap gap-2" aria-label="Steps">
+      <ol className="flex flex-wrap gap-2" aria-label={t("importStepsAria")}>
         {steps.map((item, index) => (
           <li
             key={item.id}

@@ -44,7 +44,7 @@ export function DealForm({
   defaultCurrency: string;
 }) {
   const router = useRouter();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [title, setTitle] = useState("");
   const [counterpartyId, setCounterpartyId] = useState(counterparties[0]?.id ?? "");
   const [currency, setCurrency] = useState(defaultCurrency);
@@ -225,7 +225,9 @@ export function DealForm({
             <p className="text-[10px] uppercase tracking-[0.16em] text-mist-600">
               {t("dfDealValue")}
             </p>
-            <p className="font-display text-xl text-mist-100">{formatMoney(total, currency)}</p>
+            <p className="font-display text-xl text-mist-100">
+              {formatMoney(total, currency, locale)}
+            </p>
           </div>
         </div>
 
@@ -273,7 +275,7 @@ export function DealForm({
                 </div>
                 <div className="flex items-end justify-between gap-2 sm:flex-col sm:items-end">
                   <p className="text-[12px] text-mist-300">
-                    {formatMoney(lineTotal(line.quantity, line.unitPrice), currency)}
+                    {formatMoney(lineTotal(line.quantity, line.unitPrice), currency, locale)}
                   </p>
                   <Button
                     type="button"

@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 
 import { LOCALE_COOKIE } from "./locale-cookie";
 import { normalizeLocale, translate, type Locale, type MessageKey } from "./messages";
+import { localizeNavigation } from "./navigation-labels";
 
 /** The language chosen in this browser (English until the person picks Turkish). */
 export async function getServerLocale(): Promise<Locale> {
@@ -23,4 +24,9 @@ export async function getServerT(): Promise<ServerTranslator> {
 export async function titleFor(key: MessageKey): Promise<{ title: string }> {
   const { t } = await getServerT();
   return { title: t(key) };
+}
+
+/** A tab title that reuses the sidebar word for the screen ("Deals" -> "Ticari fırsatlar"). */
+export async function titleForNav(label: string): Promise<{ title: string }> {
+  return { title: localizeNavigation(await getServerLocale(), label) };
 }
