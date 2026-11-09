@@ -70,11 +70,10 @@ test.describe("responsive layout and keyboard use", () => {
 
   // A detail page used to widen the whole page on a phone: its two-column grid had no explicit
   // single-column track, so the widest table in a card set the column width. Lists are covered
-  // above; this opens the first record of each list that has been fixed (needs data, which the
-  // logistics journeys create). The sourcing, deal and finance detail pages share the pattern and
-  // are not yet covered.
+  // above; this opens the first record of each list (it needs data, which the deal, sourcing and
+  // logistics journeys create). The finance detail pages are covered with the finance batch.
   for (const language of ["en", "tr"]) {
-    test(`order, purchase-order and shipment pages do not scroll sideways on a phone (${language})`, async ({
+    test(`record detail pages do not scroll sideways on a phone (${language})`, async ({
       browser,
       browserName,
     }) => {
@@ -85,7 +84,16 @@ test.describe("responsive layout and keyboard use", () => {
       });
       await context.addCookies([{ name: "touche_locale", value: language, url: stack().web }]);
       const page = await context.newPage();
-      for (const list of ["/orders", "/purchase-orders", "/shipments"]) {
+      for (const list of [
+        "/orders",
+        "/purchase-orders",
+        "/shipments",
+        "/deals",
+        "/rfq",
+        "/quotes",
+        "/pricing",
+        "/sales-quotes",
+      ]) {
         await gotoReady(page, list);
         await Promise.all([
           page.waitForURL((url) => url.pathname !== list),

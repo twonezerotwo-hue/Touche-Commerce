@@ -92,7 +92,7 @@ export function ReconciliationOverview({
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         <Card>
           <CardHeader>
             <CardHeading>
