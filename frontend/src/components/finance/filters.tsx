@@ -1,7 +1,10 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import type { FinanceView } from "@/lib/finance/types";
+import { useLocale } from "@/lib/i18n/locale-provider";
 
 export interface FinanceFiltersProps {
   currencies: string[];
@@ -21,11 +24,12 @@ export function FinanceFilters({
   toDate,
   asOf,
 }: FinanceFiltersProps) {
+  const { t } = useLocale();
   return (
     <form action="/finance" method="get" className="flex flex-wrap items-end gap-2">
       <div className="space-y-1">
         <label htmlFor="finance-view" className="eyebrow">
-          View
+          {t("finFilterView")}
         </label>
         <Select
           id="finance-view"
@@ -33,15 +37,15 @@ export function FinanceFilters({
           defaultValue={view}
           className="h-8 w-[155px] text-[12px]"
         >
-          <option value="overview">Overview</option>
-          <option value="accounts">Accounts</option>
-          <option value="receivables">Receivables</option>
-          <option value="payables">Payables</option>
+          <option value="overview">{t("finTabOverview")}</option>
+          <option value="accounts">{t("finTabAccounts")}</option>
+          <option value="receivables">{t("finTabReceivables")}</option>
+          <option value="payables">{t("finTabPayables")}</option>
         </Select>
       </div>
       <div className="space-y-1">
         <label htmlFor="finance-currency" className="eyebrow">
-          Currency
+          {t("finFilterCurrency")}
         </label>
         <Select
           id="finance-currency"
@@ -49,7 +53,7 @@ export function FinanceFilters({
           defaultValue={currency}
           className="h-8 w-[110px] text-[12px]"
         >
-          <option value="">Select currency</option>
+          <option value="">{t("finFilterSelectCurrency")}</option>
           {currencies.map((code) => (
             <option key={code} value={code}>
               {code}
@@ -61,7 +65,7 @@ export function FinanceFilters({
         <>
           <div className="space-y-1">
             <label htmlFor="finance-from" className="eyebrow">
-              From
+              {t("finFilterFrom")}
             </label>
             <Input
               id="finance-from"
@@ -73,7 +77,7 @@ export function FinanceFilters({
           </div>
           <div className="space-y-1">
             <label htmlFor="finance-to" className="eyebrow">
-              To
+              {t("finFilterTo")}
             </label>
             <Input
               id="finance-to"
@@ -88,7 +92,7 @@ export function FinanceFilters({
       {view === "receivables" || view === "payables" ? (
         <div className="space-y-1">
           <label htmlFor="finance-as-of" className="eyebrow">
-            As of
+            {t("finFilterAsOf")}
           </label>
           <Input
             id="finance-as-of"
@@ -100,7 +104,7 @@ export function FinanceFilters({
         </div>
       ) : null}
       <Button type="submit" size="sm" variant="subtle">
-        Apply
+        {t("finApply")}
       </Button>
     </form>
   );

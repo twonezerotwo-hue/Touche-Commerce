@@ -22,9 +22,13 @@ import type {
   ReconciliationSourceReference,
 } from "@/lib/finance/reconciliation";
 import type { OrderOption } from "@/components/finance/reconciliation-overview";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { operationsStatusText } from "@/lib/i18n/value-labels";
+import { toLocalInputValue } from "@/lib/trade/format";
 
+/** Today's date on the reader's own calendar (UTC would be yesterday just after midnight in Turkey). */
 function today(): string {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalInputValue().slice(0, 10);
 }
 
 function etagOf(version: number): string {
@@ -47,6 +51,7 @@ export function CreateReconciliationRun({
   financeReady: boolean;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const eligible = orders.filter(
     (order) => order.currency === currency && order.status !== "CANCELLED",
   );
@@ -58,7 +63,7 @@ export function CreateReconciliationRun({
   async function submit(): Promise<void> {
     setError(null);
     if (!orderId) {
-      setError("Select an accepted order in this currency.");
+      setError(t("raSelectOrder"));
       return;
     }
     setPending(true);
@@ -78,30 +83,29 @@ export function CreateReconciliationRun({
   return (
     <div className="panel space-y-3 p-4">
       <div>
-        <p className="eyebrow">New reconciliation run</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-mist-500">
-          Reads Finance summary and aging once, records source ids and deterministic gaps. It never
-          writes to Finance.
-        </p>
+        <p className="eyebrow">{t("raNewRun")}</p>
+        <p className="mt-1 text-[11px] leading-relaxed text-mist-500">{t("raNewRunBody")}</p>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="reconciliation-order">Accepted order</Label>
+        <Label htmlFor="reconciliation-order">{t("raAcceptedOrder")}</Label>
         <Select
           id="reconciliation-order"
           value={orderId}
           onChange={(event) => setOrderId(event.target.value)}
           disabled={eligible.length === 0 || pending}
         >
-          {eligible.length === 0 ? <option value="">No eligible {currency} order</option> : null}
+          {eligible.length === 0 ? (
+            <option value="">{t("raNoEligible", { currency })}</option>
+          ) : null}
           {eligible.map((order) => (
             <option key={order.id} value={order.id}>
-              {order.order_number} · {order.status.replaceAll("_", " ")}
+              {order.order_number} · {operationsStatusText(t, order.status)}
             </option>
           ))}
         </Select>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="reconciliation-as-of">As of</Label>
+        <Label htmlFor="reconciliation-as-of">{t("raAsOf")}</Label>
         <Input
           id="reconciliation-as-of"
           type="date"
@@ -113,9 +117,7 @@ export function CreateReconciliationRun({
       </div>
       <ActionError message={error} />
       {!financeReady ? (
-        <p className="text-[10.5px] text-amber-400">
-          Finance is not CONNECTED or DEGRADED; a run will be refused.
-        </p>
+        <p className="text-[10.5px] text-amber-400">{t("raFinanceNotReady")}</p>
       ) : null}
       <Button
         type="button"
@@ -124,7 +126,7 @@ export function CreateReconciliationRun({
         onClick={() => void submit()}
       >
         {pending ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-        Create run
+        {t("raCreateRun")}
       </Button>
     </div>
   );
@@ -140,6 +142,7 @@ export function EvidenceLinkPanel({
   canLink: boolean;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const references = run.source_references.filter((item) => item.is_transaction_level);
   const [referenceId, setReferenceId] = useState(references[0]?.id ?? "");
   const [notes, setNotes] = useState("");
@@ -151,9 +154,8 @@ export function EvidenceLinkPanel({
   }
   if (references.length === 0) {
     return (
-      <Alert variant="warning" title="No transaction-level Finance reference">
-        Finance returned no aging source id for this currency. The run stays UNMATCHED; Commerce
-        does not invent an invoice reference.
+      <Alert variant="warning" title={t("raNoReferenceTitle")}>
+        {t("raNoReferenceBody")}
       </Alert>
     );
   }
@@ -161,7 +163,7 @@ export function EvidenceLinkPanel({
   async function submit(): Promise<void> {
     const selected = references.find((item) => item.id === referenceId);
     if (!selected) {
-      setError("Select a Finance source id.");
+      setError(t("raSelectSource"));
       return;
     }
     setPending(true);
@@ -189,7 +191,7 @@ export function EvidenceLinkPanel({
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
-        <Label htmlFor="evidence-reference">Finance source reference</Label>
+        <Label htmlFor="evidence-reference">{t("raSourceReference")}</Label>
         <Select
           id="evidence-reference"
           value={referenceId}
@@ -198,23 +200,20 @@ export function EvidenceLinkPanel({
         >
           {references.map((reference) => (
             <option key={reference.id} value={reference.id}>
-              {labelForReference(reference)}
+              {labelForReference(reference, t("raNoAmount"))}
             </option>
           ))}
         </Select>
-        <p className="text-[10px] leading-relaxed text-mist-600">
-          Linking is an explicit operator decision. Counterparty names are displayed, never used as
-          a matching key.
-        </p>
+        <p className="text-[10px] leading-relaxed text-mist-600">{t("raLinkHint")}</p>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="evidence-notes">Evidence note</Label>
+        <Label htmlFor="evidence-notes">{t("raEvidenceNote")}</Label>
         <Textarea
           id="evidence-notes"
           value={notes}
           maxLength={2000}
           onChange={(event) => setNotes(event.target.value)}
-          placeholder="What document or operator check supports this link?"
+          placeholder={t("raEvidencePlaceholder")}
         />
       </div>
       <ActionError message={error} />
@@ -230,14 +229,14 @@ export function EvidenceLinkPanel({
         ) : (
           <Link2 className="size-3.5" aria-hidden />
         )}
-        Link to accepted sales order
+        {t("raLinkButton")}
       </Button>
     </div>
   );
 }
 
-function labelForReference(reference: ReconciliationSourceReference): string {
-  const amount = reference.observed_amount ?? "no amount";
+function labelForReference(reference: ReconciliationSourceReference, noAmount: string): string {
+  const amount = reference.observed_amount ?? noAmount;
   const kind = reference.source_type === "AGING_RECEIVABLE" ? "AR" : "AP";
   return `${kind} · ${reference.source_reference} · ${reference.currency} ${amount}`;
 }
@@ -252,6 +251,7 @@ export function ReviewPanel({
   canReview: boolean;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [decision, setDecision] = useState<"CONFIRM" | "DISPUTE" | "REQUEST_CHANGES">("CONFIRM");
   const [notes, setNotes] = useState("");
   const [pending, setPending] = useState(false);
@@ -259,16 +259,15 @@ export function ReviewPanel({
 
   if (!canReview) {
     return (
-      <Alert variant="info" title="Reviewer permission required">
-        Financial review needs <span className="font-mono">finance.reconcile</span>. An admin does
-        not inherit it, and the run creator cannot review their own run.
+      <Alert variant="info" title={t("raReviewerRequiredTitle")}>
+        {t("raReviewerRequiredBody")}
       </Alert>
     );
   }
   if (run.status === "VERIFIED") {
     return (
-      <Alert variant="success" title="Verified evidence">
-        This run is verified. A new run is required to review later source data.
+      <Alert variant="success" title={t("raVerifiedTitle")}>
+        {t("raVerifiedBody")}
       </Alert>
     );
   }
@@ -292,7 +291,7 @@ export function ReviewPanel({
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
-        <Label htmlFor="review-decision">Decision</Label>
+        <Label htmlFor="review-decision">{t("raDecision")}</Label>
         <Select
           id="review-decision"
           value={decision}
@@ -302,21 +301,21 @@ export function ReviewPanel({
           disabled={pending}
         >
           <option value="CONFIRM" disabled={run.status !== "MATCHED_EVIDENCE"}>
-            Confirm and verify
+            {t("raConfirm")}
           </option>
-          <option value="DISPUTE">Dispute</option>
-          <option value="REQUEST_CHANGES">Request changes</option>
+          <option value="DISPUTE">{t("raDispute")}</option>
+          <option value="REQUEST_CHANGES">{t("raRequestChanges")}</option>
         </Select>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="review-notes">Reviewer notes</Label>
+        <Label htmlFor="review-notes">{t("raReviewerNotes")}</Label>
         <Textarea
           id="review-notes"
           value={notes}
           minLength={3}
           maxLength={2000}
           onChange={(event) => setNotes(event.target.value)}
-          placeholder="State what you checked and why this decision is justified."
+          placeholder={t("raReviewerPlaceholder")}
         />
       </div>
       <ActionError message={error} />
@@ -331,7 +330,7 @@ export function ReviewPanel({
         ) : (
           <ShieldCheck className="size-3.5" aria-hidden />
         )}
-        Record review
+        {t("raRecordReview")}
       </Button>
     </div>
   );
@@ -347,6 +346,7 @@ export function DiscrepancyResolutionForm({
   canReview: boolean;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [notes, setNotes] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -378,7 +378,7 @@ export function DiscrepancyResolutionForm({
         minLength={3}
         maxLength={2000}
         onChange={(event) => setNotes(event.target.value)}
-        placeholder="Resolution note (what evidence resolves this?)"
+        placeholder={t("disResolveNote")}
         disabled={pending}
       />
       <ActionError message={error} />
@@ -390,7 +390,7 @@ export function DiscrepancyResolutionForm({
         onClick={() => void submit()}
       >
         {pending ? <Loader2 className="size-3 animate-spin" aria-hidden /> : null}
-        Resolve
+        {t("disResolve")}
       </Button>
     </div>
   );

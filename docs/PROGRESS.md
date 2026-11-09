@@ -30,8 +30,13 @@ Evidence, not claims. Full matrix: `docs/STAGE11_20_STATUS.md`; operator guide: 
   procurement and milestone workflows, shipment planner, cost/reference forms, upload and
   verify/archive). Found and fixed on the way: the shipment planner offered the *undelivered*
   quantity instead of the *unallocated* one, and the document, order, purchase-order and shipment
-  pages scrolled sideways on a phone. Frontend 286 tests; Chromium browser suite 50 passed, 5 live
-  specs skipped. **WebKit was not run for 12F** (the build could not be downloaded here).
+  pages scrolled sideways on a phone. Frontend 287 tests; the 12F journeys and the phone-width checks pass on Chromium and WebKit
+  (24 of 24 before merge). Closed before merging: detail pages of deals, sourcing and finance scrolled
+  sideways on a phone, the shipment movement-note time defaulted to UTC, and the identical-file
+  import check could race.
+* **12G1** Finance ledger, reconciliation, discrepancies and the order finance view in Turkish; the
+  ESTIMATED / COMMITTED / DOCUMENTED / UNAVAILABLE distinctions keep their meaning in both languages.
+  Frontend 299 tests; finance and width journeys 22 of 22 on Chromium and WebKit.
 * **13** CSV/XLSX import wizard (atomic, idempotent), company profile (migration 0014), TR/EN
   documents in four formats; Commerce invoices are always drafts.
 * **16** Local `qwen3:8b` fallback verified live; DeepSeek not connected (no key).

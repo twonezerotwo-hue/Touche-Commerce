@@ -240,3 +240,87 @@ export function shipmentTimingText(
   if (!estimatedArrival) return t("shpDelayNoEta");
   return t("shpDelayWithin");
 }
+
+const FINANCE_STATE: Record<string, MessageKey> = {
+  not_configured: "finStNotConfigured",
+  disabled: "finStDisabled",
+  connected: "finStConnected",
+  degraded: "finStDegraded",
+  unavailable: "finStUnavailable",
+  auth_error: "finStAuthError",
+};
+
+const RECONCILIATION_STATUS: Record<string, MessageKey> = {
+  INCOMPLETE: "recStIncomplete",
+  UNMATCHED: "recStUnmatched",
+  POTENTIAL_MATCH: "recStPotentialMatch",
+  MATCHED_EVIDENCE: "recStMatchedEvidence",
+  VERIFIED: "recStVerified",
+  DISPUTED: "recStDisputed",
+};
+
+const DISCREPANCY_STATUS: Record<string, MessageKey> = {
+  OPEN: "disStOpen",
+  RESOLVED: "disStResolved",
+  DISMISSED: "disStDismissed",
+};
+
+const SEVERITY: Record<string, MessageKey> = {
+  BLOCKING: "sevBlocking",
+  ERROR: "sevError",
+  WARNING: "sevWarning",
+  INFO: "sevInfo",
+};
+
+const CLASSIFICATION: Record<string, MessageKey> = {
+  ESTIMATED: "clsEstimated",
+  COMMITTED: "clsCommitted",
+  DOCUMENTED: "clsDocumented",
+  FINANCE_OBSERVED: "clsFinanceObserved",
+  VERIFIED: "clsVerified",
+  UNAVAILABLE: "clsUnavailable",
+};
+
+const DISCREPANCY_CODE: Record<string, MessageKey> = {
+  MISSING_EVIDENCE: "disCodeMissingEvidence",
+  MISSING_FINANCE_REFERENCE: "disCodeMissingFinanceReference",
+  AMOUNT_MISMATCH: "disCodeAmountMismatch",
+  CURRENCY_MISMATCH: "disCodeCurrencyMismatch",
+  DUPLICATE_REFERENCE: "disCodeDuplicateReference",
+  INCOMPLETE_COSTS: "disCodeIncompleteCosts",
+  UNMATCHED_FINANCE_ITEM: "disCodeUnmatchedFinanceItem",
+  SOURCE_STALE: "disCodeSourceStale",
+  COMPANY_MAPPING_INVALID: "disCodeCompanyMappingInvalid",
+  MANUAL_REVIEW_REQUIRED: "disCodeManualReviewRequired",
+};
+
+const FINANCE_SOURCE_TYPE: Record<string, MessageKey> = {
+  AGING_RECEIVABLE: "srcAgingReceivable",
+  AGING_PAYABLE: "srcAgingPayable",
+};
+
+const REVIEW_DECISION: Record<string, MessageKey> = {
+  CONFIRM: "decConfirm",
+  DISPUTE: "decDispute",
+  REQUEST_CHANGES: "decRequestChanges",
+};
+
+/** The Finance connection state ("degraded") as the label shown in its badge. */
+export const financeStateText = (t: TFn, code: string): string => lookup(t, FINANCE_STATE, code);
+export const reconciliationStatusText = (t: TFn, code: string): string =>
+  lookup(t, RECONCILIATION_STATUS, code);
+export const discrepancyStatusText = (t: TFn, code: string): string =>
+  lookup(t, DISCREPANCY_STATUS, code);
+export const severityText = (t: TFn, code: string): string => lookup(t, SEVERITY, code);
+/**
+ * ESTIMATED / COMMITTED / DOCUMENTED / FINANCE_OBSERVED / VERIFIED / UNAVAILABLE. The distinction is
+ * the product's, so an unknown or missing value is shown as UNAVAILABLE, never as a stronger one.
+ */
+export const classificationText = (t: TFn, code: string | undefined): string =>
+  t(CLASSIFICATION[code ?? ""] ?? "clsUnavailable");
+export const discrepancyCodeText = (t: TFn, code: string): string =>
+  lookup(t, DISCREPANCY_CODE, code);
+export const financeSourceTypeText = (t: TFn, code: string): string =>
+  lookup(t, FINANCE_SOURCE_TYPE, code);
+export const reviewDecisionText = (t: TFn, code: string): string =>
+  lookup(t, REVIEW_DECISION, code);

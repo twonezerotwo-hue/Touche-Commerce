@@ -18,6 +18,9 @@ const PAGES = [
   "/shipments",
   "/shipments/new",
   "/documents",
+  "/finance",
+  "/finance/reconciliation",
+  "/finance/discrepancies",
 ];
 
 test.describe("responsive layout and keyboard use", () => {

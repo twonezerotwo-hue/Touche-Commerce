@@ -17,10 +17,11 @@ import {
   type FinanceStatus,
   type FinanceSummary,
 } from "@/lib/finance/types";
+import { getServerT, titleFor, type ServerTranslator } from "@/lib/i18n/server";
 import { formatDate, withQuery } from "@/lib/trade/format";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Finance" };
+export const generateMetadata = () => titleFor("finTitle");
 
 const PAGE_SIZE = 25;
 
@@ -40,6 +41,7 @@ function financeCode(details: unknown): string | null {
 }
 
 function errorAlert(
+  t: ServerTranslator["t"],
   title: string,
   failure: { code: string; message: string; requestId: string | null; details: unknown },
 ) {
@@ -49,8 +51,8 @@ function errorAlert(
       <span>{failure.message}</span>
       <span className="mt-1 block font-mono text-[10px] text-mist-500">
         {failure.code}
-        {code ? ` · Finance: ${code}` : ""}
-        {failure.requestId ? ` · request ${failure.requestId}` : ""}
+        {code ? ` · ${t("finFinanceCodeSuffix", { code })}` : ""}
+        {failure.requestId ? ` · ${t("finRequestSuffix", { id: failure.requestId })}` : ""}
       </span>
     </Alert>
   );
@@ -63,6 +65,7 @@ export default async function FinancePage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t, locale } = await getServerT();
 
   const params = await searchParams;
   const view = parseFinanceView(params.view);
@@ -72,11 +75,11 @@ export default async function FinancePage({
     return (
       <div className="mx-auto max-w-[1360px] space-y-5">
         <PageHeader
-          eyebrow="Finance"
-          title="Finance"
-          description="Read-only TOUCHE FINANCE data for this company."
+          eyebrow={t("finEyebrow")}
+          title={t("finTitle")}
+          description={t("finStatusHint")}
         />
-        {errorAlert("Finance status unavailable", statusResult)}
+        {errorAlert(t, t("finStatusUnavailableTitle"), statusResult)}
       </div>
     );
   }
@@ -134,68 +137,71 @@ export default async function FinancePage({
     to: toDate || null,
     as_of: asOf || null,
   };
+  const tabLabels = {
+    overview: t("finTabOverview"),
+    accounts: t("finTabAccounts"),
+    receivables: t("finTabReceivables"),
+    payables: t("finTabPayables"),
+  } as const;
 
   return (
     <div className="mx-auto max-w-[1360px] space-y-5">
       <PageHeader
-        eyebrow="Finance"
+        eyebrow={t("finEyebrow")}
         meta={
           <>
-            <Badge variant="secondary">Read-only</Badge>
+            <Badge variant="secondary">{t("finReadOnlyBadge")}</Badge>
             <span className="font-mono text-[10px] text-mist-600">
-              data through {formatDate(status.data_through ?? null)}
+              {t("finDataThrough", { date: formatDate(status.data_through ?? null, locale) })}
             </span>
           </>
         }
-        title="Finance"
-        description="Financial truth stays in TOUCHE FINANCE. This workspace reads a mapped company through the authenticated integration contract; it never posts an invoice, payment or journal entry."
+        title={t("finTitle")}
+        description={t("finDescription")}
         actions={
           <div className="flex flex-wrap gap-2">
             <Button asChild size="sm">
-              <Link href="/finance/reconciliation">Reconciliation</Link>
+              <Link href="/finance/reconciliation">{t("finBtnReconciliation")}</Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link href="/finance/discrepancies">Discrepancies</Link>
+              <Link href="/finance/discrepancies">{t("finBtnDiscrepancies")}</Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link href="/finance/intelligence">Intelligence</Link>
+              <Link href="/finance/intelligence">{t("finBtnIntelligence")}</Link>
             </Button>
             <Button asChild variant="ghost" size="sm">
-              <Link href="/">Back to Command Center</Link>
+              <Link href="/">{t("finBackCommand")}</Link>
             </Button>
           </div>
         }
       />
 
       {status.state === "degraded" ? (
-        <Alert variant="warning" title="Finance reports degraded data">
-          {status.detail} Treat the data-through date as the source watermark, not today&apos;s
-          date.
+        <Alert variant="warning" title={t("finDegradedTitle")}>
+          {t("finDegradedBody", { detail: status.detail })}
         </Alert>
       ) : null}
       {status.state === "not_configured" ? (
-        <Alert variant="info" title="Not configured">
-          An authorised company admin must configure an explicit Finance mapping. No company is
-          matched by name:
+        <Alert variant="info" title={t("finNotConfiguredTitle")}>
+          {t("finNotConfiguredBody")}
           <span className="mt-1 block font-mono text-[10.5px] text-mist-400">
             python -m app.cli finance-map set --company &quot;…&quot; --finance-company … --actor …
           </span>
         </Alert>
       ) : null}
       {status.state === "disabled" ? (
-        <Alert variant="info" title="Integration disabled">
-          Finance integration is disabled by configuration. No network request was made.
+        <Alert variant="info" title={t("finDisabledTitle")}>
+          {t("finDisabledBody")}
         </Alert>
       ) : null}
       {status.state === "auth_error" ? (
-        <Alert variant="danger" title="AUTH_ERROR">
-          Finance rejected or could not verify the server-side service credentials. No credential
-          value is exposed here.
+        <Alert variant="danger" title={t("finStAuthError")}>
+          {t("finAuthErrorBody")}
         </Alert>
       ) : null}
       {status.state === "unavailable" ? (
-        <Alert variant="danger" title="UNAVAILABLE">
-          Finance is not reachable or the Finance ledger is temporarily unavailable.
+        <Alert variant="danger" title={t("finStUnavailable")}>
+          {t("finUnavailableBody")}
         </Alert>
       ) : null}
 
@@ -210,13 +216,7 @@ export default async function FinancePage({
                 : "rounded-md px-3 py-1.5 text-[11.5px] text-mist-500 hover:bg-white/[0.04] hover:text-mist-200"
             }
           >
-            {tab === "overview"
-              ? "Overview"
-              : tab === "accounts"
-                ? "Accounts"
-                : tab === "receivables"
-                  ? "Receivables"
-                  : "Payables"}
+            {tabLabels[tab]}
           </Link>
         ))}
         {canRead ? (
@@ -234,55 +234,50 @@ export default async function FinancePage({
       </div>
 
       {canRead && currencies.length > 1 && !currency ? (
-        <Alert variant="info" title="Select one currency">
-          This Finance company has {currencies.join(", ")} ledgers. Commerce does not convert or
-          aggregate them; choose one currency above to load a single-currency view.
+        <Alert variant="info" title={t("finSelectOneTitle")}>
+          {t("finSelectOneBody", { currencies: currencies.join(", ") })}
         </Alert>
       ) : null}
 
       {summaryResult && !summaryResult.ok
-        ? errorAlert("Finance summary unavailable", summaryResult)
+        ? errorAlert(t, t("finSummaryUnavailable"), summaryResult)
         : null}
 
       {view === "overview" ? <FinanceOverview status={status} summary={summary} /> : null}
 
       {view === "accounts" ? (
         detailResult && !detailResult.ok ? (
-          errorAlert("Finance accounts unavailable", detailResult)
+          errorAlert(t, t("finAccountsUnavailable"), detailResult)
         ) : detailResult && detailResult.ok ? (
           <div className="space-y-3">
             <FinanceAccountsTable data={detailResult.data as FinanceAccounts} />
             <Pager
+              t={t}
               page={(detailResult.data as FinanceAccounts).page}
               offset={offset}
               params={{ ...tabParams, view }}
             />
           </div>
         ) : (
-          <EmptyState
-            title="Select a currency"
-            description="Finance accounts are shown one currency at a time."
-          />
+          <EmptyState title={t("finSelectCurrency")} description={t("finAccountsSelectHint")} />
         )
       ) : null}
 
       {view === "receivables" || view === "payables" ? (
         detailResult && !detailResult.ok ? (
-          errorAlert("Finance aging unavailable", detailResult)
+          errorAlert(t, t("finAgingUnavailable"), detailResult)
         ) : detailResult && detailResult.ok ? (
           <div className="space-y-3">
             <FinanceAgingTable data={detailResult.data as FinanceAging} />
             <Pager
+              t={t}
               page={(detailResult.data as FinanceAging).page}
               offset={offset}
               params={{ ...tabParams, view }}
             />
           </div>
         ) : (
-          <EmptyState
-            title="Select a currency"
-            description="Finance aging is shown one currency at a time."
-          />
+          <EmptyState title={t("finSelectCurrency")} description={t("finAgingSelectHint")} />
         )
       ) : null}
     </div>
@@ -290,10 +285,12 @@ export default async function FinancePage({
 }
 
 function Pager({
+  t,
   page,
   offset,
   params,
 }: {
+  t: ServerTranslator["t"];
   page: { total: number; next_offset?: number | null; limit: number };
   offset: number;
   params: Record<string, string | null>;
@@ -301,16 +298,14 @@ function Pager({
   const previous = offset > 0 ? Math.max(0, offset - page.limit) : null;
   return (
     <div className="flex items-center justify-between gap-3 text-[10.5px] text-mist-500">
-      <span>
-        {page.total} row{page.total === 1 ? "" : "s"} · offset {offset}
-      </span>
+      <span>{t(page.total === 1 ? "finRowOne" : "finRowMany", { count: page.total, offset })}</span>
       <div className="flex items-center gap-2">
         {previous !== null ? (
           <Link
             href={withQuery("/finance", { ...params, offset: String(previous) })}
             className="rounded border border-white/10 px-2.5 py-1 hover:text-mist-200"
           >
-            Previous
+            {t("pagePrevious")}
           </Link>
         ) : null}
         {page.next_offset !== null ? (
@@ -318,7 +313,7 @@ function Pager({
             href={withQuery("/finance", { ...params, offset: String(page.next_offset) })}
             className="rounded border border-white/10 px-2.5 py-1 hover:text-mist-200"
           >
-            Next
+            {t("pageNext")}
           </Link>
         ) : null}
       </div>

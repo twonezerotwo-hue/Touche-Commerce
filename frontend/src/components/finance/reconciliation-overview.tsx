@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Banknote, ClipboardCheck, Coins, Database, FileWarning, Scale } from "lucide-react";
 
@@ -28,6 +30,7 @@ import {
 import { formatReconciliationMoney, formatReconciliationPercent } from "@/lib/finance/format";
 import type { FinanceStatus } from "@/lib/finance/types";
 import type { ReconciliationList, ReconciliationRun } from "@/lib/finance/reconciliation";
+import { useLocale } from "@/lib/i18n/locale-provider";
 import { formatDate, formatTimestamp } from "@/lib/trade/format";
 
 export interface OrderOption {
@@ -54,39 +57,38 @@ export function ReconciliationOverview({
   csrfToken: string;
   canCreate: boolean;
 }) {
+  const { t, locale } = useLocale();
   const metrics = latest?.metrics;
   const financeConnected = status.state === "connected" || status.state === "degraded";
+  const money = (value: string | null | undefined, unavailable?: string): string =>
+    formatReconciliationMoney(value, currency, unavailable ?? t("finNotAvailable"), locale);
 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat
-          label="Accepted order value"
-          value={formatReconciliationMoney(
-            metrics?.accepted_sales_order_value,
-            currency,
-            "Run a reconciliation",
-          )}
-          detail="Commerce documented acceptance, not revenue recognition"
+          label={t("recAcceptedValue")}
+          value={money(metrics?.accepted_sales_order_value, t("recRunFirst"))}
+          detail={t("recAcceptedDetail")}
           icon={<ClipboardCheck className="size-4" aria-hidden />}
         />
         <Stat
-          label="Purchase commitments"
-          value={formatReconciliationMoney(metrics?.purchase_commitments_total, currency)}
-          detail="Committed purchase orders only; no currency conversion"
+          label={t("recCommitments")}
+          value={money(metrics?.purchase_commitments_total)}
+          detail={t("recCommitmentsDetail")}
           icon={<Coins className="size-4" aria-hidden />}
           tone="amber"
         />
         <Stat
-          label="Documented operational costs"
-          value={formatReconciliationMoney(metrics?.recorded_operational_costs, currency)}
-          detail="Recorded shipment costs in the order currency"
+          label={t("recDocumentedCosts")}
+          value={money(metrics?.recorded_operational_costs)}
+          detail={t("recDocumentedCostsDetail")}
           icon={<Banknote className="size-4" aria-hidden />}
         />
         <Stat
-          label="Commitment-based margin"
-          value={formatReconciliationMoney(metrics?.commitment_based_margin, currency)}
-          detail="Operational interpretation — not accounting profit"
+          label={t("recCommitmentMargin")}
+          value={money(metrics?.commitment_based_margin)}
+          detail={t("recCommitmentMarginDetail")}
           icon={<Scale className="size-4" aria-hidden />}
           tone="jade"
         />
@@ -97,51 +99,47 @@ export function ReconciliationOverview({
           <CardHeader>
             <CardHeading>
               <div className="flex flex-wrap items-center gap-2">
-                <CardTitle>Finance boundary</CardTitle>
+                <CardTitle>{t("recBoundary")}</CardTitle>
                 <FinanceStatusBadge state={status.state} />
               </div>
-              <CardDescription>
-                Finance is the financial source of truth. Commerce reads only summary and aging
-                data; it never posts journals, invoices or payments.
-              </CardDescription>
+              <CardDescription>{t("recBoundaryBody")}</CardDescription>
             </CardHeading>
           </CardHeader>
           <CardContent className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
             <div>
               <p className="eyebrow flex items-center gap-1.5">
-                <Database className="size-3" aria-hidden /> Source data-through
+                <Database className="size-3" aria-hidden /> {t("recSourceThrough")}
               </p>
               <p className="mt-1 text-[12.5px] text-mist-200">
-                {formatDate(latest?.data_through ?? status.data_through ?? null)}
+                {formatDate(latest?.data_through ?? status.data_through ?? null, locale)}
               </p>
-              <p className="mt-0.5 text-[10px] text-mist-600">
-                Finance watermark captured in the run snapshot.
-              </p>
+              <p className="mt-0.5 text-[10px] text-mist-600">{t("recWatermarkNote")}</p>
             </div>
             <div>
-              <p className="eyebrow">Evidence completeness</p>
+              <p className="eyebrow">{t("recCompleteness")}</p>
               <p className="mt-1 font-mono text-[12.5px] text-mist-200">
-                {formatReconciliationPercent(metrics?.completeness_score)}
+                {formatReconciliationPercent(
+                  metrics?.completeness_score,
+                  t("finNotAvailable"),
+                  locale,
+                )}
               </p>
-              <p className="mt-0.5 text-[10px] text-mist-600">
-                Commerce source checks; Finance link is reviewed separately.
-              </p>
+              <p className="mt-0.5 text-[10px] text-mist-600">{t("recCompletenessNote")}</p>
             </div>
             <div>
-              <p className="eyebrow">Open discrepancies</p>
+              <p className="eyebrow">{t("recOpenDiscrepancies")}</p>
               <p className="mt-1 text-[12.5px] text-mist-200">
-                {list.open_discrepancy_count} open · {list.blocking_discrepancy_count} blocking
+                {t("recOpenBlocking", {
+                  open: list.open_discrepancy_count,
+                  blocking: list.blocking_discrepancy_count,
+                })}
               </p>
-              <p className="mt-0.5 text-[10px] text-mist-600">
-                Only blocking items prevent verification.
-              </p>
+              <p className="mt-0.5 text-[10px] text-mist-600">{t("recOnlyBlocking")}</p>
             </div>
             <div>
-              <p className="eyebrow">Runs in this currency</p>
+              <p className="eyebrow">{t("recRunsInCurrency")}</p>
               <p className="mt-1 text-[12.5px] text-mist-200">{list.total}</p>
-              <p className="mt-0.5 text-[10px] text-mist-600">
-                One currency per run. No cross-currency total exists.
-              </p>
+              <p className="mt-0.5 text-[10px] text-mist-600">{t("recOneCurrencyRun")}</p>
             </div>
           </CardContent>
         </Card>
@@ -156,8 +154,7 @@ export function ReconciliationOverview({
         ) : (
           <Card variant="inset">
             <CardContent className="py-4 text-[12px] text-mist-400">
-              Creating a reconciliation run requires trade.write. Finance review requires the
-              separate finance.reconcile capability.
+              {t("recNeedsWrite")}
             </CardContent>
           </Card>
         )}
@@ -166,33 +163,31 @@ export function ReconciliationOverview({
       <div className="panel overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div>
-            <p className="eyebrow">Reconciliation runs</p>
-            <p className="mt-1 text-[11px] text-mist-500">
-              Snapshots are reproducible; evidence and reviews are appended to the run.
-            </p>
+            <p className="eyebrow">{t("recRunsTitle")}</p>
+            <p className="mt-1 text-[11px] text-mist-500">{t("recRunsNote")}</p>
           </div>
           <Button asChild variant="outline" size="sm">
-            <Link href="/finance/discrepancies">Open discrepancy queue</Link>
+            <Link href="/finance/discrepancies">{t("recOpenQueue")}</Link>
           </Button>
         </div>
         <div className="hairline" />
         {list.items.length === 0 ? (
           <EmptyState
             icon={<FileWarning className="size-5" aria-hidden />}
-            title="No reconciliation runs"
-            description="Create a run for an accepted order after its purchase and cost evidence exists."
+            title={t("recNoRunsTitle")}
+            description={t("recNoRunsBody")}
           />
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-4">Order</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>As of</TableHead>
-                <TableHead>Finance through</TableHead>
-                <TableHead className="text-right">Evidence</TableHead>
-                <TableHead className="text-right">Open</TableHead>
-                <TableHead>Created</TableHead>
+                <TableHead className="pl-4">{t("recColOrder")}</TableHead>
+                <TableHead>{t("recColStatus")}</TableHead>
+                <TableHead>{t("recColAsOf")}</TableHead>
+                <TableHead>{t("recColFinanceThrough")}</TableHead>
+                <TableHead className="text-right">{t("recColEvidence")}</TableHead>
+                <TableHead className="text-right">{t("recColOpen")}</TableHead>
+                <TableHead>{t("recColCreated")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -211,24 +206,26 @@ export function ReconciliationOverview({
                     <ReconciliationStatusBadge status={run.status} />
                   </TableCell>
                   <TableCell className="font-mono text-[10.5px] text-mist-400">
-                    {formatDate(run.as_of)}
+                    {formatDate(run.as_of, locale)}
                   </TableCell>
                   <TableCell className="font-mono text-[10.5px] text-mist-400">
-                    {formatDate(run.data_through ?? null)}
+                    {formatDate(run.data_through ?? null, locale)}
                   </TableCell>
                   <TableCell className="text-right font-mono text-[11px]">
                     {run.evidence_count}
                   </TableCell>
                   <TableCell className="text-right">
                     <Badge variant={run.blocking_discrepancy_count > 0 ? "danger" : "outline"}>
-                      {run.open_discrepancy_count}
                       {run.blocking_discrepancy_count > 0
-                        ? ` · ${run.blocking_discrepancy_count} blocking`
-                        : ""}
+                        ? t("recOpenWithBlocking", {
+                            open: run.open_discrepancy_count,
+                            blocking: run.blocking_discrepancy_count,
+                          })
+                        : run.open_discrepancy_count}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-[10.5px] whitespace-nowrap text-mist-600">
-                    {formatTimestamp(run.created_at)}
+                    {formatTimestamp(run.created_at, locale)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -237,11 +234,8 @@ export function ReconciliationOverview({
         )}
       </div>
 
-      <Alert variant="info" title="What these numbers mean">
-        Estimated, committed, documented and Finance-observed values are deliberately distinct.
-        Document-supported margin and actual profit remain <strong>Unavailable</strong> because the
-        Finance contract exposes no transaction-level invoice/payment source. A reviewed match is an
-        evidence decision, not an accounting entry.
+      <Alert variant="info" title={t("recMeaningTitle")}>
+        {t("recMeaningPre")} <strong>{t("recMeaningStrong")}</strong> {t("recMeaningPost")}
       </Alert>
     </div>
   );

@@ -19,7 +19,7 @@ typed catalogues with parity tests) is complete. Screen coverage is not.
 | Sales orders | Order list, order detail (accepted lines, fulfilment, shipments, trade documents, draft invoice preview, accepted commercial terms), cancel/confirm actions with the mandatory reason, the acceptance-and-conversion form; the 24 operations status codes, 14 document types, transport modes, fulfilment models and acceptance channels are shown as words | vitest (EN + TR), Playwright (Chromium + WebKit) |
 | Purchase orders, shipments and the document register (Stage 12F) | Purchase-order list and detail (items, history and evidence, procurement workflow: approve, record the send with channel and reference, supplier confirmation, cancel with reason, facts); shipment list, planner, detail (allocated quantities, timeline, logistics costs, references, milestone workflow, movement notes, cost and reference forms, shipping documents); the trade-document register (upload, draft invoice/packing-list preview, filters, verify/reject/archive). The upload and document-action components are shared with the sales-order page, which now also shows them in the reader's language. Words for shipment events, cost stages, reference types, linked-record kinds and tracking provenance are translated; the codes the API stores are not changed. Money, quantities, dates and file sizes follow the reader's language | vitest (EN + TR), Playwright (Chromium + WebKit) |
 | Sourcing and pricing (Stage 12E) | RFQ list, new RFQ, RFQ detail and lifecycle panel (prepare, send with channel and evidence, cancel with reason); supplier-quote list and detail and the quote-recording form; landed-cost scenario list and detail (stats, priced lines, cost components) and the pricing form; sales-quote list and detail, approval trail and workflow panel; FX snapshot list and form. Status words, cost types, bases and verification states are translated; the codes the API stores are not changed | vitest (EN + TR), Playwright (Chromium + WebKit) |
-
+| Finance ledger and reconciliation (Stage 12G1) | Finance ledger (connection state, overview, accounts, receivables and payables aging, filters, every unavailable / degraded / disabled state), reconciliation list and run detail (stats, evidence links, reviews, discrepancies, interpretation limits), discrepancy queue and filters, order finance view (accepted order, commitments, recorded costs, gaps, margin interpretation) and the create-run, link-evidence, review and resolve forms. ESTIMATED / COMMITTED / DOCUMENTED / FINANCE OBSERVED / VERIFIED / UNAVAILABLE keep their distinct tones and an unknown value is shown as UNAVAILABLE, never as a stronger class | vitest (EN + TR), Playwright (Chromium + WebKit) |
 Stored trade data (names, descriptions, notes, SKUs) is never translated. Words the API stores in
 English (`active`, `buyer`, `supplier`) keep their stored value and are shown in the reader's
 language (`lib/i18n/value-labels.ts`). Error text that comes from the API (`message`) is shown as
@@ -27,10 +27,10 @@ the API sent it, except for the sign-in failures, which are mapped by error code
 
 ## Still English only
 
-finance (ledger, reconciliation, discrepancies, intelligence), AI Office,
+financial intelligence (dashboard, order profitability, exceptions), AI Office,
 communications, account and select-company pages, and the public status page. Each uses fixed
 English strings inside the page; they need the same treatment (catalogue keys + `getServerT()` /
-`useLocale()` + a Turkish test), roughly 11 screens. Two cross-cutting gaps remain: the breadcrumb
+`useLocale()` + a Turkish test), roughly 9 screens. Two cross-cutting gaps remain: the breadcrumb
 repeats "Workspace", and the browser-tab titles of the screens translated before Stage 12E are
 still English (the screens of Stages 12E and 12F use `generateMetadata` and are translated).
 
@@ -89,6 +89,26 @@ does not change between the server and a browser in another zone. Screens transl
 | Unit tests | `sourcing-turkish.test.tsx` (status and cost words, RFQ panel, sales-quote workflow panel, pricing form, quote form), `formats.test.ts` (English output unchanged, Turkish separators and months, UTC dates) |
 | Browser tests | `e2e/tests/sourcing.spec.ts` (4 journeys: Turkish read of every sourcing screen with the same figures in English, read-only role, a half-filled form surviving the language switch, FX snapshot recorded in Turkish) and `responsive.spec.ts` (Turkish pages at 375, 768, 1024 and 1440 px, plus the sourcing pages at phone width) on Chromium and WebKit (full suite: 87 of 88 passed; the one failure was an unrelated timing flake in `concurrency.spec.ts` that passed on re-run, see `STAGE11_20_STATUS.md`) |
 | Financial figures | A fixture quote (purchase 160 + freight 40 = landed 200, 20 % margin on price = sales 250) is asserted as `200,00`/`250,00` in Turkish and `200.00`/`250.00` in English; no calculation code was touched |
+
+## Stage 12G1 evidence
+
+| Item | Result |
+|---|---|
+| Screens | `/finance`, `/finance/reconciliation`, `/finance/reconciliation/[id]`, `/finance/discrepancies`, `/finance/orders/[id]` and the components behind them (overview, tables, filters, discrepancy queue, reconciliation overview / detail / actions, status badges, API error alert) |
+| Catalogue | `lib/i18n/catalog/finance.ts`; the English words are the ones that existed before (the codes `NOT_CONFIGURED`, `MATCHED EVIDENCE`, `MISSING_FINANCE_REFERENCE` ...), the Turkish words are new |
+| Money and percentages | `formatFinanceMoney`, `formatReconciliationMoney` and `formatReconciliationPercent` take the language; the backend's digits are untouched (`62.50` shows as `62.50%` and `%62,50`), and a missing value is the words "Not available" / "Mevcut değil", never zero |
+| Unit tests | `finance-turkish.test.tsx` (state, status, classification and discrepancy words; the four evidence classes keep their meaning and an unknown class is UNAVAILABLE; overview, tables, filters and discrepancy queue in Turkish; read-only without `finance.reconcile`) |
+| Browser tests | `e2e/tests/finance-pages.spec.ts` (order finance view with a supplier-confirmed and a draft purchase order and an incurred freight cost, in Turkish and English, and at 375 px; ledger, reconciliation list and discrepancy queue; a reader without finance permissions) and `responsive.spec.ts` (the three list pages at all four widths), Chromium and WebKit: 22 of 22 passed |
+| Phone width | The finance order, reconciliation and intelligence detail grids use the same `grid-cols-1` + `minmax(0, ...)` pattern fixed for the other detail pages |
+| Date default | The reconciliation form's "as of" default now uses the local calendar date (`toLocalInputValue`), not the UTC date, which is yesterday for three hours after midnight in Turkey |
+
+### Known limits after 12G1
+
+* Text the backend writes is shown as received (English): the title and detail of each discrepancy,
+  the missing-evidence gap titles on the order finance view, the "interpretation limits" list of a
+  run and the Finance `detail` sentence. They are generated in `app/services`, not in the interface.
+* The create-run, link-evidence and review forms are covered by unit tests; the acceptance stack has
+  no live Finance service, so a run cannot be created in the browser here.
 
 ## Stage 12F evidence
 

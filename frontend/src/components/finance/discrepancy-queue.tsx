@@ -1,7 +1,12 @@
+"use client";
+
 import Link from "next/link";
 
 import { DiscrepancyResolutionForm } from "@/components/finance/reconciliation-actions";
-import { DiscrepancySeverityBadge } from "@/components/finance/reconciliation-status-badge";
+import {
+  DiscrepancySeverityBadge,
+  DiscrepancyStatusBadge,
+} from "@/components/finance/reconciliation-status-badge";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -13,6 +18,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { ReconciliationDiscrepancy } from "@/lib/finance/reconciliation";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { discrepancyCodeText } from "@/lib/i18n/value-labels";
 import { formatDate } from "@/lib/trade/format";
 
 export function DiscrepancyQueue({
@@ -24,41 +31,34 @@ export function DiscrepancyQueue({
   csrfToken: string;
   canReview: boolean;
 }) {
+  const { t, locale } = useLocale();
   if (items.length === 0) {
-    return (
-      <EmptyState
-        embedded
-        title="No discrepancies"
-        description="No deterministic exceptions match the current filters."
-      />
-    );
+    return <EmptyState embedded title={t("disNoneTitle")} description={t("disNoneBody")} />;
   }
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="pl-4">Code</TableHead>
-          <TableHead>Severity</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Finding</TableHead>
-          <TableHead>Run</TableHead>
-          <TableHead>Created</TableHead>
-          <TableHead className="pr-4">Resolution</TableHead>
+          <TableHead className="pl-4">{t("disColCode")}</TableHead>
+          <TableHead>{t("disColSeverity")}</TableHead>
+          <TableHead>{t("disColStatus")}</TableHead>
+          <TableHead>{t("disColFinding")}</TableHead>
+          <TableHead>{t("disColRun")}</TableHead>
+          <TableHead>{t("disColCreated")}</TableHead>
+          <TableHead className="pr-4">{t("disColResolution")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {items.map((item) => (
           <TableRow key={item.id}>
             <TableCell className="pl-4">
-              <Badge variant="secondary">{item.code}</Badge>
+              <Badge variant="secondary">{discrepancyCodeText(t, item.code)}</Badge>
             </TableCell>
             <TableCell>
               <DiscrepancySeverityBadge severity={item.severity} />
             </TableCell>
             <TableCell>
-              <Badge variant={item.status === "RESOLVED" ? "success" : "outline"}>
-                {item.status}
-              </Badge>
+              <DiscrepancyStatusBadge status={item.status} />
             </TableCell>
             <TableCell className="max-w-[360px]">
               <p className="text-[11px] text-mist-200">{item.title}</p>
@@ -69,11 +69,11 @@ export function DiscrepancyQueue({
                 href={`/finance/reconciliation/${item.run_id}`}
                 className="font-mono text-[10px] text-accent-200 hover:text-accent-100"
               >
-                Open run
+                {t("disOpenRun")}
               </Link>
             </TableCell>
             <TableCell className="text-[10px] text-mist-600">
-              {formatDate(item.created_at)}
+              {formatDate(item.created_at, locale)}
             </TableCell>
             <TableCell className="pr-4">
               {item.resolution_notes ? (
