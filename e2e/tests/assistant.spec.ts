@@ -1,6 +1,7 @@
 import { expect, test, type BrowserContext } from "@playwright/test";
 
 import { gotoReady, signedInContext, stack } from "./support";
+import { prepareLogistics } from "./trade";
 
 /**
  * The AI Office and Communications, in a real browser, in both languages. The acceptance stack
@@ -60,6 +61,8 @@ test.describe("AI Office and communications, in a real browser, in both language
     browser,
     browserName,
   }) => {
+    // The assistant only drafts from records that exist, so give it an order and a shipment first.
+    await prepareLogistics(browser, browserName);
     const context = await signedInContext(browser, "sales", browserName);
     await inTurkish(context);
     const page = await context.newPage();
@@ -101,6 +104,18 @@ test.describe("AI Office and communications, in a real browser, in both language
     await page.getByLabel("Arayüz dili").selectOption("en");
     await expect(page.getByRole("heading", { level: 1, name: "Communications" })).toBeVisible();
     await expect(page.getByText("Draft-only · No messages sent")).toBeVisible();
+
+    // With a conversation, a decided proposal and a prepared draft on screen, a phone still fits.
+    await page.getByLabel("Interface language").selectOption("tr");
+    await page.setViewportSize({ width: 375, height: 812 });
+    for (const route of ["/ai", "/communications"]) {
+      await gotoReady(page, route);
+      await expect(page.locator("main")).toBeVisible();
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      expect(overflow, `horizontal overflow on ${route} at 375px`).toBeLessThanOrEqual(1);
+    }
     await context.close();
   });
 
