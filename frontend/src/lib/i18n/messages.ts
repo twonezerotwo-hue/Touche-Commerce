@@ -14,6 +14,7 @@ import { dealsEn, dealsTr } from "./catalog/deals";
 import { documentsEn, documentsTr } from "./catalog/documents";
 import { financeEn, financeTr } from "./catalog/finance";
 import { importsEn, importsTr } from "./catalog/imports";
+import { intelligenceEn, intelligenceTr } from "./catalog/intelligence";
 import { logisticsEn, logisticsTr } from "./catalog/logistics";
 import { ordersEn, ordersTr } from "./catalog/orders";
 import { sourcingEn, sourcingTr } from "./catalog/sourcing";
@@ -67,6 +68,7 @@ const en = {
   ...sourcingEn,
   ...logisticsEn,
   ...financeEn,
+  ...intelligenceEn,
 } as const;
 export type MessageKey = keyof typeof en;
 type Dictionary = Record<MessageKey, string>;
@@ -84,6 +86,7 @@ const tr: Dictionary = {
   ...sourcingTr,
   ...logisticsTr,
   ...financeTr,
+  ...intelligenceTr,
 };
 
 const dictionaries: Record<Locale, Dictionary> = { en, tr };

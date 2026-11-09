@@ -12,7 +12,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
 import {
-  INTELLIGENCE_ANALYSIS_NOTICE,
   intelligenceQuery,
   parseIntelligenceFilters,
   type CostVarianceList,
@@ -20,10 +19,11 @@ import {
   type IntelligenceSummary,
   type OrderIntelligenceList,
 } from "@/lib/finance/intelligence";
+import { getServerT, titleFor } from "@/lib/i18n/server";
 import { formatDate, withQuery } from "@/lib/trade/format";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Order profitability" };
+export const generateMetadata = () => titleFor("ordTitle");
 
 const BASE = "/finance/intelligence/orders";
 const PAGE_SIZE = 25;
@@ -46,6 +46,7 @@ export default async function OrderProfitabilityPage({
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
 
+  const { t, locale } = await getServerT();
   const params = await searchParams;
   const filters = parseIntelligenceFilters(params);
   const view = params.view === "variance" ? "variance" : "all";
@@ -68,38 +69,38 @@ export default async function OrderProfitabilityPage({
   return (
     <div className="mx-auto max-w-[1360px] space-y-5">
       <PageHeader
-        eyebrow="Finance · Stage 5E"
-        back={{ href: "/finance/intelligence", label: "Intelligence" }}
+        eyebrow={t("intEyebrow")}
+        back={{ href: "/finance/intelligence", label: t("intBackIntelligence") }}
         meta={
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">Operational analysis</Badge>
-            <Badge variant="outline">Read-only</Badge>
+            <Badge variant="secondary">{t("intBadgeAnalysis")}</Badge>
+            <Badge variant="outline">{t("intBadgeReadOnly")}</Badge>
           </div>
         }
-        title="Order profitability"
-        description="Every accepted order with its estimated, committed and documented position, per currency."
+        title={t("ordTitle")}
+        description={t("ordDescription")}
         actions={
           <div className="flex flex-wrap gap-2">
             <Button asChild size="sm" variant="outline">
-              <Link href="/finance/intelligence/exceptions">Exceptions</Link>
+              <Link href="/finance/intelligence/exceptions">{t("intBtnExceptions")}</Link>
             </Button>
           </div>
         }
       />
 
-      <Alert variant="info" title="Operational figures">
-        {INTELLIGENCE_ANALYSIS_NOTICE}
+      <Alert variant="info" title={t("intNoticeTitle")}>
+        {t("intNotice")}
       </Alert>
 
       {!optionsResult.ok ? (
-        <ApiErrorAlert title="Filter options unavailable" failure={optionsResult} />
+        <ApiErrorAlert title={t("ordFilterOptionsUnavailable")} failure={optionsResult} />
       ) : null}
 
       <div className="panel flex flex-wrap items-center gap-2 px-3 py-2">
         {(
           [
-            ["all", "All orders"],
-            ["variance", "Cost variance"],
+            ["all", t("ordTabAll")],
+            ["variance", t("ordTabVariance")],
           ] as const
         ).map(([tab, label]) => (
           <Link
@@ -125,13 +126,17 @@ export default async function OrderProfitabilityPage({
       />
 
       {!listResult.ok ? (
-        <ApiErrorAlert title="Order profitability unavailable" failure={listResult} />
+        <ApiErrorAlert title={t("ordUnavailable")} failure={listResult} />
       ) : (
         <>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <p className="text-[11px] text-mist-500">
-              {"as_of" in listResult.data ? `As of ${formatDate(listResult.data.as_of)} · ` : ""}
-              calculation {listResult.data.calculation_version}
+              {"as_of" in listResult.data
+                ? t("ordAsOfLine", {
+                    date: formatDate(listResult.data.as_of, locale),
+                    version: listResult.data.calculation_version,
+                  })
+                : t("ordCalcLine", { version: listResult.data.calculation_version })}
             </p>
             <ExportCsvButton
               filters={filters}
@@ -140,22 +145,22 @@ export default async function OrderProfitabilityPage({
           </div>
 
           {"excluded_order_count" in listResult.data ? (
-            <Alert variant="info" title="Variance needs two complete bases">
-              A variance exists only where both the landed-cost estimate and the documented basis
-              are complete. {listResult.data.excluded_order_count} order
-              {listResult.data.excluded_order_count === 1 ? " is" : "s are"} excluded because one
-              side is incomplete; quoted costs are never presented as variance.
+            <Alert variant="info" title={t("ordVarianceTitle")}>
+              {t(
+                listResult.data.excluded_order_count === 1
+                  ? "ordVarianceBodyOne"
+                  : "ordVarianceBodyMany",
+                { count: listResult.data.excluded_order_count },
+              )}
             </Alert>
           ) : null}
 
           <div className="panel overflow-hidden">
             <IntelligenceOrdersTable
               items={listResult.data.items}
-              emptyTitle={view === "variance" ? "No comparable orders" : "No orders match"}
+              emptyTitle={view === "variance" ? t("ordNoComparable") : t("intNoOrdersMatch")}
               emptyDescription={
-                view === "variance"
-                  ? "No order in this range has both a complete estimate and a complete documented basis."
-                  : "No accepted orders fall inside the selected range and filters."
+                view === "variance" ? t("ordNoComparableDesc") : t("intNoOrdersMatchDesc")
               }
             />
           </div>

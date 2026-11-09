@@ -12,6 +12,7 @@ import {
   intelligenceQuery,
   type IntelligenceFilters,
 } from "@/lib/finance/intelligence";
+import { useLocale } from "@/lib/i18n/locale-provider";
 
 /**
  * Downloads the operational analysis CSV for the active filters. The export is
@@ -25,6 +26,7 @@ export function ExportCsvButton({
   filters: IntelligenceFilters;
   orderCount?: number;
 }) {
+  const { t } = useLocale();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,9 +48,9 @@ export function ExportCsvButton({
         const envelope = parseErrorEnvelope(payload);
         const requestId = envelope?.error.request_id ?? response.headers.get("x-request-id");
         setError(
-          `${envelope?.error.message ?? "The export could not be created."} (${
+          `${envelope?.error.message ?? t("expFailedFallback")} (${
             envelope?.error.code ?? `HTTP_${response.status}`
-          }${requestId ? ` · request ${requestId}` : ""})`,
+          }${requestId ? ` · ${t("expRequest", { id: requestId })}` : ""})`,
         );
         return;
       }
@@ -65,7 +67,7 @@ export function ExportCsvButton({
       link.remove();
       URL.revokeObjectURL(url);
     } catch {
-      setError("Cannot reach the API. Confirm the service is running and try again.");
+      setError(t("expUnreachable"));
     } finally {
       setPending(false);
     }
@@ -85,15 +87,15 @@ export function ExportCsvButton({
         ) : (
           <Download className="size-3.5" aria-hidden />
         )}
-        Export CSV
+        {t("expExport")}
         {typeof orderCount === "number" ? (
           <span className="font-mono text-[10px] text-mist-500">
-            {orderCount} order{orderCount === 1 ? "" : "s"}
+            {t(orderCount === 1 ? "intOrdersOne" : "intOrdersMany", { count: orderCount })}
           </span>
         ) : null}
       </Button>
       {error ? (
-        <Alert variant="danger" title="Export failed">
+        <Alert variant="danger" title={t("expFailedTitle")}>
           {error}
         </Alert>
       ) : null}

@@ -75,6 +75,8 @@ describe("Stage 12B catalogue integrity", () => {
       "srcIncoterm",
       "srcColRfq",
       "refCmr",
+      "intAriaBand",
+      "intFilterModel",
       "rfqEyebrow",
       "ordColModel",
       "ordIncoterm",

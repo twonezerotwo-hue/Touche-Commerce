@@ -1,3 +1,5 @@
+"use client";
+
 import { CheckCircle2, CircleAlert } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
@@ -28,7 +30,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatReconciliationMoney, formatReconciliationPercent } from "@/lib/finance/format";
-import { humanize, type OrderIntelligenceDetail } from "@/lib/finance/intelligence";
+import type { OrderIntelligenceDetail } from "@/lib/finance/intelligence";
+import {
+  basisWord,
+  costTypeWord,
+  decisionWord,
+  sourceTypeWord,
+  stageWord,
+  statusWord,
+  verificationWord,
+} from "@/lib/finance/intelligence-text";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { operationsStatusText } from "@/lib/i18n/value-labels";
 import { formatDate, formatMoney, formatQuantity, formatTimestamp } from "@/lib/trade/format";
 
 function Section({
@@ -70,8 +83,15 @@ function Margin({
   amount: string | null | undefined;
   percent: string | null | undefined;
 }) {
+  const { t, locale } = useLocale();
   if (amount === null || amount === undefined) return null;
-  return <>{formatReconciliationPercent(percent)} margin</>;
+  return (
+    <>
+      {t("oiMarginSuffix", {
+        pct: formatReconciliationPercent(percent, t("intNotAvailable"), locale),
+      })}
+    </>
+  );
 }
 
 export function IntelligenceDetail({
@@ -83,23 +103,27 @@ export function IntelligenceDetail({
   csrfToken: string;
   canReview: boolean;
 }) {
+  const { t, locale } = useLocale();
   const { order } = detail;
   const currency = order.currency;
   const classes = order.classifications;
+  const money = (value: string | null | undefined, code: string = currency): string =>
+    formatReconciliationMoney(value, code, t("intNotAvailable"), locale);
+  const plainMoney = (value: string, code: string): string => formatMoney(value, code, locale);
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <Stat
-          label="Sales value"
-          value={formatReconciliationMoney(order.sales_value, currency)}
+          label={t("oiSalesValue")}
+          value={money(order.sales_value)}
           detail={<ClassificationBadge value={kindOf(order.sales_value, classes.sales_value)} />}
         />
         <Stat
-          label="Estimated gross profit"
+          label={t("oiEstProfit")}
           value={
             <Signed value={order.estimated_gross_profit}>
-              {formatReconciliationMoney(order.estimated_gross_profit, currency)}
+              {money(order.estimated_gross_profit)}
             </Signed>
           }
           detail={
@@ -117,10 +141,10 @@ export function IntelligenceDetail({
           }
         />
         <Stat
-          label="Committed gross profit"
+          label={t("oiCommittedProfit")}
           value={
             <Signed value={order.committed_gross_profit}>
-              {formatReconciliationMoney(order.committed_gross_profit, currency)}
+              {money(order.committed_gross_profit)}
             </Signed>
           }
           detail={
@@ -139,8 +163,8 @@ export function IntelligenceDetail({
           tone="amber"
         />
         <Stat
-          label="Documented operational cost"
-          value={formatReconciliationMoney(order.documented_operational_cost, currency)}
+          label={t("oiDocOpCost")}
+          value={money(order.documented_operational_cost)}
           detail={
             <span className="flex flex-wrap items-center gap-2">
               <ClassificationBadge
@@ -150,36 +174,40 @@ export function IntelligenceDetail({
                 )}
               />
               <span>
-                Total with purchases:{" "}
-                {formatReconciliationMoney(order.documented_total_cost, currency)}
+                {t("oiTotalWithPurchases", { amount: money(order.documented_total_cost) })}
               </span>
             </span>
           }
         />
         <Stat
-          label="Cost variance"
-          value={formatReconciliationMoney(order.cost_variance, currency)}
+          label={t("oiCostVariance")}
+          value={money(order.cost_variance)}
           detail={
             <span className="flex flex-wrap items-center gap-2">
               <ClassificationBadge value={kindOf(order.cost_variance, classes.cost_variance)} />
               {order.cost_variance_pct ? (
-                <span>{formatReconciliationPercent(order.cost_variance_pct)} of estimate</span>
+                <span>
+                  {t("oiOfEstimate", {
+                    pct: formatReconciliationPercent(
+                      order.cost_variance_pct,
+                      t("intNotAvailable"),
+                      locale,
+                    ),
+                  })}
+                </span>
               ) : null}
             </span>
           }
         />
         <Stat
-          label="Actual profit"
-          value="Not available"
+          label={t("oiActualProfit")}
+          value={t("intNotAvailable")}
           detail={<ClassificationBadge value={classes.actual_profit ?? "UNAVAILABLE"} />}
         />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section
-          title="Completion checks"
-          description="Each check is a fact about the stored data, not an opinion."
-        >
+        <Section title={t("oiChecksTitle")} description={t("oiChecksDesc")}>
           <ul className="divide-y divide-white/[0.05]">
             {detail.checks.map((check) => (
               <li key={check.key} className="flex items-start gap-3 px-5 py-2.5">
@@ -192,7 +220,7 @@ export function IntelligenceDetail({
                   <p className="text-[11.5px] text-mist-200">
                     {check.label}
                     <span className="sr-only">
-                      {check.satisfied ? " — satisfied" : " — not satisfied"}
+                      {check.satisfied ? t("oiSatisfied") : t("oiNotSatisfied")}
                     </span>
                   </p>
                   <p className="mt-0.5 text-[10.5px] leading-relaxed text-mist-500">
@@ -204,12 +232,9 @@ export function IntelligenceDetail({
           </ul>
         </Section>
 
-        <Section
-          title="Limitations"
-          description="What this analysis does not claim, stated by the calculation itself."
-        >
+        <Section title={t("oiLimitationsTitle")} description={t("oiLimitationsDesc")}>
           {detail.limitations.length === 0 ? (
-            <None>No limitations were recorded for this order.</None>
+            <None>{t("oiNoLimitations")}</None>
           ) : (
             <ul className="list-disc space-y-1.5 pr-5 pl-9 text-[11px] leading-relaxed text-mist-400">
               {detail.limitations.map((item) => (
@@ -220,52 +245,53 @@ export function IntelligenceDetail({
         </Section>
       </div>
 
-      <Section
-        title="Estimated cost lines"
-        description="The Stage 3 landed-cost scenario in the order currency. Non-expense lines (such as recoverable VAT) are marked and excluded."
-      >
+      <Section title={t("oiCostLinesTitle")} description={t("oiCostLinesDesc")}>
         {detail.cost_lines.length === 0 ? (
-          <None>No pricing scenario with cost lines is linked to this order.</None>
+          <None>{t("oiNoCostLines")}</None>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-5">Cost</TableHead>
-                <TableHead className="text-right">Original</TableHead>
-                <TableHead className="text-right">In {currency}</TableHead>
-                <TableHead>FX rate</TableHead>
-                <TableHead>Basis</TableHead>
-                <TableHead>Verification</TableHead>
-                <TableHead className="pr-5">Counts as expense</TableHead>
+                <TableHead className="pl-5">{t("oiColCost")}</TableHead>
+                <TableHead className="text-right">{t("oiColOriginal")}</TableHead>
+                <TableHead className="text-right">{t("oiColIn", { currency })}</TableHead>
+                <TableHead>{t("oiColFx")}</TableHead>
+                <TableHead>{t("oiColBasis")}</TableHead>
+                <TableHead>{t("oiColVerification")}</TableHead>
+                <TableHead className="pr-5">{t("oiColExpense")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {detail.cost_lines.map((line, index) => (
                 <TableRow key={`${line.cost_type}-${line.source_reference}-${index}`}>
                   <TableCell className="pl-5">
-                    <span className="text-[11px] text-mist-200">{humanize(line.cost_type)}</span>
+                    <span className="text-[11px] text-mist-200">
+                      {costTypeWord(t, locale, line.cost_type)}
+                    </span>
                     <span className="block font-mono text-[10px] text-mist-600">
                       {line.source_reference}
                     </span>
                   </TableCell>
                   <TableCell className="text-right font-mono text-[11px]">
-                    {formatReconciliationMoney(line.original_amount, line.original_currency)}
+                    {money(line.original_amount, line.original_currency)}
                   </TableCell>
                   <TableCell className="text-right font-mono text-[11px]">
-                    {formatReconciliationMoney(line.converted_amount, line.target_currency)}
+                    {money(line.converted_amount, line.target_currency)}
                   </TableCell>
                   <TableCell className="font-mono text-[10.5px] text-mist-400">
                     {line.fx_rate ?? "—"}
                   </TableCell>
                   <TableCell className="text-[10.5px] text-mist-400">
-                    {humanize(line.basis)}
+                    {basisWord(t, locale, line.basis)}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{humanize(line.verification_status)}</Badge>
+                    <Badge variant="outline">
+                      {verificationWord(t, locale, line.verification_status)}
+                    </Badge>
                   </TableCell>
                   <TableCell className="pr-5">
                     <Badge variant={line.is_expense ? "secondary" : "outline"}>
-                      {line.is_expense ? "Yes" : "No"}
+                      {line.is_expense ? t("oiYes") : t("oiNo")}
                     </Badge>
                   </TableCell>
                 </TableRow>
@@ -276,17 +302,14 @@ export function IntelligenceDetail({
       </Section>
 
       {detail.fx_assumptions.length > 0 ? (
-        <Section
-          title="FX assumptions"
-          description="Stored snapshots only. No current market rate is ever borrowed."
-        >
+        <Section title={t("oiFxTitle")} description={t("oiFxDesc")}>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-5">Pair</TableHead>
-                <TableHead className="text-right">Rate</TableHead>
-                <TableHead>Effective</TableHead>
-                <TableHead className="pr-5">Source</TableHead>
+                <TableHead className="pl-5">{t("oiColPair")}</TableHead>
+                <TableHead className="text-right">{t("oiColRate")}</TableHead>
+                <TableHead>{t("oiColEffective")}</TableHead>
+                <TableHead className="pr-5">{t("oiColSource")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -297,7 +320,7 @@ export function IntelligenceDetail({
                   </TableCell>
                   <TableCell className="text-right font-mono text-[11px]">{fx.rate}</TableCell>
                   <TableCell className="text-[10.5px] whitespace-nowrap text-mist-400">
-                    {formatTimestamp(fx.effective_at)}
+                    {formatTimestamp(fx.effective_at, locale)}
                   </TableCell>
                   <TableCell className="pr-5 text-[10.5px] text-mist-400">{fx.source}</TableCell>
                 </TableRow>
@@ -307,21 +330,18 @@ export function IntelligenceDetail({
         </Section>
       ) : null}
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Section
-          title="Purchase orders"
-          description="Only approved-or-later purchase orders are treated as committed."
-        >
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <Section title={t("oiPosTitle")} description={t("oiPosDesc")}>
           {detail.purchase_orders.length === 0 ? (
-            <None>No purchase order is linked to this order.</None>
+            <None>{t("oiNoPos")}</None>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="pl-5">PO</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="pr-5">Class</TableHead>
+                  <TableHead className="pl-5">{t("oiColPo")}</TableHead>
+                  <TableHead>{t("intColStatus")}</TableHead>
+                  <TableHead className="text-right">{t("oiColTotal")}</TableHead>
+                  <TableHead className="pr-5">{t("oiColClass")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -335,14 +355,14 @@ export function IntelligenceDetail({
                         {po.po_number}
                       </Link>
                       <span className="block text-[10px] text-mist-600">
-                        {po.supplier_name ?? "Supplier not recorded"}
+                        {po.supplier_name ?? t("oiSupplierNotRecorded")}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{humanize(po.status)}</Badge>
+                      <Badge variant="outline">{statusWord(t, locale, po.status)}</Badge>
                     </TableCell>
                     <TableCell className="text-right font-mono text-[11px]">
-                      {formatMoney(po.total_cost, po.currency)}
+                      {plainMoney(po.total_cost, po.currency)}
                     </TableCell>
                     <TableCell className="pr-5">
                       <ClassificationBadge value={po.classification} />
@@ -354,12 +374,9 @@ export function IntelligenceDetail({
           )}
         </Section>
 
-        <Section
-          title="Shipments and recorded costs"
-          description="QUOTED and ESTIMATED costs are forecasts; only INCURRED and DOCUMENTED enter the documented basis."
-        >
+        <Section title={t("oiShipTitle")} description={t("oiShipDesc")}>
           {detail.shipments.length === 0 ? (
-            <None>No shipment has been planned for this order.</None>
+            <None>{t("oiNoShipments")}</None>
           ) : (
             <div className="space-y-3">
               {detail.shipments.map((shipment) => (
@@ -371,26 +388,26 @@ export function IntelligenceDetail({
                     >
                       {shipment.shipment_number}
                     </Link>
-                    <Badge variant="outline">{humanize(shipment.status)}</Badge>
+                    <Badge variant="outline">{statusWord(t, locale, shipment.status)}</Badge>
                   </div>
                   {shipment.costs.length === 0 ? (
-                    <None>No cost recorded for this shipment.</None>
+                    <None>{t("oiNoShipmentCost")}</None>
                   ) : (
                     <Table>
                       <TableBody>
                         {shipment.costs.map((cost) => (
                           <TableRow key={cost.cost_id}>
                             <TableCell className="pl-5 text-[11px] text-mist-300">
-                              {humanize(cost.cost_type)}
+                              {costTypeWord(t, locale, cost.cost_type)}
                               <span className="block font-mono text-[10px] text-mist-600">
                                 {cost.reference}
                               </span>
                             </TableCell>
                             <TableCell>
-                              <Badge variant="outline">{cost.stage}</Badge>
+                              <Badge variant="outline">{stageWord(t, locale, cost.stage)}</Badge>
                             </TableCell>
                             <TableCell className="text-right font-mono text-[11px]">
-                              {formatMoney(cost.amount, cost.currency)}
+                              {plainMoney(cost.amount, cost.currency)}
                             </TableCell>
                             <TableCell className="pr-5">
                               <ClassificationBadge value={cost.classification} />
@@ -408,16 +425,24 @@ export function IntelligenceDetail({
       </div>
 
       <Section
-        title={`Accepted quote ${detail.quote.quote_number} · revision ${detail.quote.revision}`}
-        description={`${detail.quote.incoterm} ${detail.quote.named_delivery_place} · ${detail.quote.payment_terms} · valid until ${formatDate(detail.quote.valid_until)}`}
+        title={t("oiQuoteTitle", {
+          number: detail.quote.quote_number,
+          revision: detail.quote.revision,
+        })}
+        description={t("oiQuoteDesc", {
+          incoterm: detail.quote.incoterm,
+          place: detail.quote.named_delivery_place,
+          terms: detail.quote.payment_terms,
+          date: formatDate(detail.quote.valid_until, locale),
+        })}
       >
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="pl-5">Description</TableHead>
-              <TableHead className="text-right">Quantity</TableHead>
-              <TableHead className="text-right">Unit price</TableHead>
-              <TableHead className="pr-5 text-right">Line total</TableHead>
+              <TableHead className="pl-5">{t("oiColDescription")}</TableHead>
+              <TableHead className="text-right">{t("oiColQuantity")}</TableHead>
+              <TableHead className="text-right">{t("oiColUnitPrice")}</TableHead>
+              <TableHead className="pr-5 text-right">{t("oiColLineTotal")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -425,13 +450,13 @@ export function IntelligenceDetail({
               <TableRow key={`${line.product_id}-${line.description}`}>
                 <TableCell className="pl-5 text-[11px] text-mist-200">{line.description}</TableCell>
                 <TableCell className="text-right font-mono text-[11px]">
-                  {formatQuantity(line.quantity, line.unit)}
+                  {formatQuantity(line.quantity, line.unit, locale)}
                 </TableCell>
                 <TableCell className="text-right font-mono text-[11px]">
-                  {formatMoney(line.unit_price, detail.quote.currency)}
+                  {plainMoney(line.unit_price, detail.quote.currency)}
                 </TableCell>
                 <TableCell className="pr-5 text-right font-mono text-[11px]">
-                  {formatMoney(line.line_total, detail.quote.currency)}
+                  {plainMoney(line.line_total, detail.quote.currency)}
                 </TableCell>
               </TableRow>
             ))}
@@ -439,21 +464,18 @@ export function IntelligenceDetail({
         </Table>
       </Section>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Section
-          title="Reconciliation timeline"
-          description="Every Stage 5D snapshot for this order, newest first."
-        >
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <Section title={t("oiRunsTitle")} description={t("oiRunsDesc")}>
           {detail.runs.length === 0 ? (
-            <None>No reconciliation run exists for this order.</None>
+            <None>{t("oiNoRuns")}</None>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="pl-5">Run</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Evidence</TableHead>
-                  <TableHead className="pr-5 text-right">Open</TableHead>
+                  <TableHead className="pl-5">{t("oiColRun")}</TableHead>
+                  <TableHead>{t("intColStatus")}</TableHead>
+                  <TableHead className="text-right">{t("oiColEvidence")}</TableHead>
+                  <TableHead className="pr-5 text-right">{t("intColOpen")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -464,12 +486,12 @@ export function IntelligenceDetail({
                         href={`/finance/reconciliation/${run.run_id}`}
                         className="font-mono text-[11px] text-accent-200 hover:text-accent-100"
                       >
-                        {formatDate(run.as_of)}
+                        {formatDate(run.as_of, locale)}
                       </Link>
                       <span className="block text-[10px] text-mist-600">
                         {run.latest_decision
-                          ? `${humanize(run.latest_decision)} · ${formatTimestamp(run.latest_review_at ?? null)}`
-                          : "Not reviewed"}
+                          ? `${decisionWord(t, locale, run.latest_decision)} · ${formatTimestamp(run.latest_review_at ?? null, locale)}`
+                          : t("oiNotReviewed")}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -488,19 +510,16 @@ export function IntelligenceDetail({
           )}
         </Section>
 
-        <Section
-          title="Finance evidence"
-          description="Operator-linked Finance source references. A link is evidence, not an accounting entry."
-        >
+        <Section title={t("oiEvidenceTitle")} description={t("oiEvidenceDesc")}>
           {detail.evidence.length === 0 ? (
-            <None>No Finance source has been linked to this order.</None>
+            <None>{t("oiNoEvidence")}</None>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="pl-5">Reference</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="pr-5">Verification</TableHead>
+                  <TableHead className="pl-5">{t("oiColReference")}</TableHead>
+                  <TableHead className="text-right">{t("oiColAmount")}</TableHead>
+                  <TableHead className="pr-5">{t("oiColVerification")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -511,12 +530,14 @@ export function IntelligenceDetail({
                         {item.finance_source_reference}
                       </span>
                       <span className="block text-[10px] text-mist-600">
-                        {humanize(item.finance_source_type)} · through{" "}
-                        {formatDate(item.data_through ?? null)}
+                        {t("oiEvidenceThrough", {
+                          type: sourceTypeWord(t, locale, item.finance_source_type),
+                          date: formatDate(item.data_through ?? null, locale),
+                        })}
                       </span>
                     </TableCell>
                     <TableCell className="text-right font-mono text-[11px]">
-                      {formatMoney(item.amount, item.currency)}
+                      {plainMoney(item.amount, item.currency)}
                     </TableCell>
                     <TableCell className="pr-5">
                       <Badge
@@ -528,7 +549,9 @@ export function IntelligenceDetail({
                               : "outline"
                         }
                       >
-                        {item.verification_status}
+                        {locale === "tr"
+                          ? operationsStatusText(t, item.verification_status)
+                          : item.verification_status}
                       </Badge>
                     </TableCell>
                   </TableRow>
@@ -541,10 +564,8 @@ export function IntelligenceDetail({
 
       <div className="panel overflow-hidden">
         <div className="px-4 py-3">
-          <p className="eyebrow">Exceptions for this order</p>
-          <p className="mt-1 text-[11px] text-mist-500">
-            Resolving an item records a note; it never changes Finance.
-          </p>
+          <p className="eyebrow">{t("oiExceptionsTitle")}</p>
+          <p className="mt-1 text-[11px] text-mist-500">{t("oiExceptionsNote")}</p>
         </div>
         <div className="hairline" />
         <IntelligenceExceptionsTable
@@ -554,10 +575,8 @@ export function IntelligenceDetail({
         />
       </div>
 
-      <Alert variant="info" title="How to read this page">
-        Estimated, committed and documented values are separate bases. A missing input keeps a
-        figure “Not available” rather than becoming zero, and nothing here is converted at a rate
-        that was not stored with the order.
+      <Alert variant="info" title={t("oiHowToReadTitle")}>
+        {t("oiHowToRead")}
       </Alert>
     </div>
   );

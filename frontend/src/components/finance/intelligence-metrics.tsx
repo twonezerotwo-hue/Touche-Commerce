@@ -1,13 +1,19 @@
+"use client";
+
 import { ClassificationBadge } from "@/components/finance/reconciliation-status-badge";
 import { Badge } from "@/components/ui/badge";
 import { completenessTone, metricLines, type IntelligenceMetric } from "@/lib/finance/intelligence";
+import { completenessWord, metricTexts } from "@/lib/finance/intelligence-text";
+import { useLocale } from "@/lib/i18n/locale-provider";
 
 /**
  * One analysis metric. Money and percentages are listed per currency and are
  * never summed; an unavailable metric says so in words instead of showing 0.
  */
 export function MetricCard({ metric }: { metric: IntelligenceMetric }) {
-  const lines = metricLines(metric);
+  const { t, locale } = useLocale();
+  const lines = metricLines(metric, locale);
+  const { label, meaning } = metricTexts(t, locale, metric);
   const kind =
     lines.length === 0
       ? "UNAVAILABLE"
@@ -17,14 +23,16 @@ export function MetricCard({ metric }: { metric: IntelligenceMetric }) {
   return (
     <div className="panel p-4" data-metric={metric.key}>
       <div className="flex items-start justify-between gap-3">
-        <p className="eyebrow">{metric.label}</p>
+        <p className="eyebrow">{label}</p>
         {/* The API names a metric's kind. With no figure to show it must not wear that label,
             and VERIFIED is a reviewer's decision on one run: a coverage ratio cannot carry it
             (a 0.00% coverage under a green VERIFIED badge reads as a claim). */}
         {kind ? <ClassificationBadge value={kind} /> : null}
       </div>
       {lines.length === 0 ? (
-        <p className="mt-3 font-display text-[20px] leading-none text-mist-500">Not available</p>
+        <p className="mt-3 font-display text-[20px] leading-none text-mist-500">
+          {t("intNotAvailable")}
+        </p>
       ) : (
         <ul className="mt-3 space-y-1.5">
           {lines.map((line) => (
@@ -46,9 +54,11 @@ export function MetricCard({ metric }: { metric: IntelligenceMetric }) {
           ))}
         </ul>
       )}
-      <p className="mt-3 text-[11px] leading-relaxed text-mist-500">{metric.meaning}</p>
+      <p className="mt-3 text-[11px] leading-relaxed text-mist-500">{meaning}</p>
       <div className="mt-2">
-        <Badge variant={completenessTone(metric.completeness)}>{metric.completeness}</Badge>
+        <Badge variant={completenessTone(metric.completeness)}>
+          {completenessWord(t, metric.completeness)}
+        </Badge>
       </div>
     </div>
   );
