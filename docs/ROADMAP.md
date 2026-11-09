@@ -509,6 +509,8 @@ locale, stable codes and UTC timestamps stored. Delivered in small, separately m
 |---|---|---|
 | 12A–12D | Mechanism, shell, sign-in, dashboard, import, company, documents, CRM, products, deals, sales orders | merged |
 | 12E | Sourcing and pricing: RFQ, supplier quotes, landed cost, sales quotes, FX; locale-aware money, numbers, dates | merged |
-| 12F | Purchase orders, shipments, trade-document register (and the upload/verify components the order page shares) | this batch |
-| 12G | Finance, intelligence, AI Office, communications | planned |
+| 12F | Purchase orders, shipments, trade-document register (and the upload/verify components the order page shares) | merged (PR 39) |
+| 12G1 | Finance ledger, reconciliation, discrepancies, order finance view | this batch |
+| 12G2 | Financial intelligence: dashboard, charts, order profitability, exceptions, CSV export | planned |
+| 12G3 | AI Office and communications | planned |
 | 12H | Account, company selection, status page, page titles, remaining dates, final audit | planned |
