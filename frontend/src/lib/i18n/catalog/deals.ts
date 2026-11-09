@@ -25,7 +25,6 @@ export const dealsEn = {
   dealsShowingMany: "Showing {count} deals on this page",
   dealsOlder: "older deals available",
   dealsEnd: "end of list",
-  dealCountOne: "{count} deal",
   newDealReadOnlyDescription:
     "Creating a deal requires the trade.write permission, granted to the trader role.",
   newDealReadOnlyBody: "Ask an administrator for a membership with trade.write to open deals.",
@@ -138,7 +137,6 @@ export const dealsTr: Record<keyof typeof dealsEn, string> = {
   dealsShowingMany: "Bu sayfada {count} anlaşma gösteriliyor",
   dealsOlder: "daha eski anlaşmalar var",
   dealsEnd: "listenin sonu",
-  dealCountOne: "{count} anlaşma",
   newDealReadOnlyDescription:
     "Anlaşma oluşturmak için satış (trader) rolüne verilen trade.write yetkisi gerekir.",
   newDealReadOnlyBody:

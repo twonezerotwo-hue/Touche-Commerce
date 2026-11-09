@@ -173,7 +173,7 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
         )}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
         <div className="space-y-4">
           <div className="panel overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4.5 pb-3">

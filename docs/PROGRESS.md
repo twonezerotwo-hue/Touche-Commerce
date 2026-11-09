@@ -26,6 +26,12 @@ Evidence, not claims. Full matrix: `docs/STAGE11_20_STATUS.md`; operator guide: 
 * **12E** Sourcing and pricing in Turkish (RFQ, supplier quotes, landed cost, sales quotes, FX), with
   locale-aware numbers and dates (`tr-TR` separators and month names; UTC; amounts unchanged).
   Frontend 266 tests, backend 724 collected.
+* **12F** Purchase orders, shipments and the trade-document register in Turkish (lists, details,
+  procurement and milestone workflows, shipment planner, cost/reference forms, upload and
+  verify/archive). Found and fixed on the way: the shipment planner offered the *undelivered*
+  quantity instead of the *unallocated* one, and the document, order, purchase-order and shipment
+  pages scrolled sideways on a phone. Frontend 286 tests; Chromium browser suite 50 passed, 5 live
+  specs skipped. **WebKit was not run for 12F** (the build could not be downloaded here).
 * **13** CSV/XLSX import wizard (atomic, idempotent), company profile (migration 0014), TR/EN
   documents in four formats; Commerce invoices are always drafts.
 * **16** Local `qwen3:8b` fallback verified live; DeepSeek not connected (no key).

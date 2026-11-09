@@ -175,7 +175,7 @@ export function IntelligenceDetail({
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Section
           title="Completion checks"
           description="Each check is a fact about the stored data, not an opinion."

@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { documentTypeText } from "@/lib/i18n/value-labels";
 import { uploadDocument } from "@/lib/operations/client";
 import { formatBytes } from "@/lib/operations/format";
 import { DOCUMENT_TYPES, type DocumentType, type LinkedEntityType } from "@/lib/operations/types";
@@ -46,6 +48,7 @@ export function DocumentUpload({
   entityLabel: string;
 }) {
   const router = useRouter();
+  const { t, locale } = useLocale();
   const [documentType, setDocumentType] = useState<DocumentType>("DELIVERY_CONFIRMATION");
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -57,17 +60,20 @@ export function DocumentUpload({
     setError(null);
     setNotice(null);
     if (!file) {
-      setError("Choose a file to upload.");
+      setError(t("dupChooseFile"));
       return;
     }
     if (file.size > maxBytes) {
-      setError(`This file is ${formatBytes(file.size)}; the limit is ${formatBytes(maxBytes)}.`);
+      setError(
+        t("dupTooLarge", {
+          size: formatBytes(file.size, locale),
+          limit: formatBytes(maxBytes, locale),
+        }),
+      );
       return;
     }
     if (!ACCEPTED.includes(file.type)) {
-      setError(
-        "That content type is not accepted. Use PDF, PNG, JPEG, CSV, plain text, DOCX or XLSX.",
-      );
+      setError(t("dupBadType"));
       return;
     }
 
@@ -82,23 +88,24 @@ export function DocumentUpload({
     const result = await uploadDocument(form, csrfToken);
     setPending(false);
     if (!result.ok) {
-      setError(
-        result.code === "PAYLOAD_TOO_LARGE"
-          ? "The upload is larger than the configured limit."
-          : result.message,
-      );
+      setError(result.code === "PAYLOAD_TOO_LARGE" ? t("dupOverLimit") : result.message);
       return;
     }
     setFile(null);
     setTitle("");
-    setNotice(`Stored as version ${result.data.version} (${formatBytes(result.data.size_bytes)}).`);
+    setNotice(
+      t("dupStored", {
+        version: result.data.version,
+        size: formatBytes(result.data.size_bytes, locale),
+      }),
+    );
     router.refresh();
   }
 
   if (!canWrite) {
     return (
-      <Alert variant="info" title="Read-only access">
-        Uploading requires <span className="font-mono">trade.write</span>.
+      <Alert variant="info" title={t("readOnlyAccess")}>
+        {t("dupReadOnly")}
       </Alert>
     );
   }
@@ -110,7 +117,7 @@ export function DocumentUpload({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="document-type">Document type</Label>
+          <Label htmlFor="document-type">{t("dupDocumentType")}</Label>
           <Select
             id="document-type"
             value={documentType}
@@ -118,23 +125,23 @@ export function DocumentUpload({
           >
             {DOCUMENT_TYPES.map((value) => (
               <option key={value} value={value}>
-                {value.replaceAll("_", " ").toLowerCase()}
+                {documentTypeText(t, value)}
               </option>
             ))}
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="document-title">Title (optional)</Label>
+          <Label htmlFor="document-title">{t("dupTitle")}</Label>
           <Input
             id="document-title"
             value={title}
             maxLength={200}
             onChange={(event) => setTitle(event.target.value)}
-            placeholder="Signed proof of delivery"
+            placeholder={t("dupTitlePlaceholder")}
           />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="document-file">File</Label>
+          <Label htmlFor="document-file">{t("dupFile")}</Label>
           <Input
             id="document-file"
             type="file"
@@ -142,8 +149,7 @@ export function DocumentUpload({
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />
           <p className="text-[10px] text-mist-600">
-            Attached to {entityLabel}. Maximum {formatBytes(maxBytes)}. Files are stored privately
-            and served only through an authorised download.
+            {t("dupHint", { entity: entityLabel, max: formatBytes(maxBytes, locale) })}
           </p>
         </div>
       </div>
@@ -154,7 +160,7 @@ export function DocumentUpload({
         ) : (
           <Upload className="size-3.5" aria-hidden />
         )}
-        {pending ? "Uploading…" : "Upload document"}
+        {pending ? t("dupUploading") : t("dupUpload")}
       </Button>
     </div>
   );

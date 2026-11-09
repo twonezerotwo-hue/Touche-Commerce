@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { formatPercent } from "@/lib/sourcing/format";
-import { formatDate, formatMoney, formatQuantity, formatTimestamp } from "@/lib/trade/format";
+import {
+  formatDate,
+  formatMoney,
+  formatQuantity,
+  formatTimestamp,
+  toLocalInputValue,
+} from "@/lib/trade/format";
 
 import { intlTag } from "./intl";
 
@@ -44,5 +50,12 @@ describe("locale-aware number and date formats", () => {
     expect(formatPercent("n/a", "tr")).toBe("n/a");
     expect(formatDate("soon", "tr")).toBe("soon");
     expect(formatDate(null, "tr")).toBe("—");
+  });
+
+  it("fills a date-time input with the machine's own clock, not UTC", () => {
+    const moment = new Date(2026, 9, 24, 14, 5); // 24 Oct 2026, 14:05 local time
+    expect(toLocalInputValue(moment)).toBe("2026-10-24T14:05");
+    // Reading the field back as local time must give the same instant it started from.
+    expect(new Date(toLocalInputValue(moment)).getTime()).toBe(moment.getTime());
   });
 });

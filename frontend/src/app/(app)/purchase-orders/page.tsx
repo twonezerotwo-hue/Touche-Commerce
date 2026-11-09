@@ -17,11 +17,13 @@ import {
 } from "@/components/ui/table";
 import { serverGet } from "@/lib/api/server";
 import { loadSession } from "@/lib/auth/session";
+import { getServerT, titleFor } from "@/lib/i18n/server";
+import { operationsStatusText } from "@/lib/i18n/value-labels";
 import { PURCHASE_ORDER_STATUSES, type PurchaseOrderList } from "@/lib/operations/types";
 import { formatDate, formatMoney, formatTimestamp, withQuery } from "@/lib/trade/format";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Purchase orders" };
+export const generateMetadata = () => titleFor("poBreadcrumb");
 
 const PAGE_SIZE = 25;
 
@@ -32,6 +34,7 @@ export default async function PurchaseOrdersPage({
 }) {
   const state = await loadSession();
   if (state.status !== "authenticated") return null;
+  const { t, locale } = await getServerT();
 
   const params = await searchParams;
   const query = new URLSearchParams({ limit: String(PAGE_SIZE) });
@@ -44,13 +47,13 @@ export default async function PurchaseOrdersPage({
   return (
     <div className="mx-auto max-w-[1360px] space-y-5">
       <PageHeader
-        eyebrow="Execution"
-        meta={<Badge variant="secondary">Procurement</Badge>}
-        title="Supplier purchase orders"
-        description="Optional procurement for purchase-and-resale orders. A draft is never treated as sent: dispatch is recorded with a channel, a timestamp and an external reference."
+        eyebrow={t("opsEyebrow")}
+        meta={<Badge variant="secondary">{t("poBadge")}</Badge>}
+        title={t("poTitle")}
+        description={t("poDescription")}
         actions={
           <Button asChild variant="outline" size="sm">
-            <Link href="/orders">Sales orders</Link>
+            <Link href="/orders">{t("ordTitle")}</Link>
           </Button>
         }
       />
@@ -63,7 +66,7 @@ export default async function PurchaseOrdersPage({
         >
           <div className="space-y-1">
             <label htmlFor="po-filter-status" className="eyebrow">
-              Status
+              {t("columnStatus")}
             </label>
             <Select
               id="po-filter-status"
@@ -71,20 +74,20 @@ export default async function PurchaseOrdersPage({
               defaultValue={filters.status}
               className="h-8 w-[190px] text-[12px]"
             >
-              <option value="">All statuses</option>
+              <option value="">{t("filterAllStatuses")}</option>
               {PURCHASE_ORDER_STATUSES.map((status) => (
                 <option key={status} value={status}>
-                  {status.replaceAll("_", " ")}
+                  {operationsStatusText(t, status)}
                 </option>
               ))}
             </Select>
           </div>
           <Button type="submit" size="sm" variant="subtle">
-            Apply
+            {t("actionApply")}
           </Button>
           {filters.status ? (
             <Button asChild size="sm" variant="ghost">
-              <Link href="/purchase-orders">Clear</Link>
+              <Link href="/purchase-orders">{t("actionClear")}</Link>
             </Button>
           ) : null}
         </form>
@@ -93,16 +96,13 @@ export default async function PurchaseOrdersPage({
 
         {!result.ok ? (
           <div className="p-4">
-            <Alert variant="danger" title="Purchase orders unavailable">
+            <Alert variant="danger" title={t("poUnavailable")}>
               {result.message}
             </Alert>
           </div>
         ) : result.data.items.length === 0 ? (
           <div className="p-4">
-            <EmptyState
-              title="No purchase orders yet"
-              description="A purchase order is created against a confirmed sales order when TOUCHE is the buyer. Brokerage deals never need one."
-            />
+            <EmptyState title={t("poNone")} description={t("poNoneHint")} />
           </div>
         ) : null}
 
@@ -110,13 +110,13 @@ export default async function PurchaseOrdersPage({
           <Table bare>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-4">PO</TableHead>
-                <TableHead>Supplier</TableHead>
-                <TableHead>Sales order</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Cost</TableHead>
-                <TableHead>Expected dispatch</TableHead>
-                <TableHead className="pr-4 text-right">Updated</TableHead>
+                <TableHead className="pl-4">{t("poColPo")}</TableHead>
+                <TableHead>{t("poColSupplier")}</TableHead>
+                <TableHead>{t("lgSalesOrder")}</TableHead>
+                <TableHead>{t("columnStatus")}</TableHead>
+                <TableHead className="text-right">{t("poColCost")}</TableHead>
+                <TableHead>{t("poColExpectedDispatch")}</TableHead>
+                <TableHead className="pr-4 text-right">{t("columnUpdated")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -142,13 +142,13 @@ export default async function PurchaseOrdersPage({
                     <OperationsStatusBadge status={po.status} />
                   </TableCell>
                   <TableCell className="text-right whitespace-nowrap text-[12px] text-mist-200">
-                    {formatMoney(po.total_cost, po.currency)}
+                    {formatMoney(po.total_cost, po.currency, locale)}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-[11px] text-mist-400">
-                    {formatDate(po.expected_dispatch_date)}
+                    {formatDate(po.expected_dispatch_date, locale)}
                   </TableCell>
                   <TableCell className="pr-4 text-right font-mono text-[10.5px] whitespace-nowrap text-mist-600">
-                    {formatTimestamp(po.updated_at)}
+                    {formatTimestamp(po.updated_at, locale)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -157,13 +157,11 @@ export default async function PurchaseOrdersPage({
         ) : null}
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-3">
-          <p className="text-[10.5px] text-mist-600">
-            Nothing is emailed or messaged to a supplier by this platform.
-          </p>
+          <p className="text-[10.5px] text-mist-600">{t("poFooter")}</p>
           <div className="flex items-center gap-3">
             {params.cursor ? (
               <Button asChild variant="ghost" size="xs">
-                <Link href={withQuery("/purchase-orders", filters)}>First page</Link>
+                <Link href={withQuery("/purchase-orders", filters)}>{t("pageFirst")}</Link>
               </Button>
             ) : null}
             {result.ok && result.data.has_more && result.data.next_cursor ? (
@@ -174,7 +172,7 @@ export default async function PurchaseOrdersPage({
                     cursor: result.data.next_cursor,
                   })}
                 >
-                  Next page
+                  {t("pageNextPage")}
                 </Link>
               </Button>
             ) : null}

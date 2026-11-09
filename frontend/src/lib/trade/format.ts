@@ -123,6 +123,16 @@ export function formatTimestamp(value: string | null, locale: Locale = "en"): st
   }).format(date);
 }
 
+/**
+ * `YYYY-MM-DDTHH:mm` in the machine's own time zone: the value a `datetime-local` input expects.
+ * `toISOString()` is UTC, so using it for a default shifts the field by the UTC offset and the
+ * recorded instant ends up hours away from "now".
+ */
+export function toLocalInputValue(date: Date = new Date()): string {
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
 /** Build a same-page URL keeping only meaningful query parameters. */
 export function withQuery(base: string, params: Record<string, string | null | undefined>): string {
   const search = new URLSearchParams();

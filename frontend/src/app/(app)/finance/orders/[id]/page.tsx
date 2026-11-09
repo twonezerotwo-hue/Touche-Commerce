@@ -151,7 +151,7 @@ export default async function OrderFinancePage({ params }: { params: Promise<{ i
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardHeading>
@@ -292,7 +292,7 @@ export default async function OrderFinancePage({ params }: { params: Promise<{ i
         )}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <div className="panel p-4">
           <p className="eyebrow">Missing evidence and gaps</p>
           {data.missing_evidence.length === 0 ? (
